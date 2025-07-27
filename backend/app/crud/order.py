@@ -117,10 +117,36 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         return db.query(Order).filter(Order.tracking_token == tracking_token).first()
     
     def update_status(self, db: Session, *, db_obj: Order, status: OrderStatus) -> Order:
+        old_status = db_obj.status
         db_obj.status = status
+        
+        # Обрабатываем изменения связанные с резервированием/списанием
+        if status == OrderStatus.delivered and old_status != OrderStatus.delivered:
+            # При доставке заказа - списываем товары
+            self._write_off_order_items(db, db_obj)
+        elif status == OrderStatus.cancelled and old_status != OrderStatus.cancelled:
+            # При отмене заказа - отменяем резервирование
+            self._unreserve_order_items(db, db_obj)
+        
         db.commit()
         db.refresh(db_obj)
         return db_obj
+    
+    def _write_off_order_items(self, db: Session, order: Order):
+        """Списывает все позиции заказа"""
+        from app.crud.order_item import order_item as crud_order_item
+        
+        for item in order.items:
+            if item.is_reserved and not item.is_written_off:
+                crud_order_item.write_off_item(db, db_obj=item)
+    
+    def _unreserve_order_items(self, db: Session, order: Order):
+        """Отменяет резервирование всех позиций заказа"""
+        from app.crud.order_item import order_item as crud_order_item
+        
+        for item in order.items:
+            if item.is_reserved:
+                crud_order_item.unreserve_item(db, db_obj=item)
     
     def report_issue(
         self,

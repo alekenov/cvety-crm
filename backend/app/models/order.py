@@ -92,6 +92,16 @@ class OrderItem(Base):
     price = Column(Float, nullable=False)  # Price per unit at order time
     total = Column(Float, nullable=False)
     
+    # Warehouse tracking
+    warehouse_item_id = Column(Integer, ForeignKey("warehouse_items.id"))
+    is_reserved = Column(Boolean, default=False)
+    is_written_off = Column(Boolean, default=False)
+    
+    # Timestamps
+    reserved_at = Column(DateTime(timezone=True))
+    written_off_at = Column(DateTime(timezone=True))
+    
     # Relationships
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items")
+    warehouse_item = relationship("WarehouseItem")
