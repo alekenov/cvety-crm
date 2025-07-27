@@ -3,3 +3,6 @@ from .order_item import order_item
 from .warehouse import warehouse
 from .product import product
 from .customer import customer
+from .florist_task import florist_task
+from .task_item import task_item
+from .settings import settings
