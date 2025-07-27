@@ -1,12 +1,13 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 import secrets
 
 from app.crud.base import CRUDBase
 from app.models.order import Order, OrderStatus, IssueType
-from app.schemas.order import OrderCreate, OrderUpdate
+from app.schemas.order import OrderCreate, OrderUpdate, OrderCreateWithItems
 from app.crud.customer import customer as crud_customer
+from app.models.product import Product
 
 
 def generate_tracking_token() -> str:
@@ -14,7 +15,7 @@ def generate_tracking_token() -> str:
 
 
 class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
-    def create(self, db: Session, *, obj_in: OrderCreate) -> Order:
+    def create(self, db: Session, *, obj_in: Union[OrderCreate, OrderCreateWithItems]) -> Order:
         # Get or create customer
         customer = crud_customer.get_or_create(
             db,
@@ -31,8 +32,28 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
                 "to": obj_in.delivery_window.to_time.isoformat() if obj_in.delivery_window.to_time else None
             }
         
+        # Check if this is a create with items
+        items_data = []
+        if isinstance(obj_in, OrderCreateWithItems):
+            items_data = obj_in.items
+            obj_dict = obj_in.dict(exclude={"delivery_window", "items"})
+        else:
+            obj_dict = obj_in.dict(exclude={"delivery_window"})
+        
+        # If creating with items, calculate totals
+        if items_data:
+            flower_sum = 0
+            for item in items_data:
+                product = db.query(Product).filter(Product.id == item.product_id).first()
+                if product:
+                    flower_sum += product.retail_price * item.quantity
+            
+            # Update the order total
+            obj_dict["flower_sum"] = flower_sum
+            obj_dict["total"] = flower_sum + obj_dict.get("delivery_fee", 0)
+        
         db_obj = Order(
-            **obj_in.dict(exclude={"delivery_window"}),
+            **obj_dict,
             delivery_window=delivery_window_json,
             tracking_token=generate_tracking_token(),
             customer_id=customer.id
@@ -40,6 +61,17 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
+        
+        # Create order items if provided
+        if items_data:
+            from app.crud.order_item import order_item as crud_order_item
+            
+            for item_data in items_data:
+                crud_order_item.create_for_order(
+                    db,
+                    order_id=db_obj.id,
+                    obj_in=item_data
+                )
         
         # Update customer statistics
         crud_customer.update_statistics(db, customer_id=customer.id)

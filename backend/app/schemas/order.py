@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from pydantic import BaseModel
 
 from app.models.order import OrderStatus, DeliveryMethod, IssueType
@@ -92,3 +92,51 @@ class OrderResponse(OrderInDB):
 class OrderList(BaseModel):
     items: list[OrderResponse]
     total: int
+
+
+# OrderItem schemas
+class OrderItemBase(BaseModel):
+    product_id: int
+    quantity: int
+    price: float
+    total: float
+    product_name: str
+    product_category: str
+
+
+class OrderItemCreate(BaseModel):
+    product_id: int
+    quantity: int
+
+
+class OrderItemUpdate(BaseModel):
+    quantity: Optional[int] = None
+
+
+class OrderItemInDB(OrderItemBase):
+    id: int
+    order_id: int
+    
+    class Config:
+        from_attributes = True
+
+
+class OrderItemResponse(OrderItemInDB):
+    pass
+
+
+# Extended Order schemas with items
+class OrderCreateWithItems(BaseModel):
+    customer_phone: str
+    recipient_phone: Optional[str] = None
+    recipient_name: Optional[str] = None
+    address: Optional[str] = None
+    delivery_method: DeliveryMethod
+    delivery_fee: float = 0
+    items: List[OrderItemCreate]
+    delivery_window: Optional[DeliveryWindow] = None
+
+
+class OrderResponseWithItems(OrderResponse):
+    items: List[OrderItemResponse] = []
+    customer_id: Optional[int] = None

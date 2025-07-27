@@ -10,7 +10,12 @@ from app.schemas.order import (
     OrderResponse, 
     OrderList,
     OrderStatusUpdate,
-    OrderIssueUpdate
+    OrderIssueUpdate,
+    OrderCreateWithItems,
+    OrderResponseWithItems,
+    OrderItemResponse,
+    OrderItemCreate,
+    OrderItemUpdate
 )
 from app.models.order import OrderStatus
 
@@ -49,7 +54,7 @@ def get_orders(
     }
 
 
-@router.get("/{order_id}", response_model=OrderResponse)
+@router.get("/{order_id}", response_model=OrderResponseWithItems)
 def get_order(
     order_id: int,
     db: Session = Depends(deps.get_db)
@@ -57,7 +62,7 @@ def get_order(
     order = crud.order.get(db, id=order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return OrderResponse.model_validate(order)
+    return OrderResponseWithItems.model_validate(order)
 
 
 @router.post("/", response_model=OrderResponse)
@@ -119,3 +124,105 @@ def mark_order_issue(
     if not db_order:
         raise HTTPException(status_code=404, detail="Order not found")
     return OrderResponse.model_validate(db_order)
+
+
+# New endpoint to create order with items
+@router.post("/with-items", response_model=OrderResponseWithItems)
+def create_order_with_items(
+    order: OrderCreateWithItems,
+    db: Session = Depends(deps.get_db)
+):
+    db_order = crud.order.create(db, obj_in=order)
+    return OrderResponseWithItems.model_validate(db_order)
+
+
+# Order Items endpoints
+@router.get("/{order_id}/items", response_model=list[OrderItemResponse])
+def get_order_items(
+    order_id: int,
+    db: Session = Depends(deps.get_db)
+):
+    order = crud.order.get(db, id=order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    from app.crud.order_item import order_item as crud_order_item
+    items = crud_order_item.get_by_order(db, order_id=order_id)
+    return items
+
+
+@router.post("/{order_id}/items", response_model=OrderItemResponse)
+def add_order_item(
+    order_id: int,
+    item: OrderItemCreate,
+    db: Session = Depends(deps.get_db)
+):
+    order = crud.order.get(db, id=order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    from app.crud.order_item import order_item as crud_order_item
+    db_item = crud_order_item.create_for_order(
+        db,
+        order_id=order_id,
+        obj_in=item
+    )
+    
+    # Update order totals
+    order.flower_sum = sum(item.total for item in order.items)
+    order.total = order.flower_sum + order.delivery_fee
+    db.commit()
+    
+    return db_item
+
+
+@router.patch("/{order_id}/items/{item_id}", response_model=OrderItemResponse)
+def update_order_item(
+    order_id: int,
+    item_id: int,
+    item_update: OrderItemUpdate,
+    db: Session = Depends(deps.get_db)
+):
+    from app.crud.order_item import order_item as crud_order_item
+    
+    db_item = crud_order_item.get(db, id=item_id)
+    if not db_item or db_item.order_id != order_id:
+        raise HTTPException(status_code=404, detail="Order item not found")
+    
+    if item_update.quantity is not None:
+        db_item = crud_order_item.update_quantity(
+            db,
+            db_obj=db_item,
+            quantity=item_update.quantity
+        )
+        
+        # Update order totals
+        order = crud.order.get(db, id=order_id)
+        order.flower_sum = sum(item.total for item in order.items)
+        order.total = order.flower_sum + order.delivery_fee
+        db.commit()
+    
+    return db_item
+
+
+@router.delete("/{order_id}/items/{item_id}")
+def delete_order_item(
+    order_id: int,
+    item_id: int,
+    db: Session = Depends(deps.get_db)
+):
+    from app.crud.order_item import order_item as crud_order_item
+    
+    db_item = crud_order_item.get(db, id=item_id)
+    if not db_item or db_item.order_id != order_id:
+        raise HTTPException(status_code=404, detail="Order item not found")
+    
+    crud_order_item.remove(db, id=item_id)
+    
+    # Update order totals
+    order = crud.order.get(db, id=order_id)
+    order.flower_sum = sum(item.total for item in order.items)
+    order.total = order.flower_sum + order.delivery_fee
+    db.commit()
+    
+    return {"detail": "Order item deleted"}

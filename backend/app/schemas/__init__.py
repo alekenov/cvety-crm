@@ -1,6 +1,8 @@
 from .order import (
     OrderResponse, OrderCreate, OrderUpdate, OrderStatusUpdate, OrderIssueUpdate,
-    OrderStatus, DeliveryMethod, IssueType
+    OrderStatus, DeliveryMethod, IssueType,
+    OrderCreateWithItems, OrderResponseWithItems,
+    OrderItemBase, OrderItemCreate, OrderItemUpdate, OrderItemResponse
 )
 from .warehouse import (
     WarehouseItemResponse, WarehouseItemCreate, WarehouseItemUpdate,
