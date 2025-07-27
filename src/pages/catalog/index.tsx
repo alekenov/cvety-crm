@@ -1,6 +1,6 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus, Search, Filter, Grid3x3, List } from "lucide-react"
+import { Plus, Search, Filter, Grid3x3, List, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -23,105 +23,14 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { ProductCard } from "@/components/catalog/product-card"
 import { toast } from "sonner"
+import { productsApi } from "@/lib/api"
 import type { Product } from "@/lib/types"
-
-// Mock data
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    name: "Букет из 25 красных роз",
-    category: "bouquet",
-    description: "Классический букет из свежих красных роз",
-    imageUrl: "",
-    costPrice: 10000,
-    retailPrice: 15000,
-    salePrice: undefined,
-    isActive: true,
-    isPopular: true,
-    isNew: false,
-    createdAt: new Date("2024-01-01"),
-    updatedAt: new Date("2024-01-01")
-  },
-  {
-    id: "2",
-    name: "Композиция \"Весеннее настроение\"",
-    category: "composition",
-    description: "Яркая композиция с тюльпанами и нарциссами",
-    imageUrl: "",
-    costPrice: 8000,
-    retailPrice: 12000,
-    salePrice: 10000,
-    isActive: true,
-    isPopular: false,
-    isNew: true,
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-15")
-  },
-  {
-    id: "3",
-    name: "Орхидея в горшке",
-    category: "potted",
-    description: "Белая орхидея фаленопсис в керамическом горшке",
-    imageUrl: "",
-    costPrice: 12000,
-    retailPrice: 18000,
-    salePrice: undefined,
-    isActive: true,
-    isPopular: false,
-    isNew: false,
-    createdAt: new Date("2024-01-10"),
-    updatedAt: new Date("2024-01-10")
-  },
-  {
-    id: "4",
-    name: "Букет из 51 тюльпана",
-    category: "bouquet",
-    description: "Нежный букет из разноцветных тюльпанов",
-    imageUrl: "",
-    costPrice: 9000,
-    retailPrice: 13000,
-    salePrice: undefined,
-    isActive: true,
-    isPopular: true,
-    isNew: false,
-    createdAt: new Date("2024-01-05"),
-    updatedAt: new Date("2024-01-05")
-  },
-  {
-    id: "5",
-    name: "Композиция \"Лесная сказка\"",
-    category: "composition",
-    description: "Композиция с еловыми ветками и шишками",
-    imageUrl: "",
-    costPrice: 7000,
-    retailPrice: 11000,
-    salePrice: 9500,
-    isActive: false,
-    isPopular: false,
-    isNew: false,
-    createdAt: new Date("2023-12-20"),
-    updatedAt: new Date("2023-12-20")
-  },
-  {
-    id: "6",
-    name: "Суккуленты в кашпо",
-    category: "potted",
-    description: "Набор из 3 суккулентов в декоративном кашпо",
-    imageUrl: "",
-    costPrice: 4000,
-    retailPrice: 6500,
-    salePrice: undefined,
-    isActive: true,
-    isPopular: false,
-    isNew: true,
-    createdAt: new Date("2024-01-20"),
-    updatedAt: new Date("2024-01-20")
-  }
-]
 
 export function CatalogPage() {
   const navigate = useNavigate()
-  const [products] = useState<Product[]>(mockProducts)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("name")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -134,12 +43,42 @@ export function CatalogPage() {
     showOnSale: false
   })
 
+  // Fetch products on component mount
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await productsApi.getAll()
+        setProducts(response.items)
+      } catch (err) {
+        setError('Ошибка при загрузке товаров')
+        console.error('Error loading products:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProducts()
+  }, [])
+
   const handleEdit = (product: Product) => {
     navigate(`/catalog/${product.id}/edit`)
   }
 
-  const handleDelete = (product: Product) => {
-    toast.success(`Товар "${product.name}" удален`)
+  const handleDelete = async (product: Product) => {
+    if (!window.confirm(`Вы уверены, что хотите удалить товар "${product.name}"?`)) {
+      return
+    }
+
+    try {
+      await productsApi.delete(product.id)
+      setProducts(prev => prev.filter(p => p.id !== product.id))
+      toast.success(`Товар "${product.name}" удален`)
+    } catch (err) {
+      toast.error('Ошибка при удалении товара')
+      console.error('Error deleting product:', err)
+    }
   }
 
   const handleView = (product: Product) => {
@@ -159,7 +98,7 @@ export function CatalogPage() {
     }
 
     // Price range
-    const price = product.salePrice || product.retailPrice
+    const price = product.currentPrice
     if (price < filters.priceRange[0] || price > filters.priceRange[1]) {
       return false
     }
@@ -179,9 +118,9 @@ export function CatalogPage() {
       case "name":
         return a.name.localeCompare(b.name)
       case "price_asc":
-        return (a.salePrice || a.retailPrice) - (b.salePrice || b.retailPrice)
+        return a.currentPrice - b.currentPrice
       case "price_desc":
-        return (b.salePrice || b.retailPrice) - (a.salePrice || a.retailPrice)
+        return b.currentPrice - a.currentPrice
       case "date":
         return b.createdAt.getTime() - a.createdAt.getTime()
       default:
@@ -334,7 +273,19 @@ export function CatalogPage() {
       </div>
 
       {/* Products grid/list */}
-      {filteredProducts.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Загрузка товаров...</span>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Повторить попытку
+          </Button>
+        </div>
+      ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Товары не найдены</p>
           <Button 

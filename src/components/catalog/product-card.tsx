@@ -20,9 +20,7 @@ export function ProductCard({
   onView,
   className 
 }: ProductCardProps) {
-  const discountPercentage = product.salePrice 
-    ? Math.round((1 - product.salePrice / product.retailPrice) * 100)
-    : 0
+  const discountPercentage = product.discountPercentage || 0
 
   const categoryLabels = {
     bouquet: "Букет",
@@ -107,7 +105,7 @@ export function ProductCard({
               {product.salePrice ? (
                 <>
                   <span className="text-lg font-semibold">
-                    {product.salePrice.toLocaleString()} ₸
+                    {product.currentPrice.toLocaleString()} ₸
                   </span>
                   <span className="text-sm text-muted-foreground line-through">
                     {product.retailPrice.toLocaleString()} ₸
@@ -115,7 +113,7 @@ export function ProductCard({
                 </>
               ) : (
                 <span className="text-lg font-semibold">
-                  {product.retailPrice.toLocaleString()} ₸
+                  {product.currentPrice.toLocaleString()} ₸
                 </span>
               )}
             </div>
