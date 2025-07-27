@@ -8,8 +8,17 @@ export type OrderStatus =
 
 export type DeliveryMethod = 'delivery' | 'self_pickup'
 
+export interface ProductImage {
+  id: number
+  productId: number
+  imageUrl: string
+  isPrimary: boolean
+  sortOrder: number
+  createdAt: Date
+}
+
 export interface Product {
-  id: string
+  id: number
   name: string
   category: 'bouquet' | 'composition' | 'potted' | 'other'
   description?: string
@@ -18,10 +27,44 @@ export interface Product {
   retailPrice: number
   salePrice?: number
   isActive: boolean
-  isPopular?: boolean
-  isNew?: boolean
+  isPopular: boolean
+  isNew: boolean
   createdAt: Date
   updatedAt: Date
+  images: ProductImage[]
+  currentPrice: number
+  discountPercentage: number
+}
+
+export interface ProductWithStats extends Product {
+  totalOrders: number
+  totalRevenue: number
+}
+
+export interface ProductCreate {
+  name: string
+  category: 'bouquet' | 'composition' | 'potted' | 'other'
+  description?: string
+  imageUrl?: string
+  costPrice: number
+  retailPrice: number
+  salePrice?: number
+  isActive?: boolean
+  isPopular?: boolean
+  isNew?: boolean
+}
+
+export interface ProductUpdate {
+  name?: string
+  category?: 'bouquet' | 'composition' | 'potted' | 'other'
+  description?: string
+  imageUrl?: string
+  costPrice?: number
+  retailPrice?: number
+  salePrice?: number
+  isActive?: boolean
+  isPopular?: boolean
+  isNew?: boolean
 }
 
 export interface OrderItem {
@@ -146,6 +189,9 @@ export interface Customer {
 
 export type TaskStatus = 'pending' | 'in_progress' | 'completed'
 
+// Extended task statuses that backend supports (for production API)
+export type ExtendedTaskStatus = TaskStatus | 'assigned' | 'quality_check' | 'cancelled'
+
 export interface FloristTask {
   id: string
   orderId: string
@@ -159,7 +205,25 @@ export interface FloristTask {
   assignedTo?: string
   assignedAt?: Date
   completedAt?: Date
+  startedAt?: Date
   notes?: string
+  floristId?: number
+  floristNotes?: string
+  actualMinutes?: number
+  qualityScore?: number
+  qualityNotes?: string
+  isOverdue?: boolean
+  timeSpent?: number
+}
+
+export interface ProductionQueueStats {
+  pendingTasks: number
+  assignedTasks: number
+  inProgressTasks: number
+  overdueTasks: number
+  urgentTasks: number
+  tasksByType: Record<string, number>
+  tasksByPriority: Record<string, number>
 }
 
 export interface BouquetItem {
@@ -173,6 +237,7 @@ export interface BouquetItem {
 }
 
 export interface CompanySettings {
+  id?: number
   name: string
   address: string
   phones: string[]
@@ -185,6 +250,8 @@ export interface CompanySettings {
     name: string
     price: number
   }>
+  createdAt?: string
+  updatedAt?: string | null
 }
 
 export interface UserRole {
