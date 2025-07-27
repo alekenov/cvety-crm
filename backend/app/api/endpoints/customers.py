@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app import crud, schemas
 from app.api import deps
@@ -9,21 +10,31 @@ from app.models.order import Order
 router = APIRouter()
 
 
-@router.get("/", response_model=List[schemas.Customer])
+class CustomerListResponse(BaseModel):
+    items: List[schemas.Customer]
+    total: int
+
+
+@router.get("/", response_model=CustomerListResponse)
 def read_customers(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = Query(None, description="Search by phone, name or email")
-) -> List[schemas.Customer]:
+) -> CustomerListResponse:
     """
     Retrieve customers with optional search.
     """
     if search:
         customers = crud.customer.search(db, query=search, skip=skip, limit=limit)
+        # Get total count for search results
+        total = crud.customer.count_search(db, query=search)
     else:
         customers = crud.customer.get_multi(db, skip=skip, limit=limit)
-    return customers
+        # Get total count
+        total = crud.customer.count(db)
+    
+    return CustomerListResponse(items=customers, total=total)
 
 
 @router.post("/", response_model=schemas.Customer)

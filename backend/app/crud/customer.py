@@ -116,6 +116,22 @@ class CRUDCustomer(CRUDBase[Customer, CustomerCreate, CustomerUpdate]):
             )
         ).offset(skip).limit(limit).all()
     
+    def count(self, db: Session) -> int:
+        """Get total count of customers"""
+        return db.query(Customer).count()
+    
+    def count_search(self, db: Session, *, query: str) -> int:
+        """Get count of customers matching search query"""
+        search_pattern = f"%{query}%"
+        
+        return db.query(Customer).filter(
+            or_(
+                Customer.phone.ilike(search_pattern),
+                Customer.name.ilike(search_pattern),
+                Customer.email.ilike(search_pattern)
+            )
+        ).count()
+    
     def update_statistics(
         self,
         db: Session,

@@ -1,6 +1,6 @@
 from typing import Optional, List, Union
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, String
 import secrets
 
 from app.crud.base import CRUDBase
@@ -101,7 +101,7 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
                     Order.customer_phone.ilike(search_pattern),
                     Order.recipient_phone.ilike(search_pattern),
                     Order.recipient_name.ilike(search_pattern),
-                    Order.id.cast(str).ilike(search_pattern)
+                    cast(Order.id, String).ilike(search_pattern)
                 )
             )
         
@@ -121,11 +121,14 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         db_obj.status = status
         
         # Обрабатываем изменения связанные с резервированием/списанием
-        if status == OrderStatus.delivered and old_status != OrderStatus.delivered:
+        if status == OrderStatus.delivery and old_status != OrderStatus.delivery:
             # При доставке заказа - списываем товары
             self._write_off_order_items(db, db_obj)
-        elif status == OrderStatus.cancelled and old_status != OrderStatus.cancelled:
-            # При отмене заказа - отменяем резервирование
+        elif status == OrderStatus.self_pickup and old_status != OrderStatus.self_pickup:
+            # При самовывозе - списываем товары
+            self._write_off_order_items(db, db_obj)
+        elif status == OrderStatus.issue and old_status != OrderStatus.issue:
+            # При проблеме с заказом - отменяем резервирование
             self._unreserve_order_items(db, db_obj)
         
         db.commit()
