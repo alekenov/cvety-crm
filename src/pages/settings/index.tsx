@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { 
   Building2, 
   Phone, 
@@ -11,7 +12,8 @@ import {
   Save,
   Plus,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -49,6 +51,7 @@ import {
 } from "@/components/ui/dialog"
 
 import type { CompanySettings } from "@/lib/types"
+import { settingsApi } from "@/lib/api"
 
 const settingsSchema = z.object({
   name: z.string().min(1, "Название обязательно"),
@@ -63,53 +66,65 @@ const settingsSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsSchema>
 
-// Mock data
-const mockSettings: CompanySettings = {
-  name: "Cvety.kz",
-  address: "г. Алматы, пр. Достык 89, офис 301",
-  phones: ["+7 (700) 123-45-67", "+7 (727) 123-45-67"],
-  email: "info@cvety.kz",
-  workingHours: {
-    from: "09:00",
-    to: "20:00"
-  },
-  deliveryZones: [
-    { name: "Центр города", price: 2000 },
-    { name: "Алмалинский район", price: 2500 },
-    { name: "Бостандыкский район", price: 2500 },
-    { name: "Медеуский район", price: 3000 },
-    { name: "Наурызбайский район", price: 3500 },
-    { name: "За городом", price: 5000 }
-  ]
-}
 
 export function SettingsPage() {
-  const [settings, setSettings] = useState<CompanySettings>(mockSettings)
+  const queryClient = useQueryClient()
   const [isZoneDialogOpen, setIsZoneDialogOpen] = useState(false)
   const [editingZone, setEditingZone] = useState<{ name: string; price: number } | null>(null)
   const [zoneForm, setZoneForm] = useState({ name: "", price: 0 })
 
-  const form = useForm<SettingsFormValues>({
-    resolver: zodResolver(settingsSchema),
-    defaultValues: {
-      name: settings.name,
-      address: settings.address,
-      phones: settings.phones,
-      email: settings.email,
-      workingHours: settings.workingHours,
+  // Fetch settings
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsApi.get,
+  })
+
+  // Update settings mutation
+  const updateMutation = useMutation({
+    mutationFn: settingsApi.update,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      toast.success("Настройки сохранены")
+    },
+    onError: () => {
+      toast.error("Ошибка при сохранении настроек")
     },
   })
 
+  const form = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      name: "",
+      address: "",
+      phones: [],
+      email: "",
+      workingHours: {
+        from: "",
+        to: "",
+      },
+    },
+  })
+
+  // Update form when settings are loaded
+  useEffect(() => {
+    if (settings) {
+      form.reset({
+        name: settings.name,
+        address: settings.address,
+        phones: settings.phones,
+        email: settings.email,
+        workingHours: settings.workingHours,
+      })
+    }
+  }, [settings, form])
+
   const onSubmit = async (values: SettingsFormValues) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    if (!settings) return
     
-    setSettings({
-      ...settings,
-      ...values
+    updateMutation.mutate({
+      ...values,
+      deliveryZones: settings.deliveryZones,
     })
-    
-    toast.success("Настройки сохранены")
   }
 
   const handleAddPhone = () => {
@@ -123,34 +138,38 @@ export function SettingsPage() {
   }
 
   const handleAddZone = () => {
+    if (!settings) return
+    
     if (!zoneForm.name || zoneForm.price <= 0) {
       toast.error("Заполните все поля")
       return
     }
 
+    let newZones: typeof settings.deliveryZones
+    
     if (editingZone) {
       // Update existing zone
-      setSettings({
-        ...settings,
-        deliveryZones: settings.deliveryZones.map(zone =>
-          zone.name === editingZone.name
-            ? { name: zoneForm.name, price: zoneForm.price }
-            : zone
-        )
-      })
-      toast.success("Зона доставки обновлена")
+      newZones = settings.deliveryZones.map(zone =>
+        zone.name === editingZone.name
+          ? { name: zoneForm.name, price: zoneForm.price }
+          : zone
+      )
     } else {
       // Add new zone
-      setSettings({
-        ...settings,
-        deliveryZones: [...settings.deliveryZones, { name: zoneForm.name, price: zoneForm.price }]
-      })
-      toast.success("Зона доставки добавлена")
+      newZones = [...settings.deliveryZones, { name: zoneForm.name, price: zoneForm.price }]
     }
 
-    setIsZoneDialogOpen(false)
-    setEditingZone(null)
-    setZoneForm({ name: "", price: 0 })
+    updateMutation.mutate(
+      { deliveryZones: newZones },
+      {
+        onSuccess: () => {
+          toast.success(editingZone ? "Зона доставки обновлена" : "Зона доставки добавлена")
+          setIsZoneDialogOpen(false)
+          setEditingZone(null)
+          setZoneForm({ name: "", price: 0 })
+        },
+      }
+    )
   }
 
   const handleEditZone = (zone: { name: string; price: number }) => {
@@ -160,11 +179,18 @@ export function SettingsPage() {
   }
 
   const handleDeleteZone = (zoneName: string) => {
-    setSettings({
-      ...settings,
-      deliveryZones: settings.deliveryZones.filter(zone => zone.name !== zoneName)
-    })
-    toast.success("Зона доставки удалена")
+    if (!settings) return
+    
+    updateMutation.mutate(
+      {
+        deliveryZones: settings.deliveryZones.filter(zone => zone.name !== zoneName)
+      },
+      {
+        onSuccess: () => {
+          toast.success("Зона доставки удалена")
+        },
+      }
+    )
   }
 
   const formatCurrency = (amount: number) => {
@@ -173,6 +199,22 @@ export function SettingsPage() {
       currency: 'KZT',
       minimumFractionDigits: 0
     }).format(amount)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!settings) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+        <p className="text-muted-foreground">Ошибка загрузки настроек</p>
+      </div>
+    )
   }
 
   return (
@@ -346,8 +388,12 @@ export function SettingsPage() {
           </Card>
 
           <div className="flex justify-end">
-            <Button type="submit">
-              <Save className="mr-2 h-4 w-4" />
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
               Сохранить изменения
             </Button>
           </div>
@@ -415,7 +461,10 @@ export function SettingsPage() {
                   <Button variant="outline" onClick={() => setIsZoneDialogOpen(false)}>
                     Отмена
                   </Button>
-                  <Button onClick={handleAddZone}>
+                  <Button onClick={handleAddZone} disabled={updateMutation.isPending}>
+                    {updateMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
                     {editingZone ? "Сохранить" : "Добавить"}
                   </Button>
                 </DialogFooter>
@@ -450,6 +499,7 @@ export function SettingsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteZone(zone.name)}
+                        disabled={updateMutation.isPending}
                       >
                         Удалить
                       </Button>

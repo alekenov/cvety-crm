@@ -1,6 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Package, Store, AlertTriangle } from "lucide-react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
 import {
   Table,
@@ -34,93 +35,145 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 import type { WarehouseItem } from "@/lib/types"
 import { VARIETIES, FARMS, SUPPLIERS, HEIGHTS } from "@/lib/constants"
+import { warehouseApi } from "@/lib/api"
+import { TableSkeleton } from "@/components/ui/loading-state"
+import { ErrorState } from "@/components/ui/error-state"
 
-// Mock data
-const mockWarehouseItems: WarehouseItem[] = [
-  {
-    id: "1",
-    sku: "ROS-RED-60",
-    batchCode: "B2024-001",
-    variety: "Роза",
-    heightCm: 60,
-    farm: "Эквадор Розы",
-    supplier: "ООО \"ЦветОпт\"",
-    deliveryDate: new Date("2024-01-20"),
-    currency: "USD",
-    rate: 450,
-    cost: 0.5,
-    recommendedPrice: 450,
-    price: 500,
-    markupPct: 100,
-    qty: 12,
-    reservedQty: 5,
-    onShowcase: true,
-    toWriteOff: false,
-    hidden: false,
-    updatedAt: new Date("2024-01-26"),
-    updatedBy: "admin"
-  },
-  {
-    id: "2",
-    sku: "TUL-WHT-50",
-    batchCode: "B2024-002",
-    variety: "Тюльпан",
-    heightCm: 50,
-    farm: "Голландия Флауэрс",
-    supplier: "Flower Direct",
-    deliveryDate: new Date("2024-01-22"),
-    currency: "EUR",
-    rate: 490,
-    cost: 0.3,
-    recommendedPrice: 300,
-    price: 350,
-    markupPct: 115,
-    qty: 25,
-    reservedQty: 0,
-    onShowcase: false,
-    toWriteOff: false,
-    hidden: false,
-    updatedAt: new Date("2024-01-26"),
-    updatedBy: "manager"
-  },
-  {
-    id: "3",
-    sku: "CHR-PNK-70",
-    batchCode: "B2024-003",
-    variety: "Хризантема",
-    heightCm: 70,
-    farm: "Местная ферма",
-    supplier: "Местный поставщик",
-    deliveryDate: new Date("2024-01-15"),
-    currency: "KZT",
-    rate: 1,
-    cost: 150,
-    recommendedPrice: 300,
-    price: 320,
-    markupPct: 100,
-    qty: 30,
-    reservedQty: 10,
-    onShowcase: true,
-    toWriteOff: true,
-    hidden: false,
-    updatedAt: new Date("2024-01-26"),
-    updatedBy: "admin"
-  }
-]
+// API response type
+interface WarehouseItemApiResponse {
+  id: number
+  sku: string
+  batch_code: string
+  variety: string
+  height_cm: number
+  farm: string
+  supplier: string
+  delivery_date: string
+  currency: string
+  rate: number
+  cost: number
+  markup_pct: number
+  qty: number
+  price: number
+  reserved_qty: number
+  recommended_price: number
+  on_showcase: boolean
+  to_write_off: boolean
+  hidden: boolean
+  created_at: string
+  updated_at: string
+  updated_by: string | null
+  available_qty: number
+  is_critical_stock: boolean
+}
 
 export function WarehousePage() {
-  const [items] = useState<WarehouseItem[]>(mockWarehouseItems)
+  const queryClient = useQueryClient()
+
+  // State
   const [varietyFilter, setVarietyFilter] = useState<string>("all")
   const [heightFilter, setHeightFilter] = useState<string>("all")
   const [farmFilter, setFarmFilter] = useState<string>("all")
   const [supplierFilter, setSupplierFilter] = useState<string>("all")
   const [flagFilter, setFlagFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
   const [editingItem, setEditingItem] = useState<WarehouseItem | null>(null)
   const [editPrice, setEditPrice] = useState("")
   const [editOnShowcase, setEditOnShowcase] = useState(false)
   const [editToWriteOff, setEditToWriteOff] = useState(false)
   const [editHidden, setEditHidden] = useState(false)
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+      setCurrentPage(1)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Query for warehouse items
+  const { data, isLoading, error } = useQuery({
+    queryKey: [
+      'warehouse', 
+      varietyFilter, 
+      heightFilter, 
+      farmFilter, 
+      supplierFilter, 
+      flagFilter, 
+      debouncedSearchQuery, 
+      currentPage
+    ],
+    queryFn: async () => {
+      const response = await warehouseApi.getItems({
+        variety: varietyFilter === 'all' ? undefined : varietyFilter,
+        heightCm: heightFilter === 'all' ? undefined : parseInt(heightFilter),
+        farm: farmFilter === 'all' ? undefined : farmFilter,
+        supplier: supplierFilter === 'all' ? undefined : supplierFilter,
+        onShowcase: flagFilter === 'showcase' ? true : undefined,
+        toWriteOff: flagFilter === 'writeoff' ? true : undefined,
+        search: debouncedSearchQuery || undefined,
+        page: currentPage,
+        limit: 20
+      })
+
+      // Convert snake_case API response to camelCase
+      const rawResponse = response as unknown as { items: WarehouseItemApiResponse[], total: number }
+      return {
+        total: rawResponse.total,
+        items: rawResponse.items.map((item) => ({
+          id: item.id.toString(),
+          sku: item.sku,
+          batchCode: item.batch_code,
+          variety: item.variety,
+          heightCm: item.height_cm,
+          farm: item.farm,
+          supplier: item.supplier,
+          deliveryDate: new Date(item.delivery_date),
+          currency: item.currency as 'USD' | 'EUR' | 'KZT',
+          rate: item.rate,
+          cost: item.cost,
+          recommendedPrice: item.recommended_price,
+          price: item.price,
+          markupPct: item.markup_pct,
+          qty: item.qty,
+          reservedQty: item.reserved_qty,
+          onShowcase: item.on_showcase,
+          toWriteOff: item.to_write_off,
+          hidden: item.hidden,
+          updatedAt: new Date(item.updated_at),
+          updatedBy: item.updated_by || 'system'
+        })) as WarehouseItem[]
+      }
+    }
+  })
+
+  // Mutation for updating item
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<WarehouseItem> }) => {
+      // Convert camelCase to snake_case for API
+      const apiUpdates: any = {}
+      if (updates.price !== undefined) apiUpdates.price = updates.price
+      if (updates.onShowcase !== undefined) apiUpdates.on_showcase = updates.onShowcase
+      if (updates.toWriteOff !== undefined) apiUpdates.to_write_off = updates.toWriteOff
+      if (updates.hidden !== undefined) apiUpdates.hidden = updates.hidden
+      apiUpdates.updated_by = 'user' // Will be replaced with actual user when auth is implemented
+
+      return warehouseApi.updateItem(id, apiUpdates)
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['warehouse'] })
+      toast.success(`Позиция обновлена`)
+      setEditingItem(null)
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Ошибка при обновлении позиции'
+      toast.error(message)
+    }
+  })
 
   const handleQuickEdit = (item: WarehouseItem) => {
     setEditingItem(item)
@@ -132,8 +185,15 @@ export function WarehousePage() {
 
   const handleSaveEdit = () => {
     if (editingItem) {
-      toast.success(`Позиция ${editingItem.sku} обновлена`)
-      setEditingItem(null)
+      updateMutation.mutate({
+        id: editingItem.id,
+        updates: {
+          price: parseFloat(editPrice),
+          onShowcase: editOnShowcase,
+          toWriteOff: editToWriteOff,
+          hidden: editHidden
+        }
+      })
     }
   }
 
@@ -149,10 +209,27 @@ export function WarehousePage() {
     return item.cost * item.rate
   }
 
-  const getStockStatusColor = (qty: number): string => {
-    if (qty <= 15) return "text-destructive"
-    if (qty <= 30) return "text-orange-500"
+  const getStockStatusColor = (qty: number, reservedQty: number): string => {
+    const available = qty - reservedQty
+    if (available <= 15) return "text-destructive"
+    if (available <= 30) return "text-orange-500"
     return ""
+  }
+
+  // Calculate pagination
+  const totalPages = data ? Math.ceil(data.total / 20) : 1
+  const items = data?.items || []
+
+  // Loading and Error states
+  if (isLoading) {
+    return <TableSkeleton />
+  }
+
+  if (error) {
+    return <ErrorState 
+      message={error instanceof Error ? error.message : 'Ошибка загрузки остатков'} 
+      onRetry={() => queryClient.invalidateQueries({ queryKey: ['warehouse'] })} 
+    />
   }
 
   return (
@@ -163,7 +240,10 @@ export function WarehousePage() {
 
       {/* Filters */}
       <div className="flex gap-4 flex-wrap">
-        <Select value={varietyFilter} onValueChange={setVarietyFilter}>
+        <Select value={varietyFilter} onValueChange={(value) => {
+          setVarietyFilter(value)
+          setCurrentPage(1)
+        }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Все сорта" />
           </SelectTrigger>
@@ -177,7 +257,10 @@ export function WarehousePage() {
           </SelectContent>
         </Select>
 
-        <Select value={heightFilter} onValueChange={setHeightFilter}>
+        <Select value={heightFilter} onValueChange={(value) => {
+          setHeightFilter(value)
+          setCurrentPage(1)
+        }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Вся высота" />
           </SelectTrigger>
@@ -191,7 +274,10 @@ export function WarehousePage() {
           </SelectContent>
         </Select>
 
-        <Select value={farmFilter} onValueChange={setFarmFilter}>
+        <Select value={farmFilter} onValueChange={(value) => {
+          setFarmFilter(value)
+          setCurrentPage(1)
+        }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Все фермы" />
           </SelectTrigger>
@@ -205,7 +291,10 @@ export function WarehousePage() {
           </SelectContent>
         </Select>
 
-        <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+        <Select value={supplierFilter} onValueChange={(value) => {
+          setSupplierFilter(value)
+          setCurrentPage(1)
+        }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Все поставщики" />
           </SelectTrigger>
@@ -219,7 +308,10 @@ export function WarehousePage() {
           </SelectContent>
         </Select>
 
-        <Select value={flagFilter} onValueChange={setFlagFilter}>
+        <Select value={flagFilter} onValueChange={(value) => {
+          setFlagFilter(value)
+          setCurrentPage(1)
+        }}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Все флаги" />
           </SelectTrigger>
@@ -300,7 +392,7 @@ export function WarehousePage() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="space-y-1">
-                          <div className={`text-sm font-medium ${getStockStatusColor(item.qty)}`}>
+                          <div className={`text-sm font-medium ${getStockStatusColor(item.qty, item.reservedQty)}`}>
                             {item.qty} шт
                           </div>
                           {item.reservedQty > 0 && (
@@ -400,7 +492,12 @@ export function WarehousePage() {
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button onClick={handleSaveEdit}>Сохранить</Button>
+                        <Button 
+                          onClick={handleSaveEdit}
+                          disabled={updateMutation.isPending}
+                        >
+                          {updateMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
