@@ -1,0 +1,129 @@
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from app.api import deps
+from app.crud.warehouse import warehouse
+from app.schemas.warehouse import (
+    WarehouseItemList,
+    WarehouseItemResponse,
+    WarehouseItemCreate,
+    WarehouseItemUpdate,
+    WarehouseFilterParams,
+    DeliveryCreate,
+    DeliveryResponse,
+    DeliveryList,
+    WarehouseStats
+)
+
+router = APIRouter()
+
+
+@router.get("/", response_model=WarehouseItemList)
+def get_warehouse_items(
+    db: Session = Depends(deps.get_db),
+    variety: Optional[str] = None,
+    heightCm: Optional[int] = Query(None, alias="heightCm"),
+    farm: Optional[str] = None,
+    supplier: Optional[str] = None,
+    onShowcase: Optional[bool] = Query(None, alias="onShowcase"),
+    toWriteOff: Optional[bool] = Query(None, alias="toWriteOff"),
+    search: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, le=100)
+):
+    """Get warehouse items with filters and pagination"""
+    filters = WarehouseFilterParams(
+        variety=variety,
+        height_cm=heightCm,
+        farm=farm,
+        supplier=supplier,
+        on_showcase=onShowcase,
+        to_write_off=toWriteOff,
+        search=search,
+        page=page,
+        limit=limit
+    )
+    
+    items, total = warehouse.get_items(db, filters)
+    
+    return {
+        "items": [WarehouseItemResponse.model_validate(item) for item in items],
+        "total": total
+    }
+
+
+@router.get("/stats", response_model=WarehouseStats)
+def get_warehouse_stats(
+    db: Session = Depends(deps.get_db)
+):
+    """Get warehouse statistics"""
+    return warehouse.get_stats(db)
+
+
+@router.get("/{item_id}", response_model=WarehouseItemResponse)
+def get_warehouse_item(
+    item_id: int,
+    db: Session = Depends(deps.get_db)
+):
+    """Get single warehouse item by ID"""
+    item = warehouse.get_item(db, item_id=item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return WarehouseItemResponse.model_validate(item)
+
+
+@router.post("/", response_model=WarehouseItemResponse)
+def create_warehouse_item(
+    item: WarehouseItemCreate,
+    db: Session = Depends(deps.get_db)
+):
+    """Create new warehouse item (usually done through deliveries)"""
+    db_item = warehouse.create_item(db, item=item)
+    return WarehouseItemResponse.model_validate(db_item)
+
+
+@router.patch("/{item_id}", response_model=WarehouseItemResponse)
+def update_warehouse_item(
+    item_id: int,
+    item_update: WarehouseItemUpdate,
+    db: Session = Depends(deps.get_db)
+):
+    """Update warehouse item (price, quantity, flags)"""
+    # Add user tracking if auth is implemented
+    # current_user = get_current_user()
+    # item_update.updated_by = current_user.email
+    
+    db_item = warehouse.update_item(db, item_id=item_id, item_update=item_update)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    return WarehouseItemResponse.model_validate(db_item)
+
+
+@router.post("/deliveries", response_model=DeliveryResponse)
+def create_delivery(
+    delivery: DeliveryCreate,
+    db: Session = Depends(deps.get_db)
+):
+    """Create new delivery with positions and update warehouse items"""
+    try:
+        db_delivery = warehouse.create_delivery(db, delivery=delivery)
+        return DeliveryResponse.model_validate(db_delivery)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/deliveries", response_model=DeliveryList)
+def get_deliveries(
+    db: Session = Depends(deps.get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, le=100)
+):
+    """Get delivery history"""
+    deliveries, total = warehouse.get_deliveries(db, skip=skip, limit=limit)
+    
+    return {
+        "items": [DeliveryResponse.model_validate(d) for d in deliveries],
+        "total": total
+    }
