@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search, Plus, Phone, ShoppingBag, User } from "lucide-react"
 import { toast } from "sonner"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
 import {
   Table,
@@ -33,58 +34,45 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import type { Customer } from "@/lib/types"
+import { customersApi } from "@/lib/api"
+import { TableSkeleton } from "@/components/ui/loading-state"
+import { ErrorState } from "@/components/ui/error-state"
 
-// Mock data
-const mockCustomers: Customer[] = [
-  {
-    id: "1",
-    name: "Айгерим Сатпаева",
-    phone: "+7 (707) 123-45-67",
-    email: "aigerim@example.com",
-    addresses: ["ул. Абая 150, кв 25", "пр. Достык 89, офис 301"],
-    notes: "Предпочитает розы и пионы. Аллергия на лилии.",
-    preferences: "Светлые тона, минималистичные букеты",
-    importantDates: [
-      { date: "15.03", description: "День рождения" },
-      { date: "20.09", description: "Годовщина свадьбы" }
-    ],
-    ordersCount: 12,
-    totalSpent: 185000,
-    createdAt: new Date("2023-01-15"),
-    updatedAt: new Date("2024-01-26")
-  },
-  {
-    id: "2",
-    name: "Самат Нурпеисов",
-    phone: "+7 (777) 890-12-34",
-    email: "samat@company.kz",
-    addresses: ["мкр. Самал-2, д. 77"],
-    notes: "Корпоративный клиент. Заказывает букеты для офиса каждую неделю.",
-    ordersCount: 45,
-    totalSpent: 520000,
-    createdAt: new Date("2022-06-10"),
-    updatedAt: new Date("2024-01-25")
-  },
-  {
-    id: "3",
-    name: "Динара Касымова",
-    phone: "+7 (701) 555-44-33",
-    addresses: ["ул. Жандосова 98, кв 45"],
-    notes: "Часто заказывает на доставку маме",
-    importantDates: [
-      { date: "08.03", description: "8 марта для мамы" }
-    ],
-    ordersCount: 8,
-    totalSpent: 95000,
-    createdAt: new Date("2023-08-20"),
-    updatedAt: new Date("2024-01-20")
-  }
-]
+// API response type
+interface CustomerApiResponse {
+  id: number
+  name: string
+  phone: string
+  email: string | null
+  notes: string | null
+  preferences: string | null
+  source: string | null
+  orders_count: number
+  total_spent: number
+  last_order_date: string | null
+  created_at: string
+  updated_at: string
+  addresses: Array<{
+    id: number
+    address: string
+    label: string | null
+    usage_count: number
+  }>
+  important_dates: Array<{
+    id: number
+    date: string
+    description: string
+  }>
+}
 
 export function CustomersPage() {
   const navigate = useNavigate()
-  const [customers] = useState<Customer[]>(mockCustomers)
+  const queryClient = useQueryClient()
+
+  // State
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newCustomer, setNewCustomer] = useState({
     name: "",
@@ -94,26 +82,104 @@ export function CustomersPage() {
     notes: ""
   })
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+      setCurrentPage(1)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Query for customers
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['customers', debouncedSearchQuery, currentPage],
+    queryFn: async () => {
+      const response = await customersApi.getAll({
+        search: debouncedSearchQuery || undefined,
+        page: currentPage,
+        limit: 20
+      })
+
+      // Convert snake_case API response to camelCase
+      const rawResponse = response as unknown as { items: CustomerApiResponse[], total: number }
+      return {
+        total: rawResponse.total,
+        items: rawResponse.items.map((customer) => ({
+          id: customer.id.toString(),
+          name: customer.name,
+          phone: customer.phone,
+          email: customer.email,
+          notes: customer.notes,
+          preferences: customer.preferences,
+          addresses: customer.addresses.map(addr => addr.address),
+          importantDates: customer.important_dates.map(date => ({
+            date: date.date,
+            description: date.description
+          })),
+          ordersCount: customer.orders_count,
+          totalSpent: customer.total_spent,
+          createdAt: new Date(customer.created_at),
+          updatedAt: new Date(customer.updated_at)
+        })) as Customer[]
+      }
+    }
+  })
+
+  // Mutation for creating customer
+  const createMutation = useMutation({
+    mutationFn: (customerData: typeof newCustomer) => {
+      const createData: any = {
+        name: customerData.name,
+        phone: customerData.phone,
+        email: customerData.email || undefined,
+        notes: customerData.notes || undefined
+      }
+
+      return customersApi.create(createData)
+    },
+    onSuccess: (newCustomerData, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      toast.success(`Клиент ${variables.name} добавлен`)
+      setIsAddDialogOpen(false)
+      setNewCustomer({
+        name: "",
+        phone: "",
+        email: "",
+        address: "",
+        notes: ""
+      })
+
+      // Add address if provided
+      if (variables.address) {
+        customersApi.addAddress(newCustomerData.id, { 
+          address: variables.address,
+          label: 'Основной'
+        }).then(() => {
+          queryClient.invalidateQueries({ queryKey: ['customers'] })
+        })
+      }
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Ошибка при создании клиента'
+      toast.error(message)
+    }
+  })
+
   const handleAddCustomer = () => {
     if (!newCustomer.name || !newCustomer.phone) {
       toast.error("Заполните обязательные поля")
       return
     }
 
-    toast.success("Клиент добавлен")
-    setIsAddDialogOpen(false)
-    setNewCustomer({
-      name: "",
-      phone: "",
-      email: "",
-      address: "",
-      notes: ""
-    })
+    createMutation.mutate(newCustomer)
   }
 
   const handleCreateOrder = (customerId: string) => {
     toast.info(`Создание заказа для клиента #${customerId}`)
     // Navigate to orders page with customer pre-selected
+    navigate(`/orders/new?customerId=${customerId}`)
   }
 
   const formatCurrency = (amount: number) => {
@@ -124,11 +190,21 @@ export function CustomersPage() {
     }).format(amount)
   }
 
-  const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    customer.phone.includes(searchQuery) ||
-    customer.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Calculate pagination
+  const totalPages = data ? Math.ceil(data.total / 20) : 1
+  const customers = data?.items || []
+
+  // Loading and Error states
+  if (isLoading) {
+    return <TableSkeleton />
+  }
+
+  if (error) {
+    return <ErrorState
+      message={error instanceof Error ? error.message : 'Ошибка загрузки клиентов'}
+      onRetry={() => queryClient.invalidateQueries({ queryKey: ['customers'] })}
+    />
+  }
 
   return (
     <div className="space-y-4">
@@ -211,8 +287,11 @@ export function CustomersPage() {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Отмена
               </Button>
-              <Button onClick={handleAddCustomer}>
-                Добавить
+              <Button 
+                onClick={handleAddCustomer}
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? 'Добавление...' : 'Добавить'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -244,7 +323,7 @@ export function CustomersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCustomers.map((customer) => (
+            {customers.map((customer) => (
               <TableRow 
                 key={customer.id}
                 className="cursor-pointer"
@@ -321,11 +400,11 @@ export function CustomersPage() {
 
       {/* Summary */}
       <div className="flex gap-4 text-sm text-muted-foreground">
-        <span>Всего клиентов: {filteredCustomers.length}</span>
+        <span>Всего клиентов: {data?.total || 0}</span>
         <span>•</span>
         <span>
           Общая сумма заказов: {formatCurrency(
-            filteredCustomers.reduce((sum, c) => sum + c.totalSpent, 0)
+            customers.reduce((sum, c) => sum + c.totalSpent, 0)
           )}
         </span>
       </div>

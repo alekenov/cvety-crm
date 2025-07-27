@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { 
@@ -40,65 +41,21 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { TableSkeleton } from "@/components/ui/loading-state"
+import { ErrorState } from "@/components/ui/error-state"
 
 import type { FloristTask, TaskStatus } from "@/lib/types"
+import { productionApi } from "@/lib/api"
 
-// Mock data
-const mockTasks: FloristTask[] = [
-  {
-    id: "1",
-    orderId: "1001",
-    orderNumber: "#1001",
-    customerName: "Айгерим Сатпаева",
-    customerPhone: "+7 (707) 123-45-67",
-    products: "Букет из 25 красных роз (60см)",
-    status: "in_progress",
-    priority: "high",
-    requiredBy: new Date("2024-01-26T14:00:00"),
-    assignedTo: "Марина",
-    assignedAt: new Date("2024-01-26T09:00:00"),
-    notes: "Клиент просил добавить больше зелени"
-  },
-  {
-    id: "2",
-    orderId: "1002",
-    orderNumber: "#1002",
-    customerName: "Самат Нурпеисов",
-    customerPhone: "+7 (777) 890-12-34",
-    products: "Композиция в корзине: пионы, розы, эустома",
-    status: "pending",
-    priority: "medium",
-    requiredBy: new Date("2024-01-26T16:00:00"),
-    notes: "Корпоративный заказ. Нужна лента с логотипом."
-  },
-  {
-    id: "3",
-    orderId: "999",
-    orderNumber: "#999",
-    customerName: "Динара Касымова",
-    customerPhone: "+7 (701) 555-44-33",
-    products: "Букет из тюльпанов (51 шт)",
-    status: "completed",
-    priority: "high",
-    requiredBy: new Date("2024-01-26T10:00:00"),
-    assignedTo: "Алия",
-    assignedAt: new Date("2024-01-26T08:00:00"),
-    completedAt: new Date("2024-01-26T09:45:00")
-  },
-  {
-    id: "4",
-    orderId: "1003",
-    orderNumber: "#1003",
-    customerName: "Нурлан Темирбаев",
-    customerPhone: "+7 (708) 222-33-44",
-    products: "Микс букет: розы + альстромерии",
-    status: "pending",
-    priority: "low",
-    requiredBy: new Date("2024-01-26T18:00:00")
-  }
+// Florists data (this could come from API in the future)
+const floristsData = [
+  { id: 1, name: "Марина" },
+  { id: 2, name: "Алия" },
+  { id: 3, name: "Светлана" },
+  { id: 4, name: "Гульнара" }
 ]
 
-const florists = ["Марина", "Алия", "Светлана", "Гульнара"]
+const florists = floristsData.map(f => f.name)
 
 const statusConfig: Record<TaskStatus, { label: string; icon: React.ElementType; color: string }> = {
   pending: { label: "Ожидает", icon: Clock, color: "text-yellow-600" },
@@ -113,7 +70,7 @@ const priorityConfig = {
 }
 
 export function ProductionPage() {
-  const [tasks, setTasks] = useState<FloristTask[]>(mockTasks)
+  const queryClient = useQueryClient()
   const [filterStatus, setFilterStatus] = useState<TaskStatus | "all">("all")
   const [filterFlorist, setFilterFlorist] = useState<string>("all")
   const [selectedTask, setSelectedTask] = useState<FloristTask | null>(null)
@@ -122,6 +79,128 @@ export function ProductionPage() {
     florist: "",
     notes: ""
   })
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
+
+  // React Query hooks
+  const { 
+    data: tasksData, 
+    isLoading: tasksLoading, 
+    error: tasksError,
+    refetch: refetchTasks
+  } = useQuery({
+    queryKey: ['production-tasks', { status: filterStatus !== 'all' ? filterStatus : undefined }],
+    queryFn: () => productionApi.getAllTasks({
+      status: filterStatus !== 'all' ? filterStatus : undefined,
+      limit: 100
+    }),
+    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+  })
+
+  const { 
+    data: queueStats, 
+    isLoading: statsLoading, 
+    error: statsError 
+  } = useQuery({
+    queryKey: ['production-queue-stats'],
+    queryFn: () => productionApi.getQueueStats(),
+    refetchInterval: 15000, // Refetch every 15 seconds
+  })
+
+  // Mutations
+  const assignTaskMutation = useMutation({
+    mutationFn: ({ taskId, floristId }: { taskId: string; floristId: number }) => 
+      productionApi.assignTask(taskId, floristId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['production-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['production-queue-stats'] })
+      toast.success(`Задание назначено флористу ${assignForm.florist}`)
+      setIsAssignDialogOpen(false)
+      setAssignForm({ florist: "", notes: "" })
+      setSelectedTask(null)
+    },
+    onError: () => {
+      toast.error("Не удалось назначить задание")
+    }
+  })
+
+  const startTaskMutation = useMutation({
+    mutationFn: ({ taskId, notes }: { taskId: string; notes?: string }) => 
+      productionApi.startTask(taskId, notes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['production-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['production-queue-stats'] })
+      toast.success("Работа над заданием начата")
+    },
+    onError: () => {
+      toast.error("Не удалось начать выполнение задания")
+    }
+  })
+
+  const completeTaskMutation = useMutation({
+    mutationFn: ({ taskId, params }: { taskId: string; params?: { actualMinutes?: number; floristNotes?: string; resultPhotos?: string[] } }) => 
+      productionApi.completeTask(taskId, params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['production-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['production-queue-stats'] })
+      toast.success("Задание выполнено")
+    },
+    onError: () => {
+      toast.error("Не удалось завершить задание")
+    }
+  })
+
+  const tasks = tasksData?.items || []
+  
+  // Add status update mutation for drag and drop
+  const updateTaskStatusMutation = useMutation({
+    mutationFn: ({ taskId, status }: { taskId: string; status: TaskStatus }) => 
+      productionApi.updateTask(taskId, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['production-tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['production-queue-stats'] })
+      toast.success("Статус задания обновлен")
+    },
+    onError: () => {
+      toast.error("Не удалось обновить статус задания")
+    }
+  })
+  
+  // Show loading state
+  if (tasksLoading && !tasks.length) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Задания флористам</h1>
+            <p className="text-muted-foreground">
+              Управление производством букетов
+            </p>
+          </div>
+        </div>
+        <TableSkeleton />
+      </div>
+    )
+  }
+
+  // Show error state
+  if (tasksError && !tasks.length) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Задания флористам</h1>
+            <p className="text-muted-foreground">
+              Управление производством букетов
+            </p>
+          </div>
+        </div>
+        <ErrorState 
+          message="Не удалось загрузить задания флористов"
+          onRetry={() => refetchTasks()}
+        />
+      </div>
+    )
+  }
 
   const handleAssignTask = () => {
     if (!selectedTask || !assignForm.florist) {
@@ -129,40 +208,37 @@ export function ProductionPage() {
       return
     }
 
-    setTasks(tasks.map(task => 
-      task.id === selectedTask.id 
-        ? {
-            ...task,
-            status: "in_progress" as TaskStatus,
-            assignedTo: assignForm.florist,
-            assignedAt: new Date(),
-            notes: assignForm.notes || task.notes
-          }
-        : task
-    ))
+    const florist = floristsData.find(f => f.name === assignForm.florist)
+    if (!florist) {
+      toast.error("Флорист не найден")
+      return
+    }
 
-    toast.success(`Задание назначено флористу ${assignForm.florist}`)
-    setIsAssignDialogOpen(false)
-    setAssignForm({ florist: "", notes: "" })
-    setSelectedTask(null)
+    // Update task with additional notes if provided
+    const mutation = assignForm.notes 
+      ? productionApi.updateTask(selectedTask.id, { 
+          floristId: florist.id, 
+          status: 'in_progress' as TaskStatus,
+          floristNotes: assignForm.notes 
+        })
+      : productionApi.assignTask(selectedTask.id, florist.id)
+
+    assignTaskMutation.mutate({
+      taskId: selectedTask.id,
+      floristId: florist.id
+    })
   }
 
   const handleStartTask = (task: FloristTask) => {
-    setTasks(tasks.map(t => 
-      t.id === task.id 
-        ? { ...t, status: "in_progress" as TaskStatus, assignedAt: new Date() }
-        : t
-    ))
-    toast.success("Работа над заданием начата")
+    startTaskMutation.mutate({
+      taskId: task.id
+    })
   }
 
   const handleCompleteTask = (task: FloristTask) => {
-    setTasks(tasks.map(t => 
-      t.id === task.id 
-        ? { ...t, status: "completed" as TaskStatus, completedAt: new Date() }
-        : t
-    ))
-    toast.success("Задание выполнено")
+    completeTaskMutation.mutate({
+      taskId: task.id
+    })
   }
 
   const filteredTasks = tasks.filter(task => {
@@ -185,12 +261,47 @@ export function ProductionPage() {
     return `${minutes}м`
   }
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, task: FloristTask) => {
+    setDraggedTaskId(task.id)
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      taskId: task.id,
+      currentStatus: task.status
+    }))
+  }
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (e: React.DragEvent, targetStatus: TaskStatus) => {
+    e.preventDefault()
+    setDraggedTaskId(null)
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+    const { taskId, currentStatus } = data
+    
+    if (currentStatus !== targetStatus) {
+      updateTaskStatusMutation.mutate({ taskId, status: targetStatus })
+    }
+  }
+
   const TaskCard = ({ task }: { task: FloristTask }) => {
     const StatusIcon = statusConfig[task.status].icon
     const isOverdue = new Date() > task.requiredBy && task.status !== "completed"
 
+    const isDragging = draggedTaskId === task.id
+
     return (
-      <Card className={isOverdue ? "border-destructive" : ""}>
+      <Card 
+        className={`${isOverdue ? "border-destructive" : ""} ${isDragging ? "opacity-50" : ""} cursor-move transition-opacity`}
+        draggable
+        onDragStart={(e) => handleDragStart(e, task)}
+        onDragEnd={handleDragEnd}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
@@ -254,6 +365,7 @@ export function ProductionPage() {
                     setSelectedTask(task)
                     setIsAssignDialogOpen(true)
                   }}
+                  disabled={assignTaskMutation.isPending}
                 >
                   <User className="h-3 w-3 mr-1" />
                   Назначить
@@ -264,6 +376,7 @@ export function ProductionPage() {
                   size="sm"
                   variant="default"
                   onClick={() => handleCompleteTask(task)}
+                  disabled={completeTaskMutation.isPending}
                 >
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Готово
@@ -311,7 +424,7 @@ export function ProductionPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {getTasksByStatus("pending").length}
+              {statsLoading ? "..." : (queueStats?.pendingTasks || 0)}
             </div>
           </CardContent>
         </Card>
@@ -322,7 +435,7 @@ export function ProductionPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {getTasksByStatus("in_progress").length}
+              {statsLoading ? "..." : (queueStats?.inProgressTasks || 0)}
             </div>
           </CardContent>
         </Card>
@@ -333,7 +446,7 @@ export function ProductionPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {getTasksByStatus("completed").length}
+              {statsLoading ? "..." : (tasks.filter(t => t.status === "completed").length)}
             </div>
           </CardContent>
         </Card>
@@ -344,9 +457,7 @@ export function ProductionPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">
-              {filteredTasks.filter(t => 
-                new Date() > t.requiredBy && t.status !== "completed"
-              ).length}
+              {statsLoading ? "..." : (queueStats?.overdueTasks || 0)}
             </div>
           </CardContent>
         </Card>
@@ -364,7 +475,15 @@ export function ProductionPage() {
         <TabsContent value="all" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             {/* Pending Column */}
-            <div className="space-y-3">
+            <div 
+              className={`space-y-3 min-h-[600px] p-2 rounded-lg border-2 border-dashed transition-colors ${
+                draggedTaskId 
+                  ? "border-yellow-300 bg-yellow-50 dark:bg-yellow-950" 
+                  : "border-transparent hover:border-gray-300"
+              }`}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, "pending")}
+            >
               <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Ожидают ({getTasksByStatus("pending").length})
@@ -379,7 +498,15 @@ export function ProductionPage() {
             </div>
 
             {/* In Progress Column */}
-            <div className="space-y-3">
+            <div 
+              className={`space-y-3 min-h-[600px] p-2 rounded-lg border-2 border-dashed transition-colors ${
+                draggedTaskId 
+                  ? "border-blue-300 bg-blue-50 dark:bg-blue-950" 
+                  : "border-transparent hover:border-gray-300"
+              }`}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, "in_progress")}
+            >
               <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
                 <Timer className="h-4 w-4" />
                 В работе ({getTasksByStatus("in_progress").length})
@@ -394,7 +521,15 @@ export function ProductionPage() {
             </div>
 
             {/* Completed Column */}
-            <div className="space-y-3">
+            <div 
+              className={`space-y-3 min-h-[600px] p-2 rounded-lg border-2 border-dashed transition-colors ${
+                draggedTaskId 
+                  ? "border-green-300 bg-green-50 dark:bg-green-950" 
+                  : "border-transparent hover:border-gray-300"
+              }`}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, "completed")}
+            >
               <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />
                 Выполнено ({getTasksByStatus("completed").length})
@@ -478,8 +613,11 @@ export function ProductionPage() {
             <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>
               Отмена
             </Button>
-            <Button onClick={handleAssignTask}>
-              Назначить
+            <Button 
+              onClick={handleAssignTask}
+              disabled={assignTaskMutation.isPending}
+            >
+              {assignTaskMutation.isPending ? "Назначаем..." : "Назначить"}
             </Button>
           </DialogFooter>
         </DialogContent>
