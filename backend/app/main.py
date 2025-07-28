@@ -64,6 +64,19 @@ def health_check():
         "api_prefix": settings.API_PREFIX
     }
 
+# Debug endpoint (remove in production)
+@app.get("/debug/env")
+def debug_env():
+    import os
+    return {
+        "DATABASE_URL_env": os.environ.get("DATABASE_URL", "NOT SET")[:50] + "...",
+        "SECRET_KEY_env": os.environ.get("SECRET_KEY", "NOT SET")[:20] + "...",
+        "PORT_env": os.environ.get("PORT", "NOT SET"),
+        "RAILWAY_ENVIRONMENT": os.environ.get("RAILWAY_ENVIRONMENT", "NOT SET"),
+        "DATABASE_URL_config": settings.DATABASE_URL[:50] + "...",
+        "PORT_config": settings.PORT
+    }
+
 # Database health check endpoint
 @app.get("/api/health/db")
 def db_health_check(db: Session = Depends(get_db)):

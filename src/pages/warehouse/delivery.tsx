@@ -126,7 +126,7 @@ export function DeliveryPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container max-w-5xl mx-auto py-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Приёмка поставки</h1>
         <p className="text-muted-foreground mt-2">
@@ -137,96 +137,102 @@ export function DeliveryPage() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Header Fields */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="deliveryDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Дата поставки</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "dd.MM.yyyy")
-                          ) : (
-                            <span>Выберите дату</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid gap-4 md:grid-cols-2 max-w-3xl">
+                <FormField
+                  control={form.control}
+                  name="deliveryDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Дата поставки</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd.MM.yyyy")
+                              ) : (
+                                <span>Выберите дату</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="comment"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Комментарий</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Дополнительная информация..."
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                <FormField
+                  control={form.control}
+                  name="comment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Комментарий</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Дополнительная информация..."
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Positions Table */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Позиции</h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append({
-                  flower: "",
-                  qty: 0,
-                  costPerStem: 0,
-                })}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Добавить позицию
-              </Button>
-            </div>
-
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Товар</TableHead>
-                    <TableHead>Количество</TableHead>
-                    <TableHead>Цена за шт (₸)</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Позиции</CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append({
+                    flower: "",
+                    qty: 0,
+                    costPerStem: 0,
+                  })}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Добавить позицию
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Товар</TableHead>
+                      <TableHead className="w-[120px]">Количество</TableHead>
+                      <TableHead className="w-[150px]">Цена за шт (₸)</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {fields.map((field, index) => (
                     <TableRow key={field.id}>
@@ -258,6 +264,7 @@ export function DeliveryPage() {
                                 <Input
                                   type="number"
                                   min="1"
+                                  className="w-[100px] text-right"
                                   {...field}
                                   onChange={(e) => field.onChange(parseInt(e.target.value))}
                                 />
@@ -278,6 +285,7 @@ export function DeliveryPage() {
                                   type="number"
                                   step="0.01"
                                   min="0.01"
+                                  className="w-[120px] text-right"
                                   {...field}
                                   onChange={(e) => field.onChange(parseFloat(e.target.value))}
                                 />
@@ -303,7 +311,8 @@ export function DeliveryPage() {
                 </TableBody>
               </Table>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
           {/* Totals */}
           <Card>

@@ -27,5 +27,8 @@ RUN npm run build
 # Expose port
 EXPOSE $PORT
 
+# Make start script executable
+RUN chmod +x backend/start.sh
+
 # Start command
-CMD cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+CMD cd backend && ./start.sh
