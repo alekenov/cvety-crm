@@ -16,20 +16,37 @@ from app.db.base import Base
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Log configuration
+logger.info(f"Starting {settings.APP_NAME}")
+logger.info(f"PORT: {settings.PORT}")
+logger.info(f"Environment: {'production' if not settings.DEBUG else 'development'}")
+
 # Log database URL (hide password)
-db_url_parts = settings.DATABASE_URL.split('@')
-if len(db_url_parts) > 1:
-    safe_db_url = db_url_parts[0].split('//')[0] + '//***:***@' + db_url_parts[1]
-else:
-    safe_db_url = "Invalid DATABASE_URL format"
-logger.info(f"Connecting to database: {safe_db_url}")
+try:
+    if '@' in settings.DATABASE_URL:
+        db_url_parts = settings.DATABASE_URL.split('@')
+        protocol_user = db_url_parts[0].split('//')
+        safe_db_url = f"{protocol_user[0]}//***:***@{db_url_parts[1]}"
+    else:
+        safe_db_url = "Invalid DATABASE_URL format"
+    logger.info(f"Connecting to database: {safe_db_url}")
+except Exception as e:
+    logger.error(f"Error parsing DATABASE_URL: {e}")
+    safe_db_url = "Error parsing URL"
 
 # Create tables
 try:
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
+    
+    # Test database connection
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        logger.info("Database connection test: OK")
 except Exception as e:
     logger.error(f"Failed to create database tables: {str(e)}")
+    logger.error(f"Database URL starts with: {settings.DATABASE_URL[:30]}...")
+    raise
 
 app = FastAPI(
     title=settings.APP_NAME,
