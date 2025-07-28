@@ -1,4 +1,5 @@
-import { ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ReactNode } from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "./app-sidebar"
 import { Header } from "./header"

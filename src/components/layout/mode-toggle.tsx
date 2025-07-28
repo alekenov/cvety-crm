@@ -13,7 +13,7 @@ interface ModeToggleProps {
   setTheme: (theme: Theme) => void
 }
 
-export function ModeToggle({ theme, setTheme }: ModeToggleProps) {
+export function ModeToggle({ setTheme }: ModeToggleProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

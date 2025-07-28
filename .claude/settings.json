@@ -1,0 +1,72 @@
+{
+  "permissions": {
+    "allow": [
+      // Базовые операции с файлами
+      "Read(**)",
+      "Edit(**)",
+      "MultiEdit(**)",
+      "Write(**)",
+      "Create(**)",
+      "Glob(**)",
+      "Grep(**)",
+      "LS(**)",
+      
+      // Git операции только для чтения
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git blame*)",
+      "Bash(git branch*)",
+      "Bash(git remote -v*)",
+      "Bash(git config --get*)",
+      
+      // Просмотр файлов
+      "Bash(ls*)",
+      "Bash(cat *)",
+      "Bash(less *)",
+      "Bash(head*)",
+      "Bash(tail*)",
+      "Bash(grep*)",
+      "Bash(find*)",
+      "Bash(tree*)",
+      "Bash(pwd*)",
+      "Bash(wc*)",
+      "Bash(diff *)",
+      
+      // Команды для shadcn и веб-разработки
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(npx:*)",
+      "Bash(npx shadcn*)",
+      "Bash(npm:*)",
+      "Bash(pnpm:*)",
+      "Bash(bun:*)",
+      "Bash(node:*)",
+      "Bash(yarn:*)",
+      
+      // Сборка и тестирование
+      "Bash(npm run*)",
+      "Bash(npm test*)",
+      "Bash(npm build*)",
+      "Bash(npm start*)",
+      "Bash(npm install*)",
+      "Bash(npm ci*)",
+      
+      // Дополнительные инструменты
+      "Bash(echo *)",
+      "Bash(which *)",
+      "Bash(env)",
+      "Bash(printenv *)",
+      
+      // Web операции для документации
+      "WebSearch(**)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:npmjs.com)",
+      "WebFetch(domain:tailwindcss.com)",
+      "WebFetch(domain:nextjs.org)"
+    ],
+    "deny": []
+  }
+}

@@ -98,12 +98,27 @@ src/
 
 ## 🚀 Деплой
 
-Проект настроен для деплоя на Cloudflare Pages:
+### Railway (Рекомендуется)
+
+Проект настроен для автоматического деплоя на Railway с PostgreSQL:
+
+1. Создайте проект на [railway.app](https://railway.app)
+2. Добавьте PostgreSQL из маркетплейса
+3. Подключите GitHub репозиторий
+4. Railway автоматически задеплоит приложение
+
+Подробные инструкции в [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)
+
+### Backend Development
 
 ```bash
-npm run build
-# Загрузить содержимое папки dist на Cloudflare Pages
+cd backend
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
+
+Backend API будет доступен по адресу http://localhost:8000/api
 
 ## 📄 Лицензия
 
