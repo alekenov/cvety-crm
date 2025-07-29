@@ -115,3 +115,33 @@ def get_orders(
 - ❌ Production API
 - ❌ Authentication (JWT prepared but not implemented)
 - ❌ Real-time updates (WebSocket)
+
+## Railway Deployment
+
+### Deployment Configuration
+- **Build**: Docker-based deployment using `railway.json`
+- **Dockerfile**: Multi-stage build with slim images (node:18-slim, python:3.9-slim)
+- **Port**: Dynamic PORT environment variable handling
+- **Database**: PostgreSQL provided by Railway
+- **Security**: Runs as non-root user (appuser)
+
+### Deployment Commands
+```bash
+railway link              # Link to Railway project
+railway up               # Deploy to Railway
+railway logs             # View deployment logs
+railway status           # Check deployment status
+```
+
+### Required Environment Variables
+- `DATABASE_URL` - PostgreSQL connection (provided by Railway)
+- `SECRET_KEY` - JWT secret key
+- `PORT` - Application port (provided by Railway)
+- `RAILWAY_ENVIRONMENT` - Environment name (provided by Railway)
+
+### Deployment Files
+- `railway.json` - Railway configuration
+- `Dockerfile` - Optimized multi-stage build
+- `docker-entrypoint.sh` - Startup script with migrations
+- `.dockerignore` - Reduces build context size
+- `RAILWAY_DEPLOYMENT.md` - Detailed deployment guide
