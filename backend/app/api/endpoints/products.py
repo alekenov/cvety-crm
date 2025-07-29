@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -8,24 +8,24 @@ from app.api import deps
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=Dict[str, Any])
 def read_products(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
-    category: Optional[str] = Query(None, description="Filter by category"),
-    search: Optional[str] = Query(None, description="Search in name and description"),
-    is_popular: Optional[bool] = Query(None, description="Filter by popular flag"),
-    is_new: Optional[bool] = Query(None, description="Filter by new flag"),
-    min_price: Optional[float] = Query(None, description="Minimum price filter"),
-    max_price: Optional[float] = Query(None, description="Maximum price filter"),
-    on_sale: Optional[bool] = Query(None, description="Filter products on sale")
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    is_popular: Optional[bool] = None,
+    is_new: Optional[bool] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    on_sale: Optional[bool] = None
 ):
     """
     Retrieve products with optional filters.
     """
     products = crud.product.get_active(
-        db,
+        db=db,
         skip=skip,
         limit=limit,
         category=category,
@@ -38,20 +38,27 @@ def read_products(
     )
     
     # Get total count of products with filters applied
-    total = crud.product.count_active(
-        db,
-        category=category,
-        search=search,
-        is_popular=is_popular,
-        is_new=is_new,
-        min_price=min_price,
-        max_price=max_price,
-        on_sale=on_sale
-    ) if hasattr(crud.product, 'count_active') else len(products)
+    try:
+        total = crud.product.count_active(
+            db=db,
+            category=category,
+            search=search,
+            is_popular=is_popular,
+            is_new=is_new,
+            min_price=min_price,
+            max_price=max_price,
+            on_sale=on_sale
+        )
+    except AttributeError:
+        # Fallback if count_active is not available
+        total = len(products)
+    
+    # Convert SQLAlchemy models to Pydantic schemas
+    product_schemas = [schemas.Product.from_orm(product) for product in products]
     
     # Return in expected format with items and total
     return {
-        "items": products,
+        "items": product_schemas,
         "total": total
     }
 

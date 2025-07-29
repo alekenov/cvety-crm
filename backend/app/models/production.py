@@ -64,9 +64,21 @@ class FloristTask(Base):
     def is_overdue(self):
         """Проверяет, просрочена ли задача"""
         from datetime import datetime, timezone
+        
+        if not self.deadline or self.status in [TaskStatus.completed, TaskStatus.cancelled]:
+            return False
+            
         # Use timezone-aware datetime for comparison
         now = datetime.now(timezone.utc)
-        return self.deadline and now > self.deadline and self.status not in [TaskStatus.completed, TaskStatus.cancelled]
+        
+        # Ensure deadline is timezone-aware
+        if self.deadline.tzinfo is None:
+            # If deadline is naive, assume it's UTC
+            deadline_aware = self.deadline.replace(tzinfo=timezone.utc)
+        else:
+            deadline_aware = self.deadline
+            
+        return now > deadline_aware
     
     @property
     def time_spent(self):
