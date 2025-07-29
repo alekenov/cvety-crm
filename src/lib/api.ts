@@ -8,6 +8,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  maxRedirects: 5, // Follow redirects
 })
 
 // Orders API
@@ -20,7 +21,7 @@ export const ordersApi = {
     page?: number
     limit?: number
   }) => {
-    const { data } = await api.get<{ items: Order[]; total: number }>('/orders', { params })
+    const { data } = await api.get<{ items: Order[]; total: number }>('/orders/', { params })
     return data
   },
 
@@ -58,7 +59,7 @@ export const warehouseApi = {
     page?: number
     limit?: number
   }) => {
-    const { data } = await api.get<{ items: WarehouseItem[]; total: number }>('/warehouse', { params })
+    const { data } = await api.get<{ items: WarehouseItem[]; total: number }>('/warehouse/', { params })
     return data
   },
 
@@ -108,13 +109,28 @@ export const trackingApi = {
 // Settings API
 export const settingsApi = {
   get: async () => {
-    const { data } = await api.get<CompanySettings>('/settings/')
-    return data
+    const { data } = await api.get<any>('/settings/')
+    
+    // Convert response from snake_case to camelCase
+    return convertKeysToCamelCase({
+      ...data,
+      createdAt: data.created_at ? new Date(data.created_at) : undefined,
+      updatedAt: data.updated_at ? new Date(data.updated_at) : undefined
+    }) as CompanySettings
   },
 
   update: async (updates: Partial<CompanySettings>) => {
-    const { data } = await api.patch<CompanySettings>('/settings/', updates)
-    return data
+    // Convert camelCase to snake_case for backend
+    const updateData = convertKeysToSnakeCase(updates)
+    
+    const { data } = await api.patch<any>('/settings/', updateData)
+    
+    // Convert response from snake_case to camelCase
+    return convertKeysToCamelCase({
+      ...data,
+      createdAt: data.created_at ? new Date(data.created_at) : undefined,
+      updatedAt: data.updated_at ? new Date(data.updated_at) : undefined
+    }) as CompanySettings
   },
 }
 
@@ -134,28 +150,95 @@ export const customersApi = {
       delete apiParams.page
     }
     
-    const { data } = await api.get<{ items: Customer[]; total: number }>('/customers', { params: apiParams })
-    return data
+    const { data } = await api.get<{ items: any[]; total: number }>('/customers/', { params: apiParams })
+    
+    // Convert dates from ISO strings
+    return {
+      items: data.items.map(customer => ({
+        ...customer,
+        createdAt: new Date(customer.created_at || customer.createdAt),
+        updatedAt: new Date(customer.updated_at || customer.updatedAt),
+        lastOrderDate: customer.last_order_date ? new Date(customer.last_order_date) : undefined,
+        ordersCount: customer.orders_count || customer.ordersCount || 0,
+        totalSpent: customer.total_spent || customer.totalSpent || 0,
+        importantDates: customer.important_dates || customer.importantDates || [],
+        // Convert addresses from array of objects to array of strings
+        addresses: (customer.addresses || []).map((addr: any) => addr.address)
+      })) as Customer[],
+      total: data.total
+    }
   },
 
   getById: async (id: string) => {
-    const { data } = await api.get<Customer>(`/customers/${id}`)
-    return data
+    const { data } = await api.get<any>(`/customers/${id}`)
+    
+    // Convert dates and handle snake_case fields
+    return {
+      ...data,
+      createdAt: new Date(data.created_at || data.createdAt),
+      updatedAt: new Date(data.updated_at || data.updatedAt),
+      lastOrderDate: data.last_order_date ? new Date(data.last_order_date) : undefined,
+      ordersCount: data.orders_count || data.ordersCount || 0,
+      totalSpent: data.total_spent || data.totalSpent || 0,
+      importantDates: data.important_dates || data.importantDates || [],
+      // Convert addresses from array of objects to array of strings
+      addresses: (data.addresses || []).map((addr: any) => addr.address)
+    } as Customer
   },
 
   create: async (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'ordersCount' | 'totalSpent'>) => {
-    const { data } = await api.post<Customer>('/customers', customer)
-    return data
+    const { data } = await api.post<any>('/customers', customer)
+    
+    // Convert dates from ISO strings
+    return {
+      ...data,
+      createdAt: new Date(data.created_at || data.createdAt),
+      updatedAt: new Date(data.updated_at || data.updatedAt),
+      lastOrderDate: data.last_order_date ? new Date(data.last_order_date) : undefined,
+      ordersCount: data.orders_count || data.ordersCount || 0,
+      totalSpent: data.total_spent || data.totalSpent || 0,
+      importantDates: data.important_dates || data.importantDates || [],
+      // Convert addresses from array of objects to array of strings
+      addresses: (data.addresses || []).map((addr: any) => addr.address)
+    } as Customer
   },
 
   update: async (id: string, updates: Partial<Customer>) => {
-    const { data } = await api.put<Customer>(`/customers/${id}`, updates)
-    return data
+    const { data } = await api.put<any>(`/customers/${id}`, updates)
+    
+    // Convert dates from ISO strings
+    return {
+      ...data,
+      createdAt: new Date(data.created_at || data.createdAt),
+      updatedAt: new Date(data.updated_at || data.updatedAt),
+      lastOrderDate: data.last_order_date ? new Date(data.last_order_date) : undefined,
+      ordersCount: data.orders_count || data.ordersCount || 0,
+      totalSpent: data.total_spent || data.totalSpent || 0,
+      importantDates: data.important_dates || data.importantDates || [],
+      // Convert addresses from array of objects to array of strings
+      addresses: (data.addresses || []).map((addr: any) => addr.address)
+    } as Customer
   },
 
   getOrders: async (customerId: string, params?: { skip?: number; limit?: number }) => {
-    const { data } = await api.get<{ items: Order[]; total: number }>(`/customers/${customerId}/orders`, { params })
-    return data
+    const { data } = await api.get<any[]>(`/customers/${customerId}/orders`, { params })
+    
+    // Backend returns array directly, not {items, total}
+    // Convert dates from ISO strings
+    const orders = (data || []).map(order => ({
+      ...order,
+      createdAt: new Date(order.created_at || order.createdAt),
+      updatedAt: new Date(order.updated_at || order.updatedAt),
+      deliveryWindow: order.delivery_window ? {
+        from: new Date(order.delivery_window.from),
+        to: new Date(order.delivery_window.to)
+      } : order.deliveryWindow
+    })) as Order[]
+    
+    return {
+      items: orders,
+      total: orders.length
+    }
   },
 
   addAddress: async (customerId: string, address: { address: string; label?: string }) => {
@@ -415,17 +498,21 @@ export const productionApi = {
     return {
       items: data.items.map(task => ({
         ...convertKeysToCamelCase(task),
+        id: task.id.toString(),
+        orderId: task.order_id.toString(),
         createdAt: new Date(task.created_at),
         assignedAt: task.assigned_at ? new Date(task.assigned_at) : undefined,
         startedAt: task.started_at ? new Date(task.started_at) : undefined,
         completedAt: task.completed_at ? new Date(task.completed_at) : undefined,
         deadline: task.deadline ? new Date(task.deadline) : undefined,
         requiredBy: task.deadline ? new Date(task.deadline) : new Date(),
-        customerName: task.order?.customer_name || 'Не указано',
-        customerPhone: task.order?.customer_phone || '',
-        products: task.order?.products || 'Не указано',
+        customerName: `Заказ #${task.order_id}`,
+        customerPhone: '+7 XXX XXX XX XX',
+        products: task.task_type === 'bouquet' ? 'Букет' : 'Композиция',
         orderNumber: `#${task.order_id}`,
-        notes: task.instructions || task.florist_notes
+        notes: task.instructions || task.florist_notes,
+        assignedTo: task.florist_id === 1 ? 'Марина' : task.florist_id === 2 ? 'Алия' : task.florist_id === 3 ? 'Светлана' : task.florist_id === 4 ? 'Гульнара' : undefined,
+        priority: task.priority === 'urgent' ? 'high' : task.priority === 'normal' ? 'medium' : 'low'
       })) as FloristTask[],
       total: data.total
     }

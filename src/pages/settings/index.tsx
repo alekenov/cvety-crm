@@ -482,7 +482,7 @@ export function SettingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {settings.deliveryZones.map((zone) => (
+              {(settings?.deliveryZones || []).map((zone) => (
                 <TableRow key={zone.name}>
                   <TableCell>{zone.name}</TableCell>
                   <TableCell>{formatCurrency(zone.price)}</TableCell>

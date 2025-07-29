@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 
@@ -64,7 +64,7 @@ class CRUDFloristTask(CRUDBase[FloristTask, FloristTaskCreate, FloristTaskUpdate
         """Получить просроченные задачи"""
         return db.query(self.model).filter(
             and_(
-                self.model.deadline < datetime.utcnow(),
+                self.model.deadline < datetime.now(timezone.utc),
                 self.model.status.notin_([TaskStatus.completed, TaskStatus.cancelled])
             )
         ).order_by(self.model.deadline).offset(skip).limit(limit).all()
@@ -77,7 +77,7 @@ class CRUDFloristTask(CRUDBase[FloristTask, FloristTaskCreate, FloristTaskUpdate
         
         task.florist_id = florist_id
         task.status = TaskStatus.assigned
-        task.assigned_at = datetime.utcnow()
+        task.assigned_at = datetime.now(timezone.utc)
         
         db.add(task)
         db.commit()
@@ -91,7 +91,7 @@ class CRUDFloristTask(CRUDBase[FloristTask, FloristTaskCreate, FloristTaskUpdate
             return None
         
         task.status = TaskStatus.in_progress
-        task.started_at = datetime.utcnow()
+        task.started_at = datetime.now(timezone.utc)
         if florist_notes:
             task.florist_notes = florist_notes
         
@@ -113,7 +113,7 @@ class CRUDFloristTask(CRUDBase[FloristTask, FloristTaskCreate, FloristTaskUpdate
             return None
         
         task.status = TaskStatus.quality_check
-        task.completed_at = datetime.utcnow()
+        task.completed_at = datetime.now(timezone.utc)
         
         if actual_minutes is not None:
             task.actual_minutes = actual_minutes
@@ -129,7 +129,7 @@ class CRUDFloristTask(CRUDBase[FloristTask, FloristTaskCreate, FloristTaskUpdate
         # Отмечаем все позиции как выполненные
         for item in task.items:
             item.is_completed = True
-            item.completed_at = datetime.utcnow()
+            item.completed_at = datetime.now(timezone.utc)
         
         db.add(task)
         db.commit()
@@ -161,7 +161,7 @@ class CRUDFloristTask(CRUDBase[FloristTask, FloristTaskCreate, FloristTaskUpdate
         else:
             # Возвращаем в работу
             task.status = TaskStatus.in_progress
-            task.started_at = datetime.utcnow()
+            task.started_at = datetime.now(timezone.utc)
         
         db.add(task)
         db.commit()

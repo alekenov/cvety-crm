@@ -14,7 +14,9 @@ import {
   Plus,
   Timer,
   Play,
-  Pause
+  Pause,
+  Eye,
+  XCircle
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -57,16 +59,21 @@ const floristsData = [
 
 const florists = floristsData.map(f => f.name)
 
-const statusConfig: Record<TaskStatus, { label: string; icon: React.ElementType; color: string }> = {
+const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   pending: { label: "Ожидает", icon: Clock, color: "text-yellow-600" },
+  assigned: { label: "Назначено", icon: User, color: "text-purple-600" },
   in_progress: { label: "В работе", icon: Timer, color: "text-blue-600" },
-  completed: { label: "Готово", icon: CheckCircle2, color: "text-green-600" }
+  quality_check: { label: "Проверка", icon: Eye, color: "text-orange-600" },
+  completed: { label: "Готово", icon: CheckCircle2, color: "text-green-600" },
+  cancelled: { label: "Отменено", icon: XCircle, color: "text-gray-600" }
 }
 
-const priorityConfig = {
-  high: { label: "Высокий", color: "destructive" as const },
-  medium: { label: "Средний", color: "secondary" as const },
-  low: { label: "Низкий", color: "outline" as const }
+const priorityConfig: Record<string, { label: string; color: "destructive" | "secondary" | "outline" }> = {
+  high: { label: "Высокий", color: "destructive" },
+  medium: { label: "Средний", color: "secondary" },
+  low: { label: "Низкий", color: "outline" },
+  urgent: { label: "Срочный", color: "destructive" },
+  normal: { label: "Обычный", color: "secondary" }
 }
 
 export function ProductionPage() {
@@ -290,7 +297,9 @@ export function ProductionPage() {
   }
 
   const TaskCard = ({ task }: { task: FloristTask }) => {
-    const StatusIcon = statusConfig[task.status].icon
+    const status = task.status as keyof typeof statusConfig
+    const config = statusConfig[status] || statusConfig.pending
+    const StatusIcon = config.icon
     const isOverdue = new Date() > task.requiredBy && task.status !== "completed"
 
     const isDragging = draggedTaskId === task.id
@@ -307,15 +316,17 @@ export function ProductionPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base">{task.orderNumber}</CardTitle>
-                <Badge variant={priorityConfig[task.priority].color}>
-                  {priorityConfig[task.priority].label}
-                </Badge>
+                {task.priority && priorityConfig[task.priority] && (
+                  <Badge variant={priorityConfig[task.priority].color}>
+                    {priorityConfig[task.priority].label}
+                  </Badge>
+                )}
               </div>
               <CardDescription className="text-xs">
                 {task.customerName}
               </CardDescription>
             </div>
-            <StatusIcon className={`h-5 w-5 ${statusConfig[task.status].color}`} />
+            <StatusIcon className={`h-5 w-5 ${config.color}`} />
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -463,7 +474,21 @@ export function ProductionPage() {
         </Card>
       </div>
 
+      {/* Empty state */}
+      {tasks.length === 0 && !tasksLoading && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Нет активных заданий</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
+              Когда появятся новые заказы, задания для флористов появятся здесь
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Task Boards */}
+      {tasks.length > 0 && (
       <Tabs value={filterStatus} onValueChange={(v) => setFilterStatus(v as TaskStatus | "all")}>
         <TabsList>
           <TabsTrigger value="all">Все задания</TabsTrigger>
@@ -569,6 +594,7 @@ export function ProductionPage() {
           </div>
         </TabsContent>
       </Tabs>
+      )}
 
       {/* Assign Dialog */}
       <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>

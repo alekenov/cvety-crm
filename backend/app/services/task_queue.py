@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 
@@ -28,7 +28,7 @@ class TaskQueueService:
             # delivery_window is JSON like {"from": "2024-01-26T14:00:00", "to": "2024-01-26T16:00:00"}
             if isinstance(order.delivery_window, dict) and "from" in order.delivery_window:
                 deadline = datetime.fromisoformat(order.delivery_window["from"].replace("Z", "+00:00"))
-                hours_until_delivery = (deadline - datetime.utcnow()).total_seconds() / 3600
+                hours_until_delivery = (deadline - datetime.now(timezone.utc)).total_seconds() / 3600
                 if hours_until_delivery < 2:
                     priority = TaskPriority.urgent
                 elif hours_until_delivery < 4:
@@ -207,7 +207,7 @@ class TaskQueueService:
             ).all()
             
             # Завершенные сегодня
-            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
             completed_today = db.query(FloristTask).filter(
                 and_(
                     FloristTask.florist_id == florist_id,

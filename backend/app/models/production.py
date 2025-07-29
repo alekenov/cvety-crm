@@ -63,8 +63,10 @@ class FloristTask(Base):
     @property
     def is_overdue(self):
         """Проверяет, просрочена ли задача"""
-        from datetime import datetime
-        return self.deadline and datetime.utcnow() > self.deadline and self.status not in [TaskStatus.completed, TaskStatus.cancelled]
+        from datetime import datetime, timezone
+        # Use timezone-aware datetime for comparison
+        now = datetime.now(timezone.utc)
+        return self.deadline and now > self.deadline and self.status not in [TaskStatus.completed, TaskStatus.cancelled]
     
     @property
     def time_spent(self):

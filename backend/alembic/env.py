@@ -12,7 +12,7 @@ from alembic import context
 sys.path.append(str(Path(__file__).parents[1]))
 
 # Import settings and models
-from app.core.config import settings
+from app.core.config import get_settings
 from app.db.base import Base  # This imports all models
 
 # this is the Alembic Config object, which provides
@@ -25,6 +25,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Set the database URL from environment
+settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # add your model's MetaData object here

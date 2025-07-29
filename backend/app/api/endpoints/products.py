@@ -8,7 +8,7 @@ from app.api import deps
 router = APIRouter()
 
 
-@router.get("/", response_model=List[schemas.Product])
+@router.get("/")
 def read_products(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
@@ -20,7 +20,7 @@ def read_products(
     min_price: Optional[float] = Query(None, description="Minimum price filter"),
     max_price: Optional[float] = Query(None, description="Maximum price filter"),
     on_sale: Optional[bool] = Query(None, description="Filter products on sale")
-) -> List[schemas.Product]:
+):
     """
     Retrieve products with optional filters.
     """
@@ -36,7 +36,24 @@ def read_products(
         max_price=max_price,
         on_sale=on_sale
     )
-    return products
+    
+    # Get total count of products with filters applied
+    total = crud.product.count_active(
+        db,
+        category=category,
+        search=search,
+        is_popular=is_popular,
+        is_new=is_new,
+        min_price=min_price,
+        max_price=max_price,
+        on_sale=on_sale
+    ) if hasattr(crud.product, 'count_active') else len(products)
+    
+    # Return in expected format with items and total
+    return {
+        "items": products,
+        "total": total
+    }
 
 
 @router.post("/", response_model=schemas.Product)

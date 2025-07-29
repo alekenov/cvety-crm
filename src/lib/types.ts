@@ -170,7 +170,7 @@ export interface TrackingData {
 }
 
 export interface Customer {
-  id: string
+  id: number
   name: string
   phone: string
   email?: string

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
@@ -24,7 +24,7 @@ class CRUDTaskItem(CRUDBase[TaskItem, TaskItemCreate, TaskItemUpdate]):
             return None
         
         item.is_completed = True
-        item.completed_at = datetime.utcnow()
+        item.completed_at = datetime.now(timezone.utc)
         
         if quality_approved is not None:
             item.quality_approved = quality_approved

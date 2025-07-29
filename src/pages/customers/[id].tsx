@@ -57,10 +57,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 import type { Customer, Order } from "@/lib/types"
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from "@/lib/constants"
+import { customersApi } from "@/lib/api"
 
 // Mock data for a single customer
 const mockCustomer: Customer = {
-  id: "1",
+  id: 1,
   name: "Айгерим Сатпаева",
   phone: "+7 (707) 123-45-67",
   email: "aigerim@example.com",
@@ -150,41 +151,69 @@ export function CustomerDetailPage() {
   })
 
   useEffect(() => {
+    let cancelled = false
+    
     const fetchCustomerData = async () => {
       try {
         setLoading(true)
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500))
         
-        if (id === mockCustomer.id) {
-          setCustomer(mockCustomer)
-          setOrders(mockOrders)
-          setEditForm({
-            notes: mockCustomer.notes || "",
-            preferences: mockCustomer.preferences || ""
-          })
-          setContactForm({
-            phone: mockCustomer.phone || "",
-            email: mockCustomer.email || ""
-          })
-          setAddressForm({
-            addresses: [...mockCustomer.addresses],
-            newAddress: ""
-          })
-          setDatesForm({
-            dates: mockCustomer.importantDates ? [...mockCustomer.importantDates] : [],
-            newDate: "",
-            newDescription: ""
-          })
+        if (!id) return
+        
+        const customerId = parseInt(id)
+        if (isNaN(customerId)) {
+          toast.error("Неверный ID клиента")
+          return
         }
+        
+        // Fetch customer data from API
+        const customer = await customersApi.getById(id)
+        
+        if (cancelled) return
+        
+        setCustomer(customer)
+        
+        // Fetch customer's orders
+        const ordersData = await customersApi.getOrders(id, { limit: 20 })
+        
+        if (cancelled) return
+        
+        setOrders(ordersData.items)
+        
+        // Initialize forms with customer data
+        setEditForm({
+          notes: customer.notes || "",
+          preferences: customer.preferences || ""
+        })
+        setContactForm({
+          phone: customer.phone || "",
+          email: customer.email || ""
+        })
+        setAddressForm({
+          addresses: customer.addresses ? [...customer.addresses] : [],
+          newAddress: ""
+        })
+        setDatesForm({
+          dates: customer.importantDates ? [...customer.importantDates] : [],
+          newDate: "",
+          newDescription: ""
+        })
       } catch (error) {
-        toast.error("Ошибка загрузки данных клиента")
+        if (!cancelled) {
+          console.error("Error fetching customer:", error)
+          toast.error("Ошибка загрузки данных клиента")
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
     fetchCustomerData()
+    
+    return () => {
+      cancelled = true
+    }
   }, [id])
 
   const handleEditSubmit = () => {

@@ -22,7 +22,7 @@ def create_task(
     return crud.florist_task.create_with_items(db=db, obj_in=task_in)
 
 
-@router.get("/tasks/", response_model=List[schemas.FloristTask])
+@router.get("/tasks/")
 def read_tasks(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
@@ -46,13 +46,23 @@ def read_tasks(
     if order_id:
         query = query.filter(crud.florist_task.model.order_id == order_id)
     
-    return query.order_by(
+    # Get total count before pagination
+    total = query.count()
+    
+    # Get paginated items
+    items = query.order_by(
         crud.florist_task.model.priority.desc(),
         crud.florist_task.model.created_at
     ).offset(skip).limit(limit).all()
+    
+    # Return in the expected format
+    return {
+        "items": items,
+        "total": total
+    }
 
 
-@router.get("/tasks/pending", response_model=List[schemas.FloristTask])
+@router.get("/tasks/pending")
 def read_pending_tasks(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
@@ -61,7 +71,11 @@ def read_pending_tasks(
     """
     Получить список ожидающих задач.
     """
-    return crud.florist_task.get_pending_tasks(db=db, skip=skip, limit=limit)
+    items = crud.florist_task.get_pending_tasks(db=db, skip=skip, limit=limit)
+    return {
+        "items": items,
+        "total": len(items)
+    }
 
 
 @router.get("/tasks/overdue", response_model=List[schemas.FloristTask])
