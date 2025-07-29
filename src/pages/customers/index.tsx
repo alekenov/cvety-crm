@@ -4,16 +4,9 @@ import { Search, Plus, Phone, ShoppingBag, User } from "lucide-react"
 import { toast } from "sonner"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { ResponsiveTable } from "@/components/ui/responsive-table"
+import { PageFilters } from "@/components/ui/page-filters"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -24,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -298,105 +292,133 @@ export function CustomersPage() {
         </Dialog>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Поиск по имени, телефону или email"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-8"
-        />
-      </div>
+      {/* Filters */}
+      <PageFilters
+        config={{
+          searchPlaceholder: "Поиск по имени, телефону или email",
+          searchValue: searchQuery,
+          onSearchChange: setSearchQuery
+        }}
+      />
 
       {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Клиент</TableHead>
-              <TableHead>Контакты</TableHead>
-              <TableHead>Заказы</TableHead>
-              <TableHead>Общая сумма</TableHead>
-              <TableHead>Последний заказ</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers.map((customer) => (
-              <TableRow 
-                key={customer.id}
-                className="cursor-pointer"
-                onClick={() => navigate(`/customers/${customer.id}`)}
-              >
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium">{customer.name}</div>
-                      {customer.notes && (
-                        <div className="text-xs text-muted-foreground line-clamp-1">
-                          {customer.notes}
-                        </div>
-                      )}
+      <ResponsiveTable
+        data={customers}
+        onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
+        columns={[
+          {
+            key: 'name',
+            label: 'Клиент',
+            render: (value, customer) => (
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="font-medium">{value as string}</div>
+                  {customer.notes && (
+                    <div className="text-xs text-muted-foreground line-clamp-1">
+                      {customer.notes}
                     </div>
+                  )}
+                </div>
+              </div>
+            ),
+            priority: 0
+          },
+          {
+            key: 'phone',
+            label: 'Контакты',
+            render: (value, customer) => (
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-sm">
+                  <Phone className="h-3 w-3" />
+                  {value as string}
+                </div>
+                {customer.email && (
+                  <div className="text-xs text-muted-foreground">
+                    {customer.email}
                   </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-sm">
-                      <Phone className="h-3 w-3" />
-                      {customer.phone}
-                    </div>
-                    {customer.email && (
-                      <div className="text-xs text-muted-foreground">
-                        {customer.email}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                    {customer.ordersCount}
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">
-                  {formatCurrency(customer.totalSpent)}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {new Date(customer.updatedAt).toLocaleDateString('ru-KZ')}
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        Действия
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Действия</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleCreateOrder(customer.id)}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Создать заказ
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => navigate(`/customers/${customer.id}`)}
-                      >
-                        <User className="mr-2 h-4 w-4" />
-                        Открыть карточку
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                )}
+              </div>
+            ),
+            priority: 1
+          },
+          {
+            key: 'ordersCount',
+            label: 'Заказы',
+            render: (value) => (
+              <div className="flex items-center gap-1">
+                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                {value as number}
+              </div>
+            ),
+            priority: 2
+          },
+          {
+            key: 'totalSpent',
+            label: 'Общая сумма',
+            render: (value) => (
+              <div className="font-medium">
+                {formatCurrency(value as number)}
+              </div>
+            ),
+            priority: 3
+          },
+          {
+            key: 'updatedAt',
+            label: 'Последний заказ',
+            render: (value) => (
+              <div className="text-sm text-muted-foreground">
+                {new Date(value as Date).toLocaleDateString('ru-KZ')}
+              </div>
+            ),
+            hideOnMobile: true
+          },
+          {
+            key: 'email',
+            label: 'Email',
+            render: (value) => value || '—',
+            hideOnMobile: true
+          }
+        ]}
+        mobileCardTitle={(customer) => customer.name}
+        mobileCardSubtitle={(customer) => customer.phone}
+        onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
+        mobileCardActions={(customer) => (
+          <div className="flex gap-1">
+            <Button
+              variant="ghost" 
+              size="icon"
+              onClick={() => handleCreateOrder(customer.id)}
+              className="h-8 w-8"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <User className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Действия</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleCreateOrder(customer.id)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Создать заказ
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => navigate(`/customers/${customer.id}`)}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Открыть карточку
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+      />
 
       {/* Summary */}
       <div className="flex gap-4 text-sm text-muted-foreground">

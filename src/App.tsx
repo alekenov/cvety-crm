@@ -6,6 +6,7 @@ import { OrdersPage } from "@/pages/orders"
 import { NewOrderPage } from "@/pages/orders/new"
 import { OrderDetailPage } from "@/pages/orders/[id]"
 import { WarehousePage } from "@/pages/warehouse"
+import { WarehouseItemDetailPage } from "@/pages/warehouse/[id]"
 import { DeliveryPage } from "@/pages/warehouse/delivery"
 import { TrackingPage } from "@/pages/tracking"
 import { CustomersPage } from "@/pages/customers"
@@ -34,6 +35,7 @@ function App() {
                   <Route path="/orders/new" element={<NewOrderPage />} />
                   <Route path="/orders/:id" element={<OrderDetailPage />} />
                   <Route path="/warehouse" element={<WarehousePage />} />
+                  <Route path="/warehouse/:id" element={<WarehouseItemDetailPage />} />
                   <Route path="/warehouse/delivery" element={<DeliveryPage />} />
                   <Route path="/customers" element={<CustomersPage />} />
                   <Route path="/customers/:id" element={<CustomerDetailPage />} />

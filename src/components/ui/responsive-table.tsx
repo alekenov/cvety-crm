@@ -1,6 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { useIsMobile } from "@/hooks/use-media-query"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ export function ResponsiveTable<T extends { id: string | number }>({
   mobileCardActions,
   className
 }: ResponsiveTableProps<T>) {
-  const isMobile = useIsMobile()
+  const isMobile = useMediaQuery("(max-width: 768px)")
   const [selectedItem, setSelectedItem] = React.useState<T | null>(null)
 
   const visibleColumns = columns.filter(col => !isMobile || !col.hideOnMobile)
@@ -48,7 +48,7 @@ export function ResponsiveTable<T extends { id: string | number }>({
             <Card 
               key={item.id}
               className="cursor-pointer hover:bg-accent/50 transition-colors"
-              onClick={() => setSelectedItem(item)}
+              onClick={() => onRowClick ? onRowClick(item) : setSelectedItem(item)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -70,15 +70,19 @@ export function ResponsiveTable<T extends { id: string | number }>({
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  {mobileColumns.slice(0, 4).map(column => {
+                <div className="space-y-3 text-sm">
+                  {mobileColumns.slice(0, 3).map(column => {
                     const value = item[column.key]
                     const rendered = column.render ? column.render(value, item) : String(value)
                     
                     return (
-                      <div key={String(column.key)}>
-                        <span className="text-muted-foreground">{column.label}:</span>
-                        <div className="font-medium">{rendered}</div>
+                      <div key={String(column.key)} className="flex justify-between items-start">
+                        <span className="text-muted-foreground font-medium min-w-0 flex-shrink-0">
+                          {column.label}:
+                        </span>
+                        <div className="font-medium text-right ml-2 min-w-0 flex-1">
+                          {rendered}
+                        </div>
                       </div>
                     )
                   })}

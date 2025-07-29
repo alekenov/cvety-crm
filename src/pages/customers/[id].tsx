@@ -19,6 +19,8 @@ import {
   X
 } from "lucide-react"
 import { toast } from "sonner"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { MobileCustomerDetail } from "./[id]-mobile"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -124,6 +126,7 @@ const mockOrders: Order[] = [
 export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const isMobile = useMediaQuery("(max-width: 768px)")
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -339,6 +342,11 @@ export function CustomerDetailPage() {
         </Button>
       </div>
     )
+  }
+
+  // Use mobile version on mobile devices
+  if (isMobile) {
+    return <MobileCustomerDetail />
   }
 
   return (

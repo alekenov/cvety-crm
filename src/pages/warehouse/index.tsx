@@ -1,26 +1,13 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { Package, Store, AlertTriangle } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { ResponsiveTable } from "@/components/ui/responsive-table"
+import { PageFilters, createFilterOptions } from "@/components/ui/page-filters"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -30,7 +17,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import type { WarehouseItem } from "@/lib/types"
@@ -68,6 +61,7 @@ interface WarehouseItemApiResponse {
 }
 
 export function WarehousePage() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   // State
@@ -239,274 +233,306 @@ export function WarehousePage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 flex-wrap">
-        <Select value={varietyFilter} onValueChange={(value) => {
-          setVarietyFilter(value)
-          setCurrentPage(1)
-        }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Все сорта" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все сорта</SelectItem>
-            {VARIETIES.map((variety) => (
-              <SelectItem key={variety} value={variety}>
-                {variety}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={heightFilter} onValueChange={(value) => {
-          setHeightFilter(value)
-          setCurrentPage(1)
-        }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Вся высота" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Вся высота</SelectItem>
-            {HEIGHTS.map((height) => (
-              <SelectItem key={height} value={height.toString()}>
-                {height} см
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={farmFilter} onValueChange={(value) => {
-          setFarmFilter(value)
-          setCurrentPage(1)
-        }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Все фермы" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все фермы</SelectItem>
-            {FARMS.map((farm) => (
-              <SelectItem key={farm} value={farm}>
-                {farm}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={supplierFilter} onValueChange={(value) => {
-          setSupplierFilter(value)
-          setCurrentPage(1)
-        }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Все поставщики" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все поставщики</SelectItem>
-            {SUPPLIERS.map((supplier) => (
-              <SelectItem key={supplier} value={supplier}>
-                {supplier}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={flagFilter} onValueChange={(value) => {
-          setFlagFilter(value)
-          setCurrentPage(1)
-        }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Все флаги" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все флаги</SelectItem>
-            <SelectItem value="showcase">На витрине</SelectItem>
-            <SelectItem value="writeoff">К списанию</SelectItem>
-            <SelectItem value="hidden">Скрытые</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Input
-          placeholder="Поиск по SKU или партии"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
+      <PageFilters
+        config={{
+          searchPlaceholder: "Поиск по SKU или партии",
+          searchValue: searchQuery,
+          onSearchChange: setSearchQuery,
+          selectFilters: [
+            {
+              value: varietyFilter,
+              onChange: (value) => {
+                setVarietyFilter(value)
+                setCurrentPage(1)
+              },
+              placeholder: "Все сорта",
+              options: createFilterOptions(VARIETIES, "Все сорта"),
+              width: "sm:w-[160px]"
+            },
+            {
+              value: heightFilter,
+              onChange: (value) => {
+                setHeightFilter(value)
+                setCurrentPage(1)
+              },
+              placeholder: "Вся высота",
+              options: [
+                { value: "all", label: "Вся высота" },
+                ...HEIGHTS.map(height => ({ value: height.toString(), label: `${height} см` }))
+              ],
+              width: "sm:w-[140px]"
+            }
+          ],
+          advancedFilters: {
+            trigger: "Фильтры",
+            content: (
+              <>
+                <DropdownMenuLabel>Фермы</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {createFilterOptions(FARMS, "Все фермы").map(farm => (
+                  <DropdownMenuItem
+                    key={farm.value}
+                    onClick={() => {
+                      setFarmFilter(farm.value)
+                      setCurrentPage(1)
+                    }}
+                    className={farmFilter === farm.value ? "bg-accent" : ""}
+                  >
+                    {farm.label}
+                  </DropdownMenuItem>
+                ))}
+                
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Поставщики</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {createFilterOptions(SUPPLIERS, "Все поставщики").map(supplier => (
+                  <DropdownMenuItem
+                    key={supplier.value}
+                    onClick={() => {
+                      setSupplierFilter(supplier.value)
+                      setCurrentPage(1)
+                    }}
+                    className={supplierFilter === supplier.value ? "bg-accent" : ""}
+                  >
+                    {supplier.label}
+                  </DropdownMenuItem>
+                ))}
+                
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Флаги</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {[
+                  { value: "all", label: "Все флаги" },
+                  { value: "showcase", label: "На витрине" },
+                  { value: "writeoff", label: "К списанию" },
+                  { value: "hidden", label: "Скрытые" }
+                ].map(flag => (
+                  <DropdownMenuItem
+                    key={flag.value}
+                    onClick={() => {
+                      setFlagFilter(flag.value)
+                      setCurrentPage(1)
+                    }}
+                    className={flagFilter === flag.value ? "bg-accent" : ""}
+                  >
+                    {flag.label}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )
+          }
+        }}
+      />
 
       {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>Номенклатура</TableHead>
-              <TableHead>Поставка</TableHead>
-              <TableHead>Экономика</TableHead>
-              <TableHead>Остатки</TableHead>
-              <TableHead>Флаги</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="font-medium">{item.sku}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.batchCode}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div>{item.variety} {item.heightCm}см</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.farm}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="text-sm">
-                      {new Date(item.deliveryDate).toLocaleDateString('ru-KZ')}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.supplier}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="text-sm">
-                      Себест: {formatCurrency(calculateTotalCost(item))}
-                    </div>
-                    <div className="text-sm font-medium">
-                      Цена: {formatCurrency(item.price)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Наценка: {item.markupPct}%
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="space-y-1">
-                          <div className={`text-sm font-medium ${getStockStatusColor(item.qty, item.reservedQty)}`}>
-                            {item.qty} шт
-                          </div>
-                          {item.reservedQty > 0 && (
-                            <div className="text-xs text-muted-foreground">
-                              Резерв: {item.reservedQty} шт
-                            </div>
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Доступно: {item.qty - item.reservedQty} шт</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    {item.onShowcase && (
-                      <Badge variant="secondary">
-                        <Store className="mr-1 h-3 w-3" />
-                        На витрине
-                      </Badge>
-                    )}
-                    {item.toWriteOff && (
-                      <Badge variant="destructive">
-                        <AlertTriangle className="mr-1 h-3 w-3" />
-                        К списанию
-                      </Badge>
-                    )}
-                    {item.hidden && (
-                      <Badge variant="outline">Скрыто</Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleQuickEdit(item)}
-                      >
-                        <Package className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Быстрое редактирование</DialogTitle>
-                        <DialogDescription>
-                          {item.sku} - {item.variety} {item.heightCm}см
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label htmlFor="price" className="text-right">
-                            Цена
-                          </Label>
-                          <Input
-                            id="price"
-                            type="number"
-                            value={editPrice}
-                            onChange={(e) => setEditPrice(e.target.value)}
-                            className="col-span-3"
-                          />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                          <Label className="text-right">Флаги</Label>
-                          <div className="col-span-3 space-y-2">
-                            <label className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={editOnShowcase}
-                                onChange={(e) => setEditOnShowcase(e.target.checked)}
-                                className="rounded border-gray-300"
-                              />
-                              <span>На витрине</span>
-                            </label>
-                            <label className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={editToWriteOff}
-                                onChange={(e) => setEditToWriteOff(e.target.checked)}
-                                className="rounded border-gray-300"
-                              />
-                              <span>К списанию</span>
-                            </label>
-                            <label className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={editHidden}
-                                onChange={(e) => setEditHidden(e.target.checked)}
-                                className="rounded border-gray-300"
-                              />
-                              <span>Скрыто</span>
-                            </label>
-                          </div>
-                        </div>
+      <ResponsiveTable
+        data={items}
+        columns={[
+          {
+            key: 'sku',
+            label: 'SKU',
+            render: (value, item) => (
+              <div className="space-y-1">
+                <div className="font-medium">{value as string}</div>
+                <div className="text-xs text-muted-foreground">
+                  {item.batchCode}
+                </div>
+              </div>
+            ),
+            priority: 0
+          },
+          {
+            key: 'variety',
+            label: 'Номенклатура',
+            render: (value, item) => (
+              <div className="space-y-1">
+                <div>{value as string} {item.heightCm}см</div>
+                <div className="text-xs text-muted-foreground">
+                  {item.farm}
+                </div>
+              </div>
+            ),
+            priority: 1
+          },
+          {
+            key: 'qty',
+            label: 'Остатки',
+            render: (value, item) => (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="space-y-1">
+                      <div className={`text-sm font-medium ${getStockStatusColor(item.qty, item.reservedQty)}`}>
+                        {value as number} шт
                       </div>
-                      <DialogFooter>
-                        <Button 
-                          onClick={handleSaveEdit}
-                          disabled={updateMutation.isPending}
-                        >
-                          {updateMutation.isPending ? 'Сохранение...' : 'Сохранить'}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                      {item.reservedQty > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          Резерв: {item.reservedQty} шт
+                        </div>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Доступно: {item.qty - item.reservedQty} шт</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ),
+            priority: 2
+          },
+          {
+            key: 'price',
+            label: 'Цена',
+            render: (value, item) => (
+              <div className="space-y-1">
+                <div className="text-sm font-medium">
+                  {formatCurrency(value as number)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Наценка: {item.markupPct}%
+                </div>
+              </div>
+            ),
+            priority: 3
+          },
+          {
+            key: 'deliveryDate',
+            label: 'Поставка',
+            render: (value, item) => (
+              <div className="space-y-1">
+                <div className="text-sm">
+                  {new Date(value as Date).toLocaleDateString('ru-KZ')}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {item.supplier}
+                </div>
+              </div>
+            ),
+            hideOnMobile: true
+          },
+          {
+            key: 'cost',
+            label: 'Экономика',
+            render: (value, item) => (
+              <div className="space-y-1">
+                <div className="text-sm">
+                  Себест: {formatCurrency(calculateTotalCost(item))}
+                </div>
+                <div className="text-sm font-medium">
+                  Цена: {formatCurrency(item.price)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Наценка: {item.markupPct}%
+                </div>
+              </div>
+            ),
+            hideOnMobile: true
+          },
+          {
+            key: 'onShowcase',
+            label: 'Флаги',
+            render: (_, item) => (
+              <div className="flex gap-2 flex-wrap">
+                {item.onShowcase && (
+                  <Badge variant="secondary">
+                    <Store className="mr-1 h-3 w-3" />
+                    На витрине
+                  </Badge>
+                )}
+                {item.toWriteOff && (
+                  <Badge variant="destructive">
+                    <AlertTriangle className="mr-1 h-3 w-3" />
+                    К списанию
+                  </Badge>
+                )}
+                {item.hidden && (
+                  <Badge variant="outline">Скрыто</Badge>
+                )}
+              </div>
+            ),
+            hideOnMobile: true
+          }
+        ]}
+        mobileCardTitle={(item) => `${item.sku}`}
+        mobileCardSubtitle={(item) => `${item.variety} ${item.heightCm}см`}
+        onRowClick={(item) => navigate(`/warehouse/${item.id}`)}
+        mobileCardActions={(item) => (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleQuickEdit(item)}
+                className="h-8 w-8"
+              >
+                <Package className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Быстрое редактирование</DialogTitle>
+                <DialogDescription>
+                  {item.sku} - {item.variety} {item.heightCm}см
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="price" className="text-right">
+                    Цена
+                  </Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Флаги</Label>
+                  <div className="col-span-3 space-y-2">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={editOnShowcase}
+                        onChange={(e) => setEditOnShowcase(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      <span>На витрине</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={editToWriteOff}
+                        onChange={(e) => setEditToWriteOff(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      <span>К списанию</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={editHidden}
+                        onChange={(e) => setEditHidden(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      <span>Скрыто</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  onClick={handleSaveEdit}
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      />
     </div>
   )
 }
