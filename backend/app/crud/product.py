@@ -143,6 +143,63 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             db.commit()
             db.refresh(product)
         return product
+    
+    def count_active(
+        self,
+        db: Session,
+        *,
+        category: Optional[str] = None,
+        search: Optional[str] = None,
+        is_popular: Optional[bool] = None,
+        is_new: Optional[bool] = None,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        on_sale: Optional[bool] = None
+    ) -> int:
+        query = db.query(Product).filter(Product.is_active == True)
+        
+        # Apply same filters as get_active
+        if category:
+            query = query.filter(Product.category == category)
+        
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Product.name.ilike(search_pattern),
+                    Product.description.ilike(search_pattern)
+                )
+            )
+        
+        if is_popular is not None:
+            query = query.filter(Product.is_popular == is_popular)
+        
+        if is_new is not None:
+            query = query.filter(Product.is_new == is_new)
+        
+        if min_price is not None:
+            query = query.filter(
+                or_(
+                    and_(Product.sale_price.isnot(None), Product.sale_price >= min_price),
+                    and_(Product.sale_price.is_(None), Product.retail_price >= min_price)
+                )
+            )
+        
+        if max_price is not None:
+            query = query.filter(
+                or_(
+                    and_(Product.sale_price.isnot(None), Product.sale_price <= max_price),
+                    and_(Product.sale_price.is_(None), Product.retail_price <= max_price)
+                )
+            )
+        
+        if on_sale is not None:
+            if on_sale:
+                query = query.filter(Product.sale_price.isnot(None))
+            else:
+                query = query.filter(Product.sale_price.is_(None))
+        
+        return query.count()
 
 
 product = CRUDProduct(Product)

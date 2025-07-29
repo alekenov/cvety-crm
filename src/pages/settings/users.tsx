@@ -19,14 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { ResponsiveTable } from "@/components/ui/responsive-table"
+import { PageFilters } from "@/components/ui/page-filters"
 import {
   Select,
   SelectContent,
@@ -164,6 +158,7 @@ const allPermissions = [
 export function UsersPage() {
   const [users, setUsers] = useState<SystemUser[]>(mockUsers)
   const [roles] = useState<UserRole[]>(mockRoles)
+  const [searchQuery, setSearchQuery] = useState("")
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
   const [isEditRoleDialogOpen, setIsEditRoleDialogOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
@@ -173,6 +168,18 @@ export function UsersPage() {
     email: "",
     phone: "",
     roleId: ""
+  })
+
+  // Filter users based on search query
+  const filteredUsers = users.filter(user => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      user.name.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query) ||
+      (user.phone && user.phone.toLowerCase().includes(query)) ||
+      user.role.name.toLowerCase().includes(query)
+    )
   })
 
   const handleAddUser = () => {
@@ -322,6 +329,15 @@ export function UsersPage() {
         </Dialog>
       </div>
 
+      {/* Filters */}
+      <PageFilters
+        config={{
+          searchPlaceholder: "Поиск пользователей по имени, email, телефону или роли",
+          searchValue: searchQuery,
+          onSearchChange: setSearchQuery
+        }}
+      />
+
       {/* Users Table */}
       <Card>
         <CardHeader>
@@ -331,96 +347,114 @@ export function UsersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Пользователь</TableHead>
-                <TableHead>Контакты</TableHead>
-                <TableHead>Роль</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Последний вход</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="font-medium">{user.name}</div>
+          <ResponsiveTable
+            data={filteredUsers}
+            columns={[
+              {
+                key: 'name',
+                label: 'Пользователь',
+                render: (value, user) => (
+                  <div>
+                    <div className="font-medium">{value as string}</div>
                     <div className="text-sm text-muted-foreground">
                       Добавлен {format(user.createdAt, "dd.MM.yyyy")}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1 text-sm">
-                        <Mail className="h-3 w-3" />
-                        {user.email}
-                      </div>
-                      {user.phone && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="h-3 w-3" />
-                          {user.phone}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {user.role.name}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.isActive ? "default" : "secondary"}>
-                      {user.isActive ? (
-                        <><Check className="mr-1 h-3 w-3" /> Активен</>
-                      ) : (
-                        <><X className="mr-1 h-3 w-3" /> Заблокирован</>
-                      )}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {user.lastLoginAt 
-                      ? format(user.lastLoginAt, "dd.MM.yyyy HH:mm")
+                  </div>
+                ),
+                priority: 0
+              },
+              {
+                key: 'role',
+                label: 'Роль',
+                render: (value) => (
+                  <Badge variant="secondary">
+                    {(value as any).name}
+                  </Badge>
+                ),
+                priority: 1
+              },
+              {
+                key: 'isActive',
+                label: 'Статус',
+                render: (value) => (
+                  <Badge variant={value ? "default" : "secondary"}>
+                    {value ? (
+                      <><Check className="mr-1 h-3 w-3" /> Активен</>
+                    ) : (
+                      <><X className="mr-1 h-3 w-3" /> Заблокирован</>
+                    )}
+                  </Badge>
+                ),
+                priority: 2
+              },
+              {
+                key: 'lastLoginAt',
+                label: 'Последний вход',
+                render: (value) => (
+                  <div className="text-sm text-muted-foreground">
+                    {value 
+                      ? format(value as Date, "dd.MM.yyyy HH:mm")
                       : "Не входил"
                     }
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Действия</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleToggleUserStatus(user.id)}
-                        >
-                          <UserCheck className="mr-2 h-4 w-4" />
-                          {user.isActive ? "Заблокировать" : "Разблокировать"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleResetPassword(user)}
-                        >
-                          <Key className="mr-2 h-4 w-4" />
-                          Сбросить пароль
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          Удалить пользователя
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                ),
+                hideOnMobile: true
+              },
+              {
+                key: 'email',
+                label: 'Контакты',
+                render: (value, user) => (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1 text-sm">
+                      <Mail className="h-3 w-3" />
+                      {value as string}
+                    </div>
+                    {user.phone && (
+                      <div className="flex items-center gap-1 text-sm">
+                        <Phone className="h-3 w-3" />
+                        {user.phone}
+                      </div>
+                    )}
+                  </div>
+                ),
+                hideOnMobile: true
+              }
+            ]}
+            mobileCardTitle={(user) => user.name}
+            mobileCardSubtitle={(user) => (user.role as any).name}
+            mobileCardActions={(user) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Действия</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => handleToggleUserStatus(user.id)}
+                  >
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    {user.isActive ? "Заблокировать" : "Разблокировать"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleResetPassword(user)}
+                  >
+                    <Key className="mr-2 h-4 w-4" />
+                    Сбросить пароль
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => handleDeleteUser(user.id)}
+                  >
+                    Удалить пользователя
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          />
         </CardContent>
       </Card>
 

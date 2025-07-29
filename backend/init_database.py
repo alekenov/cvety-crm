@@ -6,7 +6,7 @@ import random
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.db.base import Base
 from app.models.customer import Customer, CustomerAddress
 from app.models.product import Product
@@ -16,6 +16,7 @@ from app.models.settings import CompanySettings
 
 def init_database():
     """Initialize database with sample data"""
+    settings = get_settings()
     engine = create_engine(settings.DATABASE_URL)
     Session = sessionmaker(bind=engine)
     session = Session()

@@ -62,6 +62,7 @@ class CustomerAddress(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
     address = Column(String, nullable=False)
     label = Column(String)  # Home, Office, etc.
+    is_primary = Column(Integer, default=0)  # Using Integer as Boolean for SQLite compatibility
     
     # Usage tracking
     usage_count = Column(Integer, default=0)

@@ -2,10 +2,13 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+import logging
 
 from app import crud, schemas
 from app.api import deps
 from app.models.order import Order
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -96,7 +99,9 @@ def update_customer(
                 detail="Customer with this phone number already exists"
             )
     
+    logger.info(f"Updating customer {customer_id} with data: {customer_in.dict()}")
     customer = crud.customer.update(db=db, db_obj=customer, obj_in=customer_in)
+    logger.info(f"Updated customer {customer_id}, addresses count: {len(customer.addresses)}")
     return customer
 
 

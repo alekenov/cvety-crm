@@ -298,11 +298,11 @@ export const productsApi = {
     if (params?.skip !== undefined) apiParams.skip = params.skip
     if (params?.limit !== undefined) apiParams.limit = params.limit
 
-    const { data } = await api.get<any[]>('/products', { params: apiParams })
+    const { data } = await api.get<{ items: any[]; total: number }>('/products/', { params: apiParams })
     
     // Convert response from snake_case to camelCase
     return {
-      items: data.map(product => convertKeysToCamelCase({
+      items: data.items.map(product => convertKeysToCamelCase({
         ...product,
         // Ensure dates are converted to Date objects
         createdAt: new Date(product.created_at),
@@ -313,7 +313,7 @@ export const productsApi = {
           createdAt: new Date(img.created_at)
         }))
       })) as Product[],
-      total: data.length
+      total: data.total
     }
   },
 
@@ -468,7 +468,7 @@ export const productionApi = {
     if (params?.page) apiParams.skip = ((params.page - 1) * (params.limit || 20))
     if (params?.limit) apiParams.limit = params.limit
 
-    const { data } = await api.get<{ items: any[]; total: number }>('/production/tasks', { params: apiParams })
+    const { data } = await api.get<{ items: any[]; total: number }>('/production/tasks/', { params: apiParams })
     
     // Convert response from snake_case to camelCase
     return {

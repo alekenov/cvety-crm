@@ -273,6 +273,58 @@ class CRUDCustomer(CRUDBase[Customer, CustomerCreate, CustomerUpdate]):
         db.add(new_address)
         db.commit()
         return new_address
+    
+    def update(
+        self,
+        db: Session,
+        *,
+        db_obj: Customer,
+        obj_in: CustomerUpdate
+    ) -> Customer:
+        """Update customer with addresses and important dates"""
+        # Extract nested data
+        addresses_data = obj_in.addresses if hasattr(obj_in, 'addresses') else None
+        important_dates_data = obj_in.important_dates if hasattr(obj_in, 'important_dates') else None
+        
+        # Update customer basic info (excluding nested data)
+        update_data = obj_in.dict(exclude_unset=True, exclude={"addresses", "important_dates"})
+        return_customer = super().update(db, db_obj=db_obj, obj_in=update_data)
+        
+        # Update addresses if provided
+        if addresses_data is not None:
+            # Delete existing addresses
+            db.query(CustomerAddress).filter(CustomerAddress.customer_id == db_obj.id).delete()
+            
+            # Add new addresses
+            for address_data in addresses_data:
+                address = CustomerAddress(
+                    customer_id=db_obj.id,
+                    address=address_data.get('address'),
+                    label=address_data.get('label'),
+                    is_primary=address_data.get('is_primary', False),
+                    usage_count=address_data.get('usage_count', 0),
+                    last_used_at=datetime.utcnow()
+                )
+                db.add(address)
+        
+        # Update important dates if provided
+        if important_dates_data is not None:
+            # Delete existing dates
+            db.query(CustomerImportantDate).filter(CustomerImportantDate.customer_id == db_obj.id).delete()
+            
+            # Add new dates
+            for date_data in important_dates_data:
+                date = CustomerImportantDate(
+                    customer_id=db_obj.id,
+                    date=date_data.get('date'),
+                    description=date_data.get('description'),
+                    remind_days_before=date_data.get('remind_days_before', 1)
+                )
+                db.add(date)
+        
+        db.commit()
+        db.refresh(return_customer)
+        return return_customer
 
 
 customer = CRUDCustomer(Customer)

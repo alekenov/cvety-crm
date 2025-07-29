@@ -1,22 +1,12 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Plus, Search, Filter, Grid3x3, List, Loader2 } from "lucide-react"
+import { Plus, Grid3x3, List, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { PageFilters } from "@/components/ui/page-filters"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  DropdownMenu,
   DropdownMenuCheckboxItem,
-  DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -144,148 +134,142 @@ export function CatalogPage() {
         </Button>
       </div>
 
-      {/* Filters bar */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Поиск по названию..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
-          />
-        </div>
+      {/* Filters */}
+      <PageFilters
+        config={{
+          searchPlaceholder: "Поиск по названию...",
+          searchValue: searchQuery,
+          onSearchChange: setSearchQuery,
+          selectFilters: [
+            {
+              value: sortBy,
+              onChange: setSortBy,
+              placeholder: "Сортировка",
+              options: [
+                { value: "name", label: "По названию" },
+                { value: "price_asc", label: "Цена: по возрастанию" },
+                { value: "price_desc", label: "Цена: по убыванию" },
+                { value: "date", label: "По дате добавления" }
+              ]
+            }
+          ],
+          advancedFilters: {
+            trigger: "Фильтры",
+            content: (
+              <>
+                <DropdownMenuLabel>Категории</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {[
+                  { value: "bouquet", label: "Букеты" },
+                  { value: "composition", label: "Композиции" },
+                  { value: "potted", label: "Горшечные" },
+                  { value: "other", label: "Другое" }
+                ].map(category => (
+                  <DropdownMenuCheckboxItem
+                    key={category.value}
+                    checked={filters.categories.includes(category.value)}
+                    onCheckedChange={(checked) => {
+                      setFilters(prev => ({
+                        ...prev,
+                        categories: checked
+                          ? [...prev.categories, category.value]
+                          : prev.categories.filter(c => c !== category.value)
+                      }))
+                    }}
+                  >
+                    {category.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Цена</DropdownMenuLabel>
+                <div className="px-2 py-2">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span>{filters.priceRange[0].toLocaleString()} ₸</span>
+                    <span>{filters.priceRange[1].toLocaleString()} ₸</span>
+                  </div>
+                  <Slider
+                    value={filters.priceRange}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
+                    min={0}
+                    max={50000}
+                    step={1000}
+                    className="mb-2"
+                  />
+                </div>
 
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Сортировка" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">По названию</SelectItem>
-            <SelectItem value="price_asc">Цена: по возрастанию</SelectItem>
-            <SelectItem value="price_desc">Цена: по убыванию</SelectItem>
-            <SelectItem value="date">По дате добавления</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Filter className="mr-2 h-4 w-4" />
-              Фильтры
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Категории</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {[
-              { value: "bouquet", label: "Букеты" },
-              { value: "composition", label: "Композиции" },
-              { value: "potted", label: "Горшечные" },
-              { value: "other", label: "Другое" }
-            ].map(category => (
-              <DropdownMenuCheckboxItem
-                key={category.value}
-                checked={filters.categories.includes(category.value)}
-                onCheckedChange={(checked) => {
-                  setFilters(prev => ({
-                    ...prev,
-                    categories: checked
-                      ? [...prev.categories, category.value]
-                      : prev.categories.filter(c => c !== category.value)
-                  }))
-                }}
-              >
-                {category.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-            
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Цена</DropdownMenuLabel>
-            <div className="px-2 py-2">
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span>{filters.priceRange[0].toLocaleString()} ₸</span>
-                <span>{filters.priceRange[1].toLocaleString()} ₸</span>
-              </div>
-              <Slider
-                value={filters.priceRange}
-                onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
-                min={0}
-                max={50000}
-                step={1000}
-                className="mb-2"
-              />
-            </div>
-
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Статус</DropdownMenuLabel>
-            <DropdownMenuCheckboxItem
-              checked={filters.showInactive}
-              onCheckedChange={(checked) => 
-                setFilters(prev => ({ ...prev, showInactive: checked }))
-              }
-            >
-              Показать неактивные
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.showPopular}
-              onCheckedChange={(checked) => 
-                setFilters(prev => ({ ...prev, showPopular: checked }))
-              }
-            >
-              Только популярные
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.showNew}
-              onCheckedChange={(checked) => 
-                setFilters(prev => ({ ...prev, showNew: checked }))
-              }
-            >
-              Только новинки
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filters.showOnSale}
-              onCheckedChange={(checked) => 
-                setFilters(prev => ({ ...prev, showOnSale: checked }))
-              }
-            >
-              Только со скидкой
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === "grid" ? "default" : "outline"}
-            size="icon"
-            onClick={() => setViewMode("grid")}
-          >
-            <Grid3x3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="icon"
-            onClick={() => setViewMode("list")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Статус</DropdownMenuLabel>
+                <DropdownMenuCheckboxItem
+                  checked={filters.showInactive}
+                  onCheckedChange={(checked) => 
+                    setFilters(prev => ({ ...prev, showInactive: checked }))
+                  }
+                >
+                  Показать неактивные
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filters.showPopular}
+                  onCheckedChange={(checked) => 
+                    setFilters(prev => ({ ...prev, showPopular: checked }))
+                  }
+                >
+                  Только популярные
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filters.showNew}
+                  onCheckedChange={(checked) => 
+                    setFilters(prev => ({ ...prev, showNew: checked }))
+                  }
+                >
+                  Только новинки
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filters.showOnSale}
+                  onCheckedChange={(checked) => 
+                    setFilters(prev => ({ ...prev, showOnSale: checked }))
+                  }
+                >
+                  Только со скидкой
+                </DropdownMenuCheckboxItem>
+              </>
+            )
+          },
+          viewModes: [
+            {
+              value: "grid",
+              icon: <Grid3x3 className="h-4 w-4" />,
+              active: viewMode === "grid",
+              onClick: () => setViewMode("grid")
+            },
+            {
+              value: "list",
+              icon: <List className="h-4 w-4" />,
+              active: viewMode === "list",
+              onClick: () => setViewMode("list")
+            }
+          ]
+        }}
+      />
 
       {/* Products grid/list */}
-      {loading ? (
+      {loading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Загрузка товаров...</span>
         </div>
-      ) : error ? (
+      )}
+
+      {error && (
         <div className="text-center py-12">
           <p className="text-red-500 mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>
             Повторить попытку
           </Button>
         </div>
-      ) : filteredProducts.length === 0 ? (
+      )}
+
+      {!loading && !error && filteredProducts.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Товары не найдены</p>
           <Button 
@@ -305,10 +289,12 @@ export function CatalogPage() {
             Сбросить фильтры
           </Button>
         </div>
-      ) : (
+      )}
+
+      {!loading && !error && filteredProducts.length > 0 && (
         <div className={
           viewMode === "grid" 
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"
             : "space-y-4"
         }>
           {filteredProducts.map(product => (

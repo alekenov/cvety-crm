@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, validator
 class CustomerAddressBase(BaseModel):
     address: str
     label: Optional[str] = None
+    is_primary: Optional[bool] = False
 
 
 class CustomerAddressCreate(CustomerAddressBase):
@@ -19,6 +20,7 @@ class CustomerAddressUpdate(CustomerAddressBase):
 class CustomerAddress(CustomerAddressBase):
     id: int
     customer_id: int
+    is_primary: bool = False
     usage_count: int
     last_used_at: Optional[datetime] = None
     created_at: datetime
@@ -91,6 +93,8 @@ class CustomerUpdate(BaseModel):
     notes: Optional[str] = None
     preferences: Optional[str] = None
     source: Optional[str] = None
+    addresses: Optional[List[dict]] = None
+    important_dates: Optional[List[dict]] = None
     
     @validator('phone')
     def normalize_phone(cls, v):

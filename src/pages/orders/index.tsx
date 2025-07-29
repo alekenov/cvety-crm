@@ -1,27 +1,15 @@
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { CalendarIcon, Search, MoreHorizontal, Eye, AlertTriangle, Package, Plus } from "lucide-react"
+import { MoreHorizontal, Eye, AlertTriangle, Package, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { ResponsiveTable } from "@/components/ui/responsive-table"
+import { PageFilters, createFilterOptionsFromObject } from "@/components/ui/page-filters"
 import { useNavigate } from "react-router-dom"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +37,14 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import type { Order } from "@/lib/types"
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, DATETIME_FORMAT } from "@/lib/constants"
@@ -83,6 +79,7 @@ interface OrderApiResponse {
 export function OrdersPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const isMobile = useIsMobile()
   
   // State
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -242,68 +239,33 @@ export function OrdersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 flex-wrap">
-        <Select value={statusFilter} onValueChange={(value) => {
-          setStatusFilter(value)
-          setCurrentPage(1)
-        }}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Все статусы" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
-            {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="justify-start text-left font-normal">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "dd.MM.yy")} -{" "}
-                    {format(dateRange.to, "dd.MM.yy")}
-                  </>
-                ) : (
-                  format(dateRange.from, "dd.MM.yy")
-                )
-              ) : (
-                <span>Выберите даты</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={{ from: dateRange.from, to: dateRange.to }}
-              onSelect={(range) => {
-                setDateRange({ 
-                  from: range?.from, 
-                  to: range?.to 
-                })
+      <PageFilters
+        config={{
+          searchPlaceholder: "Поиск по телефону или ID",
+          searchValue: searchQuery,
+          onSearchChange: setSearchQuery,
+          selectFilters: [
+            {
+              value: statusFilter,
+              onChange: (value) => {
+                setStatusFilter(value)
                 setCurrentPage(1)
-              }}
-              numberOfMonths={2}
-            />
-          </PopoverContent>
-        </Popover>
-
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Поиск по телефону или ID"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-      </div>
+              },
+              placeholder: "Все статусы",
+              options: createFilterOptionsFromObject(ORDER_STATUS_LABELS, "Все статусы")
+            }
+          ],
+          dateRange: {
+            from: dateRange.from,
+            to: dateRange.to,
+            onChange: (range) => {
+              setDateRange(range)
+              setCurrentPage(1)
+            },
+            placeholder: "Выберите даты"
+          }
+        }}
+      />
 
       {/* Table */}
       <ResponsiveTable
@@ -412,47 +374,51 @@ export function OrdersPage() {
         mobileCardTitle={(order) => `Заказ #${order.id}`}
         mobileCardSubtitle={(order) => format(order.createdAt, DATETIME_FORMAT)}
         mobileCardActions={(order) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Действия</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => handleOpenTracking(order.trackingToken)}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                Открыть трекинг
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {Object.entries(ORDER_STATUS_LABELS).map(([status, label]) => (
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => handleOpenTracking(order.trackingToken)}
+              className="h-8 w-8"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Статус заказа</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {Object.entries(ORDER_STATUS_LABELS).map(([status, label]) => (
+                  <DropdownMenuItem
+                    key={status}
+                    onClick={() => handleStatusChange(order.id, status as Order['status'])}
+                    className={order.status === status ? "bg-accent" : ""}
+                  >
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  key={status}
-                  onClick={() => handleStatusChange(order.id, status as Order['status'])}
+                  onClick={() => handleMarkIssue(order.id)}
+                  className="text-destructive"
                 >
-                  Статус: {label}
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Пометить проблему
                 </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => handleMarkIssue(order.id)}
-                className="text-destructive"
-              >
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Пометить проблему
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       />
 
       {/* Pagination */}
       {totalPages > 1 && (
         <Pagination>
-          <PaginationContent>
+          <PaginationContent className={isMobile ? "gap-1" : ""}>
             <PaginationItem>
               <PaginationPrevious 
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -460,56 +426,69 @@ export function OrdersPage() {
               />
             </PaginationItem>
             
-            {/* Show first page */}
-            {currentPage > 2 && (
+            {!isMobile && (
               <>
-                <PaginationItem>
-                  <PaginationLink onClick={() => setCurrentPage(1)} className="cursor-pointer">
-                    1
-                  </PaginationLink>
-                </PaginationItem>
-                {currentPage > 3 && (
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
+                {/* Show first page */}
+                {currentPage > 2 && (
+                  <>
+                    <PaginationItem>
+                      <PaginationLink onClick={() => setCurrentPage(1)} className="cursor-pointer">
+                        1
+                      </PaginationLink>
+                    </PaginationItem>
+                    {currentPage > 3 && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
+                  </>
+                )}
+                
+                {/* Show current page and neighbors */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => {
+                    if (page === currentPage) return true
+                    if (page === currentPage - 1 && page > 0) return true
+                    if (page === currentPage + 1 && page <= totalPages) return true
+                    return false
+                  })
+                  .map(page => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={page === currentPage}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                
+                {/* Show last page */}
+                {currentPage < totalPages - 1 && (
+                  <>
+                    {currentPage < totalPages - 2 && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
+                    <PaginationItem>
+                      <PaginationLink onClick={() => setCurrentPage(totalPages)} className="cursor-pointer">
+                        {totalPages}
+                      </PaginationLink>
+                    </PaginationItem>
+                  </>
                 )}
               </>
             )}
-            
-            {/* Show current page and neighbors */}
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter(page => {
-                if (page === currentPage) return true
-                if (page === currentPage - 1 && page > 0) return true
-                if (page === currentPage + 1 && page <= totalPages) return true
-                return false
-              })
-              .map(page => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    onClick={() => setCurrentPage(page)}
-                    isActive={page === currentPage}
-                    className="cursor-pointer"
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-            
-            {/* Show last page */}
-            {currentPage < totalPages - 1 && (
-              <>
-                {currentPage < totalPages - 2 && (
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                )}
-                <PaginationItem>
-                  <PaginationLink onClick={() => setCurrentPage(totalPages)} className="cursor-pointer">
-                    {totalPages}
-                  </PaginationLink>
-                </PaginationItem>
-              </>
+
+            {/* Mobile pagination - show only current page */}
+            {isMobile && (
+              <PaginationItem>
+                <span className="px-3 py-2 text-sm">
+                  {currentPage} / {totalPages}
+                </span>
+              </PaginationItem>
             )}
             
             <PaginationItem>
