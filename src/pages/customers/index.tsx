@@ -382,7 +382,6 @@ export function CustomersPage() {
         ]}
         mobileCardTitle={(customer) => customer.name}
         mobileCardSubtitle={(customer) => customer.phone}
-        onRowClick={(customer) => navigate(`/customers/${customer.id}`)}
         mobileCardActions={(customer) => (
           <div className="flex gap-1">
             <Button

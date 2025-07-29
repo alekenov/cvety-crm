@@ -1,147 +1,84 @@
 # Railway Deployment Guide for Cvety.kz
 
-## 🚀 Quick Start
+## Deployment Configuration Summary
 
-### 1. Prepare Railway Project
+This project is configured for Railway deployment using an optimized Docker setup.
 
-1. Create new project on [Railway](https://railway.app)
-2. Add PostgreSQL service from Railway marketplace
-3. Note the `DATABASE_URL` from PostgreSQL service
+### Key Optimizations Applied:
 
-### 2. Configure Environment Variables
+1. **Base Image**: Changed from `alpine` to `slim` variants
+   - `node:18-slim` for frontend build
+   - `python:3.9-slim` for runtime
+   - Avoids C-extension compatibility issues common with alpine
 
-In Railway project settings, add these variables:
+2. **Multi-stage Build**: Separate build and runtime stages
+   - Frontend built in isolated stage
+   - Only production artifacts copied to final image
+   - Reduces final image size significantly
 
-```env
-# Database (Railway provides this automatically when you add PostgreSQL)
-DATABASE_URL=postgresql://...
+3. **Python Environment Variables**:
+   ```dockerfile
+   ENV PYTHONUNBUFFERED=1 \
+       PIP_NO_CACHE_DIR=1 \
+       PYTHONDONTWRITEBYTECODE=1 \
+       PIP_DISABLE_PIP_VERSION_CHECK=1
+   ```
 
-# Security - Generate a secure key
-SECRET_KEY=your-very-secure-secret-key-here
+4. **PORT Handling**: Proper Railway PORT environment variable support
+   - Dockerfile exposes `${PORT}`
+   - Entrypoint script reads PORT dynamically
+   - Uvicorn binds to `0.0.0.0:${PORT}`
 
-# Optional - Railway sets these automatically
-PORT=8000
-RAILWAY_ENVIRONMENT=production
-```
+5. **Non-root User**: Application runs as `appuser` for security
 
-### 3. Deploy from GitHub
+6. **Comprehensive .dockerignore**: Excludes unnecessary files from build context
 
-1. Connect your GitHub repository to Railway
-2. Railway will automatically detect and use the configuration:
-   - `railway.toml` for deployment settings
-   - `Dockerfile` for build process
-   - Environment variables from Railway dashboard
+### Railway Configuration Files:
 
-### 4. Run Database Migrations
+- **railway.json**: Specifies Docker as builder
+- **Dockerfile**: Optimized multi-stage build
+- **docker-entrypoint.sh**: Handles migrations and startup
+- **.dockerignore**: Reduces build context size
 
-After first deployment, run migrations in Railway shell:
-
-```bash
-# Open Railway shell for your service
-cd backend
-alembic upgrade head
-
-# Import existing data (if migrating from SQLite)
-python import_to_postgres.py
-```
-
-## 📋 Pre-deployment Checklist
-
-- [ ] Update `DATABASE_URL` in Railway environment variables
-- [ ] Set secure `SECRET_KEY` in Railway environment variables
-- [ ] Ensure `railway.toml` is committed to repository
-- [ ] Export SQLite data using `export_sqlite_data.py` (if migrating)
-- [ ] Test PostgreSQL connection locally with Railway DATABASE_URL
-
-## 🔧 Configuration Files
-
-### railway.toml
-```toml
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "./Dockerfile"
-
-[deploy]
-startCommand = "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/health"
-healthcheckTimeout = 100
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
-```
-
-### Environment Variables
-- `DATABASE_URL` - PostgreSQL connection string (provided by Railway)
-- `SECRET_KEY` - JWT secret for authentication
-- `PORT` - Server port (Railway sets this)
-
-## 🗄️ Database Migration
-
-### From SQLite to PostgreSQL
-
-1. Export SQLite data:
-```bash
-cd backend
-python export_sqlite_data.py
-```
-
-2. After deploying to Railway, import data:
-```bash
-# In Railway shell
-cd backend
-python import_to_postgres.py
-```
-
-### Using Alembic for Schema Changes
+### Deployment Commands:
 
 ```bash
-# Create new migration
-alembic revision -m "Description of changes"
+# Link to Railway project
+railway link
 
-# Auto-generate migration from model changes
-alembic revision --autogenerate -m "Description"
+# Deploy to Railway
+railway up
 
-# Apply migrations
-alembic upgrade head
-
-# Rollback last migration
-alembic downgrade -1
-```
-
-## 🔍 Monitoring
-
-### Health Checks
-- Main health: `https://your-app.railway.app/health`
-- Database health: `https://your-app.railway.app/api/health/db`
-
-### Logs
-View logs in Railway dashboard or use Railway CLI:
-```bash
+# Check deployment logs
 railway logs
+
+# Check deployment status
+railway status
 ```
 
-## ⚠️ Important Notes
+### Environment Variables Required:
 
-1. **Database URL Format**: Railway may provide `postgres://` URLs. The app automatically converts these to `postgresql://` format required by SQLAlchemy.
+- `DATABASE_URL`: PostgreSQL connection string (Railway provides this)
+- `SECRET_KEY`: JWT secret key
+- `RAILWAY_ENVIRONMENT`: Set by Railway automatically
+- `PORT`: Set by Railway automatically
 
-2. **Static Files**: Frontend build files are served by the backend from `/dist` directory.
+### Troubleshooting:
 
-3. **CORS**: Update `BACKEND_CORS_ORIGINS` in `config.py` if using custom domain.
+1. **"Application failed to respond"**: Check that app binds to `0.0.0.0:${PORT}`
+2. **Memory issues**: Already optimized with slim images and proper Python settings
+3. **Build failures**: Check Railway logs with `railway logs`
+4. **Database connection**: Ensure DATABASE_URL is properly set in Railway
 
-4. **SSL**: Railway provides SSL automatically for `*.railway.app` domains.
+### Testing Locally:
 
-## 🆘 Troubleshooting
+```bash
+# Build image
+docker build -t cvety-kz .
 
-### Database Connection Issues
-- Check DATABASE_URL format (should start with `postgresql://`)
-- Verify PostgreSQL service is running in Railway
-- Check connection pool settings in `session.py`
+# Run with test PORT
+docker run -p 8000:8000 -e PORT=8000 cvety-kz
 
-### Build Failures
-- Check `requirements.txt` for all dependencies
-- Ensure Node.js version in Dockerfile matches local development
-- Verify frontend builds successfully
-
-### Migration Issues
-- Ensure all models are imported in `db/base.py`
-- Check Alembic configuration in `alembic/env.py`
-- Verify table creation order respects foreign keys
+# Test health endpoint
+curl http://localhost:8000/health
+```
