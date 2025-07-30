@@ -65,7 +65,7 @@ def get_order(
     return OrderResponseWithItems.model_validate(order)
 
 
-@router.post("/", response_model=OrderResponse)
+@router.post("/", response_model=OrderResponse, status_code=201)
 def create_order(
     order: OrderCreate,
     db: Session = Depends(deps.get_db)
@@ -127,7 +127,7 @@ def mark_order_issue(
 
 
 # New endpoint to create order with items
-@router.post("/with-items", response_model=OrderResponseWithItems)
+@router.post("/with-items", response_model=OrderResponseWithItems, status_code=201)
 def create_order_with_items(
     order: OrderCreateWithItems,
     db: Session = Depends(deps.get_db)
@@ -151,7 +151,7 @@ def get_order_items(
     return items
 
 
-@router.post("/{order_id}/items", response_model=OrderItemResponse)
+@router.post("/{order_id}/items", response_model=OrderItemResponse, status_code=201)
 def add_order_item(
     order_id: int,
     item: OrderItemCreate,

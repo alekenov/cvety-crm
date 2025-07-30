@@ -10,7 +10,7 @@ from app.services.task_queue import TaskQueueService
 router = APIRouter()
 
 
-@router.post("/tasks/", response_model=schemas.FloristTask)
+@router.post("/tasks/", response_model=schemas.FloristTask, status_code=201)
 def create_task(
     *,
     db: Session = Depends(deps.get_db),
@@ -121,7 +121,7 @@ def update_task(
     return crud.florist_task.update(db=db, db_obj=task, obj_in=task_in)
 
 
-@router.post("/tasks/{task_id}/assign", response_model=schemas.FloristTask)
+@router.post("/tasks/{task_id}/assign", response_model=schemas.FloristTask, status_code=201)
 def assign_task(
     *,
     db: Session = Depends(deps.get_db),
@@ -142,7 +142,7 @@ def assign_task(
     return task
 
 
-@router.post("/tasks/{task_id}/start", response_model=schemas.FloristTask)
+@router.post("/tasks/{task_id}/start", response_model=schemas.FloristTask, status_code=201)
 def start_task(
     *,
     db: Session = Depends(deps.get_db),
@@ -163,7 +163,7 @@ def start_task(
     return task
 
 
-@router.post("/tasks/{task_id}/complete", response_model=schemas.FloristTask)
+@router.post("/tasks/{task_id}/complete", response_model=schemas.FloristTask, status_code=201)
 def complete_task(
     *,
     db: Session = Depends(deps.get_db),
@@ -188,7 +188,7 @@ def complete_task(
     return task
 
 
-@router.post("/tasks/{task_id}/quality-check", response_model=schemas.FloristTask)
+@router.post("/tasks/{task_id}/quality-check", response_model=schemas.FloristTask, status_code=201)
 def quality_check_task(
     *,
     db: Session = Depends(deps.get_db),
@@ -213,7 +213,7 @@ def quality_check_task(
     return task
 
 
-@router.post("/tasks/{task_id}/cancel", response_model=schemas.FloristTask)
+@router.post("/tasks/{task_id}/cancel", response_model=schemas.FloristTask, status_code=201)
 def cancel_task(
     *,
     db: Session = Depends(deps.get_db),
@@ -283,7 +283,7 @@ def update_task_item(
     return crud.task_item.update(db=db, db_obj=item, obj_in=item_in)
 
 
-@router.post("/task-items/{item_id}/complete", response_model=schemas.TaskItem)
+@router.post("/task-items/{item_id}/complete", response_model=schemas.TaskItem, status_code=201)
 def complete_task_item(
     *,
     db: Session = Depends(deps.get_db),
@@ -306,7 +306,7 @@ def complete_task_item(
 
 
 # Task queue endpoints
-@router.post("/queue/create-from-order/{order_id}", response_model=List[schemas.FloristTask])
+@router.post("/queue/create-from-order/{order_id}", response_model=List[schemas.FloristTask], status_code=201)
 def create_tasks_from_order(
     *,
     db: Session = Depends(deps.get_db),
@@ -321,7 +321,7 @@ def create_tasks_from_order(
     return tasks
 
 
-@router.post("/queue/get-next-task/{florist_id}", response_model=Optional[schemas.FloristTask])
+@router.post("/queue/get-next-task/{florist_id}", response_model=Optional[schemas.FloristTask], status_code=201)
 def get_next_task(
     *,
     db: Session = Depends(deps.get_db),
@@ -336,7 +336,7 @@ def get_next_task(
     return task
 
 
-@router.post("/queue/distribute")
+@router.post("/queue/distribute", status_code=201)
 def distribute_tasks(
     *,
     db: Session = Depends(deps.get_db)
@@ -347,7 +347,7 @@ def distribute_tasks(
     return TaskQueueService.distribute_pending_tasks(db=db)
 
 
-@router.post("/queue/check-overdue")
+@router.post("/queue/check-overdue", status_code=201)
 def check_overdue_tasks(
     *,
     db: Session = Depends(deps.get_db)
@@ -368,3 +368,24 @@ def get_workload(
     Получить загрузку флористов.
     """
     return TaskQueueService.get_workload_by_florist(db=db)
+
+
+@router.get("/florists")
+def get_florists(
+    *,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Получить список флористов.
+    """
+    # For now, return a static list of florists
+    # In the future, this should come from a users table with role=florist
+    return {
+        "items": [
+            {"id": 1, "name": "Марина", "status": "active", "current_tasks": 0},
+            {"id": 2, "name": "Алия", "status": "active", "current_tasks": 0},
+            {"id": 3, "name": "Светлана", "status": "active", "current_tasks": 0},
+            {"id": 4, "name": "Гульнара", "status": "active", "current_tasks": 0}
+        ],
+        "total": 4
+    }

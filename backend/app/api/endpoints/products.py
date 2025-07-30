@@ -63,7 +63,7 @@ def read_products(
     }
 
 
-@router.post("/", response_model=schemas.Product)
+@router.post("/", response_model=schemas.Product, status_code=201)
 def create_product(
     *,
     db: Session = Depends(deps.get_db),
@@ -108,7 +108,7 @@ def update_product(
     return product
 
 
-@router.post("/{id}/toggle-active", response_model=schemas.Product)
+@router.post("/{id}/toggle-active", response_model=schemas.Product, status_code=201)
 def toggle_product_active(
     *,
     db: Session = Depends(deps.get_db),

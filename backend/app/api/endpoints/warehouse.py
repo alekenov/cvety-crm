@@ -61,7 +61,7 @@ def get_warehouse_stats(
     return warehouse.get_stats(db)
 
 
-@router.post("/deliveries", response_model=DeliveryResponse)
+@router.post("/deliveries", response_model=DeliveryResponse, status_code=201)
 def create_delivery(
     delivery: DeliveryCreate,
     db: Session = Depends(deps.get_db)
@@ -101,7 +101,7 @@ def get_warehouse_item(
     return WarehouseItemResponse.model_validate(item)
 
 
-@router.post("/", response_model=WarehouseItemResponse)
+@router.post("/", response_model=WarehouseItemResponse, status_code=201)
 def create_warehouse_item(
     item: WarehouseItemCreate,
     db: Session = Depends(deps.get_db)

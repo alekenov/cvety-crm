@@ -1,3 +1,4 @@
+from .shop import shop
 from .order import order
 from .order_item import order_item
 from .warehouse import warehouse

@@ -1,3 +1,7 @@
+from .shop import (
+    Shop, ShopCreate, ShopUpdate, ShopList,
+    PhoneAuthRequest, OTPVerifyRequest, AuthToken, TelegramAuthStart
+)
 from .order import (
     OrderResponse, OrderCreate, OrderUpdate, OrderStatusUpdate, OrderIssueUpdate,
     OrderStatus, DeliveryMethod, IssueType,

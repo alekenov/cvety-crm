@@ -40,7 +40,7 @@ def read_customers(
     return CustomerListResponse(items=customers, total=total)
 
 
-@router.post("/", response_model=schemas.Customer)
+@router.post("/", response_model=schemas.Customer, status_code=201)
 def create_customer(
     *,
     db: Session = Depends(deps.get_db),
@@ -127,7 +127,7 @@ def read_customer_orders(
     return [schemas.OrderResponse.model_validate(order) for order in orders]
 
 
-@router.post("/{customer_id}/addresses", response_model=schemas.CustomerAddress)
+@router.post("/{customer_id}/addresses", response_model=schemas.CustomerAddress, status_code=201)
 def add_customer_address(
     *,
     db: Session = Depends(deps.get_db),
@@ -165,7 +165,7 @@ def add_customer_address(
     return new_address
 
 
-@router.post("/{customer_id}/important-dates", response_model=schemas.CustomerImportantDate)
+@router.post("/{customer_id}/important-dates", response_model=schemas.CustomerImportantDate, status_code=201)
 def add_important_date(
     *,
     db: Session = Depends(deps.get_db),
@@ -204,7 +204,7 @@ def add_important_date(
     return new_date
 
 
-@router.post("/merge", response_model=schemas.Customer)
+@router.post("/merge", response_model=schemas.Customer, status_code=201)
 def merge_customers(
     *,
     db: Session = Depends(deps.get_db),
@@ -228,7 +228,7 @@ def merge_customers(
     return result
 
 
-@router.post("/{customer_id}/update-stats", response_model=schemas.Customer)
+@router.post("/{customer_id}/update-stats", response_model=schemas.Customer, status_code=201)
 def update_customer_statistics(
     *,
     db: Session = Depends(deps.get_db),

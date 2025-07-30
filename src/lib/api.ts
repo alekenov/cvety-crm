@@ -11,6 +11,32 @@ export const api = axios.create({
   maxRedirects: 5, // Follow redirects
 })
 
+// Add auth token interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Add response interceptor to handle 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 // Orders API
 export const ordersApi = {
   getAll: async (params?: { 
@@ -87,7 +113,7 @@ export const warehouseApi = {
   },
 
   createDelivery: async (delivery: Omit<Delivery, 'id' | 'costTotal'>) => {
-    const { data } = await api.post<Delivery>('/warehouse/deliveries', delivery)
+    const { data } = await api.post<Delivery>('/warehouse/deliveries/', delivery)
     return data
   },
 
@@ -187,7 +213,7 @@ export const customersApi = {
   },
 
   create: async (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'ordersCount' | 'totalSpent'>) => {
-    const { data } = await api.post<any>('/customers', customer)
+    const { data } = await api.post<any>('/customers/', customer)
     
     // Convert dates from ISO strings
     return {
@@ -336,7 +362,7 @@ export const productsApi = {
     // Convert camelCase to snake_case for backend
     const productData = convertKeysToSnakeCase(product)
     
-    const { data } = await api.post<any>('/products', productData)
+    const { data } = await api.post<any>('/products/', productData)
     
     // Convert response from snake_case to camelCase
     return convertKeysToCamelCase({
@@ -447,6 +473,47 @@ const convertKeysToSnakeCase = (obj: any): any => {
     converted[snakeKey] = convertKeysToSnakeCase(value)
   }
   return converted
+}
+
+// Auth API
+export const authApi = {
+  requestOtp: async (phone: string) => {
+    const { data } = await api.post<{ message: string; otp?: string; delivery_method: string }>('/auth/request-otp', { phone })
+    return data
+  },
+
+  verifyOtp: async (phone: string, otpCode: string) => {
+    const { data } = await api.post<{ access_token: string; token_type: string }>('/auth/verify-otp', { 
+      phone, 
+      otp_code: otpCode 
+    })
+    return data
+  },
+
+  getMe: async () => {
+    const { data } = await api.get<{
+      id: number
+      name: string
+      phone: string
+      telegram_id?: number
+      telegram_username?: string
+      city: string
+      plan: string
+      created_at: string
+      updated_at: string
+    }>('/auth/me')
+    
+    return {
+      ...data,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('authToken')
+    window.location.href = '/login'
+  }
 }
 
 // Production API

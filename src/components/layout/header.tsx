@@ -13,6 +13,7 @@ import {
 import { ModeToggle } from "./mode-toggle"
 import { useTheme } from "./theme-provider"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { authApi } from "@/lib/api"
 
 interface HeaderProps {
   user?: {
@@ -108,7 +109,7 @@ export function Header({ user, isMobile, onMenuClick }: HeaderProps) {
               <DropdownMenuItem>Профиль</DropdownMenuItem>
               <DropdownMenuItem>Настройки</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Выйти</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => authApi.logout()}>Выйти</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

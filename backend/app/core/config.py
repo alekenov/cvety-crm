@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     PORT: int = Field(default=8000, env="PORT")
     RAILWAY_ENVIRONMENT: Optional[str] = Field(default=None, env="RAILWAY_ENVIRONMENT")
     
+    # Redis (Railway provides this)
+    REDIS_URL: Optional[str] = Field(default=None, env="REDIS_URL")
+    
+    # Telegram Bot
+    TELEGRAM_BOT_TOKEN: Optional[str] = Field(default=None, env="TELEGRAM_BOT_TOKEN")
+    TELEGRAM_WEBHOOK_URL: Optional[str] = Field(default=None, env="TELEGRAM_WEBHOOK_URL")
+    
     # Use SettingsConfigDict instead of Config class (Pydantic v2 style)
     model_config = SettingsConfigDict(
         env_file=".env",

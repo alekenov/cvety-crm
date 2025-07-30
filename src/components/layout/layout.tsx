@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { ReactNode } from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "./app-sidebar"
@@ -6,27 +6,39 @@ import { Header } from "./header"
 import { Toaster } from "sonner"
 import { useIsMobile } from "@/hooks/use-media-query"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { authApi } from "@/lib/api"
 import { MobileTabBar } from "./mobile-tab-bar"
 
 interface LayoutProps {
   children: ReactNode
 }
 
-const mockUser = {
-  id: "1",
-  name: "Алибек Акенов",
-  role: "admin"
-}
-
 export function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const userData = await authApi.getMe()
+        setUser({
+          id: userData.id.toString(),
+          name: userData.name || userData.phone,
+          role: "admin"
+        })
+      } catch (error) {
+        console.error('Failed to load user', error)
+      }
+    }
+    loadUser()
+  }, [])
 
   if (isMobile) {
     return (
       <div className="flex min-h-screen flex-col">
         <Header 
-          user={mockUser} 
+          user={user} 
           isMobile={true}
           onMenuClick={() => setMobileOpen(true)}
         />
@@ -55,7 +67,7 @@ export function Layout({ children }: LayoutProps) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <Header user={mockUser} />
+        <Header user={user} />
         <main className="flex-1 p-4 md:p-6">
           {children}
         </main>

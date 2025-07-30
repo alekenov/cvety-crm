@@ -7,12 +7,14 @@ from sqlalchemy import text
 import logging
 import os
 from pathlib import Path
+import asyncio
 
 from app.core.config import get_settings
 from app.api.api import api_router
 from app.api.deps import get_db
 from app.db.session import get_engine
 from app.db.base import Base
+from app.services.telegram_service import telegram_service
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -184,7 +186,35 @@ async def startup_event():
         logger.error(f"Failed to create database tables: {str(e)}")
         raise
     
+    # Initialize Telegram bot
+    if settings.TELEGRAM_BOT_TOKEN:
+        try:
+            await telegram_service.initialize(settings.TELEGRAM_BOT_TOKEN)
+            
+            # Setup webhook in production, polling in development
+            if settings.TELEGRAM_WEBHOOK_URL and not settings.DEBUG:
+                await telegram_service.setup_webhook(
+                    webhook_url=settings.TELEGRAM_WEBHOOK_URL,
+                    webhook_path="/api/telegram/webhook"
+                )
+                logger.info(f"Telegram webhook configured: {settings.TELEGRAM_WEBHOOK_URL}")
+            else:
+                # Start polling in a background task for development
+                asyncio.create_task(telegram_service.start_polling())
+                logger.info("Telegram bot polling started")
+        except Exception as e:
+            logger.error(f"Failed to initialize Telegram bot: {e}")
+            # Don't raise - app should work without Telegram
+    
     logger.info("Application startup complete")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    if telegram_service.bot:
+        await telegram_service.stop()
+        logger.info("Telegram bot stopped")
 
 
 # Note: Static file serving is now handled by the catch-all route above
