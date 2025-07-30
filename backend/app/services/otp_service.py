@@ -17,7 +17,7 @@ class OTPService:
     OTP_TTL_SECONDS = 300  # 5 minutes
     MAX_ATTEMPTS = 3
     RATE_LIMIT_WINDOW = 60  # 1 minute
-    MAX_REQUESTS_PER_WINDOW = 3
+    MAX_REQUESTS_PER_WINDOW = 10
     
     def __init__(self):
         self.redis = redis_service

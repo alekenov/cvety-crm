@@ -14,6 +14,7 @@ import { ModeToggle } from "./mode-toggle"
 import { useTheme } from "./theme-provider"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { authApi } from "@/lib/api"
+import { useNavigate } from "react-router-dom"
 
 interface HeaderProps {
   user?: {
@@ -28,6 +29,19 @@ interface HeaderProps {
 export function Header({ user, isMobile, onMenuClick }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const [searchOpen, setSearchOpen] = useState(false)
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+      localStorage.removeItem('authToken')
+      navigate('/login')
+    } catch (error) {
+      // Even if API fails, clear local state and redirect
+      localStorage.removeItem('authToken')
+      navigate('/login')
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background">
@@ -109,7 +123,7 @@ export function Header({ user, isMobile, onMenuClick }: HeaderProps) {
               <DropdownMenuItem>Профиль</DropdownMenuItem>
               <DropdownMenuItem>Настройки</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => authApi.logout()}>Выйти</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>Выйти</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

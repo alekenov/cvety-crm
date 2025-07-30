@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +10,9 @@ import { authApi } from "@/lib/api"
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl') || '/'
+  
   const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
@@ -61,7 +64,7 @@ export function LoginPage() {
       const response = await authApi.verifyOtp(cleanPhone, otp)
       
       localStorage.setItem('authToken', response.access_token)
-      navigate('/')
+      navigate(returnUrl)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Неверный код')
     } finally {

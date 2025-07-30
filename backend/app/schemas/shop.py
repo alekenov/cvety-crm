@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 from datetime import datetime
 
@@ -6,7 +6,7 @@ from datetime import datetime
 class ShopBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     phone: str = Field(..., pattern=r"^\+7\d{10}$")
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = "Алматы"
     description: Optional[str] = None
@@ -22,7 +22,7 @@ class ShopCreate(ShopBase):
 
 class ShopUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
     description: Optional[str] = None

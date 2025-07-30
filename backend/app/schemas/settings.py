@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 
 class DeliveryZone(BaseModel):
@@ -19,7 +19,7 @@ class WorkingHours(BaseModel):
 class CompanySettingsBase(BaseModel):
     name: str
     address: str
-    email: EmailStr
+    email: str
     phones: List[str]
     working_hours: WorkingHours
     delivery_zones: List[DeliveryZone]
@@ -32,7 +32,7 @@ class CompanySettingsCreate(CompanySettingsBase):
 class CompanySettingsUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     phones: Optional[List[str]] = None
     working_hours: Optional[WorkingHours] = None
     delivery_zones: Optional[List[DeliveryZone]] = None

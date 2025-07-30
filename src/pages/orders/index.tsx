@@ -8,8 +8,10 @@ import { ResponsiveTable } from "@/components/ui/responsive-table"
 import { PageFilters, createFilterOptionsFromObject } from "@/components/ui/page-filters"
 import { useNavigate } from "react-router-dom"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { OrderCard } from "@/components/orders/order-card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +82,7 @@ export function OrdersPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const isMobile = useIsMobile()
+  const isTablet = useMediaQuery("(max-width: 768px)")
   
   // State
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -143,10 +146,12 @@ export function OrdersPage() {
           flowerSum: order.flower_sum,
           deliveryFee: order.delivery_fee,
           total: order.total,
+          totalAmount: order.total, // Add totalAmount field
           hasPreDeliveryPhotos: order.has_pre_delivery_photos,
           hasIssue: order.has_issue,
           issueType: order.issue_type as Order['issueType'] | undefined,
-          trackingToken: order.tracking_token
+          trackingToken: order.tracking_token,
+          items: [] // Add empty items array for now
         })) as Order[]
       }
     }
@@ -267,11 +272,22 @@ export function OrdersPage() {
         }}
       />
 
-      {/* Table */}
-      <ResponsiveTable
-        data={orders}
-        onRowClick={(order) => navigate(`/orders/${order.id}`)}
-        columns={[
+      {/* Table or Cards */}
+      {isTablet ? (
+        <div className="space-y-4">
+          {orders.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              onStatusChange={handleStatusChange}
+            />
+          ))}
+        </div>
+      ) : (
+        <ResponsiveTable
+          data={orders}
+          onRowClick={(order) => navigate(`/orders/${order.id}`)}
+          columns={[
           {
             key: 'id',
             label: 'ID',
@@ -414,6 +430,7 @@ export function OrdersPage() {
           </div>
         )}
       />
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
