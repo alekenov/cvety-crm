@@ -8,7 +8,10 @@ cd /app
 
 # Run database migrations
 echo "📋 Running database migrations..."
-cd backend && alembic upgrade head && cd ..
+cd backend && alembic upgrade head || {
+    echo "⚠️  Alembic migrations failed, trying to create tables directly..."
+    python create_missing_tables.py || echo "❌ Failed to create tables"
+} && cd ..
 
 # Initialize data if needed (only in development or if DB is empty)
 if [ "$RAILWAY_ENVIRONMENT" != "production" ] || [ "$INIT_DATA" = "true" ]; then
