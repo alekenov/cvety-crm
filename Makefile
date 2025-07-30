@@ -1,4 +1,4 @@
-.PHONY: help dev build test deploy clean setup
+.PHONY: help dev build test deploy clean setup up down logs shell
 
 # Default target
 help:
@@ -9,6 +9,12 @@ help:
 	@echo "  make test     - Run tests"
 	@echo "  make deploy   - Deploy to Railway"
 	@echo "  make clean    - Clean build artifacts"
+	@echo ""
+	@echo "Docker commands:"
+	@echo "  make up       - Start all services with Docker Compose"
+	@echo "  make down     - Stop all services"
+	@echo "  make logs     - View logs from all services"
+	@echo "  make shell    - Enter app container shell"
 
 # Initial setup
 setup:
@@ -42,8 +48,8 @@ test-railway:
 
 # Deploy to Railway
 deploy:
-	@echo "🚀 Deploying to Railway..."
-	railway up
+	@echo "🚀 Deploying to Railway (CI mode)..."
+	railway up -c
 
 # Clean build artifacts
 clean:
@@ -54,6 +60,26 @@ clean:
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
 	@echo "✅ Clean complete!"
+
+# Docker Compose commands
+up:
+	@echo "🚀 Starting services with Docker Compose..."
+	docker compose up --build
+
+down:
+	@echo "🛑 Stopping services..."
+	docker compose down
+
+logs:
+	@echo "📋 Viewing logs..."
+	docker compose logs -f
+
+shell:
+	@echo "🐚 Entering app container..."
+	docker compose exec app bash
+
+# Quick restart
+restart: down up
 
 # Database operations
 db-migrate:
@@ -67,3 +93,14 @@ db-rollback:
 db-init:
 	@echo "📦 Initializing test data..."
 	cd backend && python init_test_data.py
+
+# Docker specific database commands
+db-shell:
+	@echo "🗄️ Connecting to PostgreSQL..."
+	docker compose exec db psql -U postgres flower_shop
+
+# Remove all Docker data (careful!)
+clean-docker:
+	@echo "🗑️ Removing all Docker data..."
+	docker compose down -v
+	@echo "✅ Docker volumes removed!"

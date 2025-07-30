@@ -1,6 +1,7 @@
 # Git
 .git
 .gitignore
+.github/
 
 # Python
 __pycache__/
@@ -55,6 +56,7 @@ build/
 # Documentation
 docs/
 *.md
+!README.md
 
 # Backup files
 *.backup
@@ -75,3 +77,21 @@ docker-compose*
 *.tmp
 *.temp
 .cache/
+
+# Test files
+**/*test*
+**/*spec*
+tests/
+
+# Development
+.env.local
+.env.development
+
+# macOS
+.DS_Store
+
+# Logs from local runs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -62,8 +62,8 @@ echo "\n🚀 Ready to deploy? (y/n)"
 read -r deploy_response
 
 if [[ "$deploy_response" =~ ^[Yy]$ ]]; then
-    echo "🚂 Deploying to Railway..."
-    railway up
+    echo "🚂 Deploying to Railway (CI mode)..."
+    railway up -c
 fi
 
 echo "\n✅ Setup complete!"

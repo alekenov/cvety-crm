@@ -13,8 +13,8 @@ make dev
 
 ### Deploy to Railway
 ```bash
-# Deploy directly
-railway up
+# Deploy directly (CI mode)
+railway up -c
 
 # Or using Make
 make deploy
@@ -83,7 +83,7 @@ make build
 1. Install Railway CLI: `npm install -g @railway/cli`
 2. Login: `railway login`
 3. Link project: `railway link`
-4. Deploy: `railway up`
+4. Deploy: `railway up -c`
 
 #### Manual Docker Deployment
 ```bash
@@ -150,7 +150,7 @@ make build           # Build Docker image
 
 # Deployment
 make deploy          # Deploy to Railway
-railway up           # Direct Railway deploy
+railway up -c        # Direct Railway deploy (CI mode)
 
 # Maintenance
 make clean           # Clean build artifacts

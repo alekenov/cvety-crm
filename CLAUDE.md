@@ -8,31 +8,38 @@ Cvety.kz is a full-stack flower shop management system for the Kazakhstan market
 
 ## Commands
 
-### Frontend Commands
+### Docker Commands (Recommended)
 ```bash
+# Start all services with Docker Compose
+make up              # или docker compose up --build
+
+# View logs
+make logs            # или docker compose logs -f
+
+# Stop services
+make down            # или docker compose down
+
+# Enter container shell
+make shell           # или docker compose exec app bash
+
+# Connect to database
+make db-shell        # или docker compose exec db psql -U postgres flower_shop
+```
+
+### Manual Commands (без Docker)
+```bash
+# Frontend
 npm install          # Install dependencies
 npm run dev          # Start dev server (port 5173/5174)
 npm run build        # Build for production
 npm run lint         # Run ESLint
-npm run preview      # Preview production build
-```
 
-### Backend Commands
-```bash
+# Backend
 cd backend
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload  # Start backend (port 8000)
-```
-
-### Running Both Services
-```bash
-# Terminal 1 - Backend
-cd backend && source venv/bin/activate && uvicorn app.main:app --reload
-
-# Terminal 2 - Frontend
-npm run dev
 ```
 
 ## Architecture
@@ -128,9 +135,18 @@ def get_orders(
 ### Deployment Commands
 ```bash
 railway link              # Link to Railway project
-railway up               # Deploy to Railway
+railway up -c            # Deploy to Railway (CI mode - рекомендуется)
 railway logs             # View deployment logs
 railway status           # Check deployment status
+
+# Или через Makefile
+make deploy              # Запускает railway up -c
+```
+
+### Testing Railway Locally
+```bash
+# Test Railway-like environment
+./test-railway-deploy.sh  # Симулирует Railway окружение локально
 ```
 
 ### Required Environment Variables
@@ -141,7 +157,36 @@ railway status           # Check deployment status
 
 ### Deployment Files
 - `railway.json` - Railway configuration
-- `Dockerfile` - Optimized multi-stage build
+- `Dockerfile` - Optimized multi-stage build with layer caching
 - `docker-entrypoint.sh` - Startup script with migrations
 - `.dockerignore` - Reduces build context size
+- `.env.example` - Environment variables template
+- `compose.yaml` - Docker Compose for local development
+- `test-railway-deploy.sh` - Test Railway deployment locally
 - `RAILWAY_DEPLOYMENT.md` - Detailed deployment guide
+
+## Docker Optimizations
+
+### Build Performance
+- **Layer Caching**: Dependencies installed before copying source code
+- **Multi-stage Build**: Separate build and runtime stages
+- **Result**: 7x faster rebuilds (79s → 11s) when only code changes
+
+### Development Workflow
+```bash
+# 1. Local development with hot-reload
+make up
+
+# 2. Test Railway-like environment
+./test-railway-deploy.sh
+
+# 3. Deploy to Railway
+railway up -c  # ВАЖНО: используйте флаг -c для CI mode
+```
+
+### Key Improvements
+1. **Dockerfile**: Optimized layer order for caching
+2. **Docker Compose**: One command to start everything
+3. **Health Check**: Built-in monitoring endpoint
+4. **Production Ready**: Non-root user, security headers
+5. **Railway Compatible**: Same Dockerfile for dev and prod

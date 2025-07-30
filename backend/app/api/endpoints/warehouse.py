@@ -61,6 +61,34 @@ def get_warehouse_stats(
     return warehouse.get_stats(db)
 
 
+@router.post("/deliveries", response_model=DeliveryResponse)
+def create_delivery(
+    delivery: DeliveryCreate,
+    db: Session = Depends(deps.get_db)
+):
+    """Create new delivery with positions and update warehouse items"""
+    try:
+        db_delivery = warehouse.create_delivery(db, delivery=delivery)
+        return DeliveryResponse.model_validate(db_delivery)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/deliveries", response_model=DeliveryList)
+def get_deliveries(
+    db: Session = Depends(deps.get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, le=100)
+):
+    """Get delivery history"""
+    deliveries, total = warehouse.get_deliveries(db, skip=skip, limit=limit)
+    
+    return {
+        "items": [DeliveryResponse.model_validate(d) for d in deliveries],
+        "total": total
+    }
+
+
 @router.get("/{item_id}", response_model=WarehouseItemResponse)
 def get_warehouse_item(
     item_id: int,
@@ -99,31 +127,3 @@ def update_warehouse_item(
         raise HTTPException(status_code=404, detail="Item not found")
     
     return WarehouseItemResponse.model_validate(db_item)
-
-
-@router.post("/deliveries", response_model=DeliveryResponse)
-def create_delivery(
-    delivery: DeliveryCreate,
-    db: Session = Depends(deps.get_db)
-):
-    """Create new delivery with positions and update warehouse items"""
-    try:
-        db_delivery = warehouse.create_delivery(db, delivery=delivery)
-        return DeliveryResponse.model_validate(db_delivery)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("/deliveries", response_model=DeliveryList)
-def get_deliveries(
-    db: Session = Depends(deps.get_db),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, le=100)
-):
-    """Get delivery history"""
-    deliveries, total = warehouse.get_deliveries(db, skip=skip, limit=limit)
-    
-    return {
-        "items": [DeliveryResponse.model_validate(d) for d in deliveries],
-        "total": total
-    }

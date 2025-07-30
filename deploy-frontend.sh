@@ -55,8 +55,8 @@ echo ""
 echo "🚀 Deploying Frontend with Nixpacks configuration"
 echo ""
 
-# Deploy frontend
-railway up --service frontend
+# Deploy frontend (using CI mode)
+railway up -c --service frontend
 
 echo ""
 echo "✅ Frontend deployment initiated!"

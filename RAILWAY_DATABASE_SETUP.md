@@ -115,8 +115,8 @@ with engine.connect() as conn:
 # Вернитесь в корневую директорию проекта
 cd ..
 
-# Задеплойте приложение
-railway up
+# Задеплойте приложение (CI mode)
+railway up -c
 
 # Railway автоматически:
 # - Обнаружит railway.toml

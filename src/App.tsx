@@ -21,6 +21,7 @@ import { UsersPage } from "@/pages/settings/users"
 const queryClient = new QueryClient()
 
 function App() {
+  // Small change to test Docker cache optimization
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="cvety-theme">
