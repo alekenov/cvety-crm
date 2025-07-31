@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,97 +29,115 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
+import type { Order, OrderStatus } from "@/lib/types"
 import { Timeline, type TimelineEvent } from "@/components/orders/timeline"
+import { ordersApi } from "@/lib/api"
+import { useQuery } from "@tanstack/react-query"
 
-// Mock data for order details
-const mockOrder = {
-  id: "1",
-  status: "paid",
-  createdAt: new Date("2024-01-26T10:00:00"),
-  customer: {
-    id: "1",
-    name: "Айгерим Сатпаева",
-    phone: "+7 (707) 123-45-67",
-    email: "aigerim@example.com",
-    avatar: null,
-    ordersCount: 5,
-    totalSpent: 82500
-  },
-  items: [
-    {
-      id: "1",
-      name: "Букет из 25 красных роз",
-      quantity: 1,
-      price: 15000,
-      total: 15000,
-      category: "bouquet"
-    }
-  ],
-  delivery: {
-    method: "delivery",
-    date: new Date("2024-01-26"),
-    timeFrom: "14:00",
-    timeTo: "16:00",
-    address: "ул. Абая 150, кв 25",
-    recipientName: "Айгерим",
-    recipientPhone: "+7 (707) 123-45-67",
-    courierName: "Бауыржан",
-    courierPhone: "+7 (777) 888-99-00"
-  },
-  payment: {
-    method: "kaspi",
-    status: "paid",
-    paidAt: new Date("2024-01-26T10:05:00")
-  },
-  totals: {
-    subtotal: 15000,
-    deliveryFee: 1500,
-    discount: 0,
-    total: 16500
-  },
-  timeline: [
-    {
-      id: "1",
-      status: "Создан",
-      timestamp: new Date("2024-01-26T10:00:00"),
-      user: "Менеджер Алия",
-      comment: "Заказ создан",
-      type: "default" as const
-    },
-    {
-      id: "2",
-      status: "Оплачен",
-      timestamp: new Date("2024-01-26T10:05:00"),
-      user: "Система",
-      comment: "Оплата получена через Kaspi Pay",
-      type: "success" as const
-    },
-    {
-      id: "3",
-      status: "Сборка",
-      timestamp: new Date("2024-01-26T11:00:00"),
-      user: "Флорист Гульнара",
-      comment: "Начата сборка букета",
-      type: "default" as const
-    }
-  ]
+// Helper function to map event type to status label
+const eventTypeToStatus = {
+  created: 'Создан',
+  status_changed: 'Статус изменен',
+  payment_received: 'Оплачен',
+  florist_assigned: 'Назначен флорист',
+  comment_added: 'Комментарий',
+  issue_reported: 'Проблема'
+}
+
+interface OrderDetailResponse {
+  id: number
+  created_at: string
+  updated_at: string
+  status: string
+  customer_phone: string
+  recipient_phone: string | null
+  recipient_name: string | null
+  address: string | null
+  delivery_method: string
+  delivery_window: {
+    from: string
+    to: string
+  } | null
+  flower_sum: number
+  delivery_fee: number
+  total: number
+  payment_method?: string
+  tracking_token: string
+  items?: Array<{
+    id: number
+    product_name: string
+    price: number
+    quantity: number
+    total: number
+  }>
+  assigned_florist?: {
+    id: number
+    name: string
+    phone: string
+  }
+  courier?: {
+    id: number
+    name: string
+    phone: string
+  }
+  customer?: {
+    id: number
+    name: string
+    phone: string
+    orders_count: number
+    total_spent: number
+  }
+  history?: Array<{
+    id: number
+    event_type: string
+    comment: string
+    created_at: string
+    user?: string
+  }>
 }
 
 const statusConfig = {
-  created: { label: "Создан", color: "secondary" },
+  new: { label: "Новый", color: "secondary" },
   paid: { label: "Оплачен", color: "default" },
-  processing: { label: "Сборка", color: "warning" },
-  ready: { label: "Готов", color: "success" },
+  assembled: { label: "Собран", color: "warning" },
   delivery: { label: "Доставка", color: "default" },
-  delivered: { label: "Доставлен", color: "success" },
-  cancelled: { label: "Отменен", color: "destructive" },
-  problem: { label: "Проблема", color: "destructive" }
+  self_pickup: { label: "Самовывоз", color: "default" },
+  issue: { label: "Проблема", color: "destructive" }
 } as const
 
 export function OrderDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [comment, setComment] = useState("")
+  const [orderStatus, setOrderStatus] = useState<OrderStatus>("new")
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([])
+  
+  // Fetch order data
+  const { data: order, isLoading, error } = useQuery({
+    queryKey: ['order', id],
+    queryFn: async () => {
+      return await ordersApi.getById(id!)
+    },
+    enabled: !!id
+  })
+  
+  // Update local state when order data is loaded
+  useEffect(() => {
+    if (order) {
+      setOrderStatus(order.status as OrderStatus)
+      // Transform history to timeline format
+      const transformedHistory = order.history?.map((h: any) => ({
+        id: String(h.id),
+        status: eventTypeToStatus[h.event_type as keyof typeof eventTypeToStatus] || h.event_type,
+        timestamp: new Date(h.created_at),
+        user: h.user || 'Система',
+        comment: h.comment || '',
+        type: h.event_type === 'payment_received' ? 'success' : 'default'
+      })) || []
+      setTimeline(transformedHistory)
+    }
+  }, [order])
 
   const handleAddComment = () => {
     if (comment.trim()) {
@@ -138,10 +156,67 @@ export function OrderDetailPage() {
     toast.success("Ссылка скопирована")
   }
 
-  const currentStatus = statusConfig[mockOrder.status as keyof typeof statusConfig]
+  const currentStatus = statusConfig[orderStatus as keyof typeof statusConfig]
 
+  // Get next status based on current status
+  const getNextStatus = (status: OrderStatus): { status: OrderStatus, label: string } | null => {
+    switch (status) {
+      case 'new': return { status: 'paid', label: 'Оплачен' }
+      case 'paid': return { status: 'assembled', label: 'Собран' }
+      case 'assembled': return order?.delivery_method === 'delivery' 
+        ? { status: 'delivery', label: 'В доставку' }
+        : { status: 'self_pickup', label: 'Готов к выдаче' }
+      case 'delivery': return null // Final state for delivery
+      case 'self_pickup': return null // Final state for pickup
+      default: return null
+    }
+  }
+
+  const nextStatus = getNextStatus(orderStatus)
+
+  const handleStatusProgression = async () => {
+    if (nextStatus && !isUpdatingStatus && id) {
+      setIsUpdatingStatus(true)
+      
+      try {
+        await ordersApi.updateStatus(Number(id), nextStatus.status)
+        setOrderStatus(nextStatus.status)
+        
+        // Add new timeline event
+        const newEvent = {
+          id: String(Date.now()),
+          status: nextStatus.label,
+          timestamp: new Date(),
+          user: "Менеджер",
+          comment: `Статус изменен на "${nextStatus.label}"`,
+          type: "success" as const
+        }
+        setTimeline([...timeline, newEvent])
+        
+        toast.success(`Статус изменен на "${nextStatus.label}"`)
+      } catch (error) {
+        toast.error('Ошибка при изменении статуса')
+      } finally {
+        setIsUpdatingStatus(false)
+      }
+    }
+  }
+
+  const handleStatusRollback = () => {
+    toast.info("Откат статуса")
+    // Here you would show a dialog with previous statuses
+  }
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64">Загрузка...</div>
+  }
+  
+  if (error || !order) {
+    return <div className="flex items-center justify-center h-64">Ошибка загрузки заказа</div>
+  }
+  
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -154,10 +229,10 @@ export function OrderDetailPage() {
           </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Заказ #{mockOrder.id}
+              Заказ #{order.id}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Создан {mockOrder.createdAt.toLocaleString('ru-RU')}
+              Создан {new Date(order.created_at).toLocaleString('ru-RU')}
             </p>
           </div>
         </div>
@@ -165,8 +240,29 @@ export function OrderDetailPage() {
           <Badge variant={currentStatus.color as any} className="text-sm">
             {currentStatus.label}
           </Badge>
-          <Button variant="outline" size="icon" onClick={handlePrint}>
-            <Printer className="h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => window.location.href = `tel:${order.customer?.phone || order.customer_phone}`}
+            title="Позвонить клиенту"
+          >
+            <Phone className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => window.open(`https://wa.me/${(order.customer?.phone || order.customer_phone).replace(/\D/g, '')}`, '_blank')}
+            title="Написать в WhatsApp"
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => toast.info("Отслеживание доставки")}
+            title="Отследить доставку"
+          >
+            <Truck className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="icon" onClick={handleShare}>
             <Share2 className="h-4 w-4" />
@@ -178,8 +274,10 @@ export function OrderDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Изменить статус</DropdownMenuItem>
               <DropdownMenuItem>Редактировать заказ</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleStatusRollback}>
+                Откатить статус
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive">
                 Отменить заказ
@@ -191,7 +289,7 @@ export function OrderDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main content */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="space-y-4 lg:col-span-2">
           {/* Customer info */}
           <Card>
             <CardHeader>
@@ -203,41 +301,66 @@ export function OrderDetailPage() {
             <CardContent>
               <div className="flex items-start gap-4">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={mockOrder.customer.avatar || undefined} />
+                  <AvatarImage src={undefined} />
                   <AvatarFallback>
-                    {mockOrder.customer.name.split(' ').map(n => n[0]).join('')}
+                    {(order.customer?.name || order.recipient_name || 'К').split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="font-medium">{mockOrder.customer.name}</div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-3 w-3" />
-                    {mockOrder.customer.phone}
+                  <div className="font-medium">{order.customer?.name || order.recipient_name || 'Клиент'}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {order.customer?.phone || order.customer_phone}
                   </div>
-                  {mockOrder.customer.email && (
-                    <div className="text-sm text-muted-foreground">
-                      {mockOrder.customer.email}
+                  {order.customer && (
+                    <div className="mt-2 flex gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Заказов: </span>
+                        <span className="font-medium">{order.customer.orders_count || 0}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Сумма: </span>
+                        <span className="font-medium">
+                          {(order.customer.total_spent || 0).toLocaleString()} ₸
+                        </span>
+                      </div>
                     </div>
                   )}
-                  <div className="mt-2 flex gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Заказов: </span>
-                      <span className="font-medium">{mockOrder.customer.ordersCount}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Сумма: </span>
-                      <span className="font-medium">
-                        {mockOrder.customer.totalSpent.toLocaleString()} ₸
-                      </span>
-                    </div>
-                  </div>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    navigate(`/customers/${order.customer?.id}`)
+                  }}
+                >
                   Профиль
                 </Button>
               </div>
             </CardContent>
           </Card>
+
+          {/* Assigned florist */}
+          {order.assigned_florist && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Ответственный флорист
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <div>
+                    <div className="font-medium">{order.assigned_florist.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {order.assigned_florist.phone}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Order items */}
           <Card>
@@ -249,11 +372,11 @@ export function OrderDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockOrder.items.map((item) => (
+                {(order.items || []).map((item) => (
                   <div key={item.id} className="flex items-center gap-4">
                     <div className="h-16 w-16 rounded-lg bg-muted" />
                     <div className="flex-1">
-                      <div className="font-medium">{item.name}</div>
+                      <div className="font-medium">{item.product_name}</div>
                       <div className="text-sm text-muted-foreground">
                         {item.price.toLocaleString()} ₸ × {item.quantity} = {item.total.toLocaleString()} ₸
                       </div>
@@ -265,24 +388,16 @@ export function OrderDetailPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Товары</span>
-                  <span>{mockOrder.totals.subtotal.toLocaleString()} ₸</span>
+                  <span>{order.flower_sum.toLocaleString()} ₸</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Доставка</span>
-                  <span>{mockOrder.totals.deliveryFee.toLocaleString()} ₸</span>
+                  <span>{order.delivery_fee.toLocaleString()} ₸</span>
                 </div>
-                {mockOrder.totals.discount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Скидка</span>
-                    <span className="text-destructive">
-                      -{mockOrder.totals.discount.toLocaleString()} ₸
-                    </span>
-                  </div>
-                )}
                 <Separator />
                 <div className="flex justify-between font-medium">
                   <span>Итого</span>
-                  <span className="text-xl">{mockOrder.totals.total.toLocaleString()} ₸</span>
+                  <span className="text-xl">{order.total.toLocaleString()} ₸</span>
                 </div>
               </div>
             </CardContent>
@@ -293,60 +408,68 @@ export function OrderDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Truck className="h-4 w-4" />
-                Доставка
+                {order.delivery_method === 'delivery' ? 'Доставка' : 'Самовывоз'}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <div className="text-sm text-muted-foreground">Дата и время</div>
                     <div className="font-medium">
-                      {mockOrder.delivery.date.toLocaleDateString('ru-RU', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long'
-                      })}
-                    </div>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Clock className="h-3 w-3" />
-                      {mockOrder.delivery.timeFrom} - {mockOrder.delivery.timeTo}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Адрес доставки</div>
-                    <div className="font-medium">{mockOrder.delivery.address}</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <User className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">Получатель</div>
-                    <div className="font-medium">
-                      {mockOrder.delivery.recipientName}
-                    </div>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Phone className="h-3 w-3" />
-                      {mockOrder.delivery.recipientPhone}
+                      {order.delivery_window ? (
+                        <>
+                          {new Date(order.delivery_window.from).toLocaleDateString('ru-RU', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long'
+                          })}, {new Date(order.delivery_window.from).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} - {new Date(order.delivery_window.to).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        </>
+                      ) : (
+                        'Не указано'
+                      )}
                     </div>
                   </div>
                 </div>
-                {mockOrder.delivery.courierName && (
+                {order.delivery_method === 'delivery' && (
+                  <>
+                    <div className="flex items-start gap-3">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Адрес доставки</div>
+                        <div className="font-medium">{order.address || 'Не указан'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Получатель</div>
+                        <div className="font-medium">
+                          {order.recipient_name || order.customer?.name || 'Не указан'}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {order.recipient_phone || order.customer_phone}
+                        </div>
+                      </div>
+                    </div>
+                    {order.courier && (
+                      <div className="flex items-start gap-3">
+                        <div>
+                          <div className="text-sm text-muted-foreground">Курьер</div>
+                          <div className="font-medium">
+                            {order.courier.name}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {order.courier.phone}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+                {order.delivery_method === 'self_pickup' && (
                   <div className="flex items-start gap-3">
-                    <Truck className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <div>
-                      <div className="text-sm text-muted-foreground">Курьер</div>
-                      <div className="font-medium">
-                        {mockOrder.delivery.courierName}
-                      </div>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Phone className="h-3 w-3" />
-                        {mockOrder.delivery.courierPhone}
-                      </div>
+                      <div className="text-sm text-muted-foreground">Адрес магазина</div>
+                      <div className="font-medium">ул. Абая 150</div>
                     </div>
                   </div>
                 )}
@@ -367,61 +490,52 @@ export function OrderDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Способ оплаты</span>
                   <span className="font-medium">
-                    {mockOrder.payment.method === 'kaspi' && 'Kaspi Pay'}
-                    {mockOrder.payment.method === 'cash' && 'Наличными'}
-                    {mockOrder.payment.method === 'transfer' && 'Перевод'}
-                    {mockOrder.payment.method === 'qr' && 'QR код'}
+                    {order.payment_method === 'kaspi' && 'Kaspi Pay'}
+                    {order.payment_method === 'cash' && 'Наличными'}
+                    {order.payment_method === 'transfer' && 'Перевод'}
+                    {order.payment_method === 'qr' && 'QR код'}
+                    {!order.payment_method && 'Не указан'}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Статус</span>
-                  <Badge variant="success">
-                    {mockOrder.payment.status === 'paid' ? 'Оплачено' : 'Ожидает оплаты'}
-                  </Badge>
-                </div>
-                {mockOrder.payment.paidAt && (
+                {order.status !== 'new' && (
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Оплачено</span>
+                    <span className="text-sm text-muted-foreground">Дата оплаты</span>
                     <span className="text-sm">
-                      {mockOrder.payment.paidAt.toLocaleString('ru-RU')}
+                      {order.history?.find((h: any) => h.event_type === 'payment_received')?.created_at
+                        ? new Date(order.history.find((h: any) => h.event_type === 'payment_received').created_at).toLocaleString('ru-RU')
+                        : 'Оплачен'
+                      }
                     </span>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Status progression button - Desktop only */}
+          {nextStatus && (
+            <div className="hidden md:block">
+              <Button 
+                size="lg" 
+                onClick={handleStatusProgression}
+                disabled={isUpdatingStatus}
+                className="w-full"
+              >
+                {isUpdatingStatus ? 'Обновление...' : nextStatus.label}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Быстрые действия</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button className="w-full justify-start" variant="outline">
-                <Phone className="mr-2 h-4 w-4" />
-                Позвонить клиенту
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Отправить SMS
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Truck className="mr-2 h-4 w-4" />
-                Отследить доставку
-              </Button>
-            </CardContent>
-          </Card>
-
+        <div className="space-y-4">
           {/* Timeline */}
           <Card>
             <CardHeader>
               <CardTitle>История заказа</CardTitle>
             </CardHeader>
             <CardContent>
-              <Timeline events={mockOrder.timeline as TimelineEvent[]} />
+              <Timeline events={timeline as TimelineEvent[]} />
             </CardContent>
           </Card>
 
@@ -451,6 +565,20 @@ export function OrderDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Status progression button - Mobile only */}
+      {nextStatus && (
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center px-6 z-40 md:hidden">
+          <Button 
+            size="lg" 
+            onClick={handleStatusProgression}
+            disabled={isUpdatingStatus}
+            className="w-full max-w-lg shadow-lg mb-16"
+          >
+            {isUpdatingStatus ? 'Обновление...' : nextStatus.label}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

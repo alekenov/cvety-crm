@@ -7,6 +7,7 @@ import logging
 from app import crud, schemas
 from app.api import deps
 from app.models.order import Order
+from app.models.shop import Shop
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class CustomerListResponse(BaseModel):
 @router.get("/", response_model=CustomerListResponse)
 def read_customers(
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = Query(None, description="Search by phone, name or email")
@@ -65,6 +67,7 @@ def create_customer(
 def read_customer(
     *,
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
     customer_id: int,
 ) -> schemas.Customer:
     """

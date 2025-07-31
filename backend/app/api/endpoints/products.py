@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 
 from app import crud, schemas
 from app.api import deps
+from app.models.shop import Shop
+from app.schemas import product_ingredient
 
 router = APIRouter()
 
@@ -11,6 +13,7 @@ router = APIRouter()
 @router.get("/", response_model=Dict[str, Any])
 def read_products(
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
     skip: int = 0,
     limit: int = 100,
     category: Optional[str] = None,
@@ -67,6 +70,7 @@ def read_products(
 def create_product(
     *,
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth,
     product_in: schemas.ProductCreate
 ) -> schemas.Product:
     """
@@ -80,6 +84,7 @@ def create_product(
 def read_product(
     *,
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth,
     id: int,
 ) -> schemas.ProductWithStats:
     """
@@ -95,6 +100,7 @@ def read_product(
 def update_product(
     *,
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth,
     id: int,
     product_in: schemas.ProductUpdate,
 ) -> schemas.Product:
@@ -112,6 +118,7 @@ def update_product(
 def toggle_product_active(
     *,
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth,
     id: int,
 ) -> schemas.Product:
     """
@@ -127,11 +134,13 @@ def toggle_product_active(
 def update_product_images(
     *,
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth,
     id: int,
     image_urls: List[str]
 ) -> schemas.Product:
     """
-    Update product images.
+    Update product images by providing URLs.
+    Use /api/upload/images to upload files first, then use the returned URLs here.
     """
     product = crud.product.get(db=db, id=id)
     if not product:
@@ -144,6 +153,7 @@ def update_product_images(
 def delete_product(
     *,
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth,
     id: int,
 ) -> schemas.Product:
     """
@@ -154,3 +164,146 @@ def delete_product(
         raise HTTPException(status_code=404, detail="Product not found")
     product = crud.product.remove(db=db, id=id)
     return product
+
+
+@router.get("/{id}/ingredients", response_model=List[product_ingredient.ProductIngredientWithDetails])
+def get_product_ingredients(
+    *,
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    id: int,
+):
+    """
+    Get product ingredients with warehouse item details.
+    """
+    product = crud.product.get(db=db, id=id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Get ingredients with warehouse item details
+    from app.models.product_ingredient import ProductIngredient
+    from app.models.warehouse import WarehouseItem
+    
+    ingredients = db.query(ProductIngredient).join(
+        WarehouseItem, ProductIngredient.warehouse_item_id == WarehouseItem.id
+    ).filter(ProductIngredient.product_id == id).all()
+    
+    result = []
+    for ing in ingredients:
+        result.append({
+            "id": ing.id,
+            "product_id": ing.product_id,
+            "warehouse_item_id": ing.warehouse_item_id,
+            "quantity": ing.quantity,
+            "notes": ing.notes,
+            "variety": ing.warehouse_item.variety,
+            "height_cm": ing.warehouse_item.height_cm,
+            "supplier": ing.warehouse_item.supplier,
+            "farm": ing.warehouse_item.farm,
+            "available_qty": ing.warehouse_item.available_qty,
+            "price": ing.warehouse_item.price
+        })
+    
+    return result
+
+
+@router.post("/{id}/ingredients", response_model=product_ingredient.ProductIngredient, status_code=201)
+def add_product_ingredient(
+    *,
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    id: int,
+    ingredient_in: product_ingredient.ProductIngredientCreate
+):
+    """
+    Add ingredient to product.
+    """
+    product = crud.product.get(db=db, id=id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Check if warehouse item exists
+    from app.models.warehouse import WarehouseItem
+    warehouse_item = db.query(WarehouseItem).filter(WarehouseItem.id == ingredient_in.warehouse_item_id).first()
+    if not warehouse_item:
+        raise HTTPException(status_code=404, detail="Warehouse item not found")
+    
+    # Check if this ingredient already exists
+    from app.models.product_ingredient import ProductIngredient
+    existing = db.query(ProductIngredient).filter(
+        ProductIngredient.product_id == id,
+        ProductIngredient.warehouse_item_id == ingredient_in.warehouse_item_id
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="This ingredient already exists for the product")
+    
+    # Create ingredient
+    db_ingredient = ProductIngredient(
+        product_id=id,
+        **ingredient_in.dict()
+    )
+    db.add(db_ingredient)
+    db.commit()
+    db.refresh(db_ingredient)
+    
+    return db_ingredient
+
+
+@router.put("/{id}/ingredients/{ingredient_id}", response_model=product_ingredient.ProductIngredient)
+def update_product_ingredient(
+    *,
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    id: int,
+    ingredient_id: int,
+    ingredient_in: product_ingredient.ProductIngredientUpdate
+):
+    """
+    Update product ingredient quantity or notes.
+    """
+    from app.models.product_ingredient import ProductIngredient
+    
+    ingredient = db.query(ProductIngredient).filter(
+        ProductIngredient.id == ingredient_id,
+        ProductIngredient.product_id == id
+    ).first()
+    
+    if not ingredient:
+        raise HTTPException(status_code=404, detail="Product ingredient not found")
+    
+    # Update fields
+    for field, value in ingredient_in.dict(exclude_unset=True).items():
+        setattr(ingredient, field, value)
+    
+    db.commit()
+    db.refresh(ingredient)
+    
+    return ingredient
+
+
+@router.delete("/{id}/ingredients/{ingredient_id}")
+def remove_product_ingredient(
+    *,
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    id: int,
+    ingredient_id: int
+):
+    """
+    Remove ingredient from product.
+    """
+    from app.models.product_ingredient import ProductIngredient
+    
+    ingredient = db.query(ProductIngredient).filter(
+        ProductIngredient.id == ingredient_id,
+        ProductIngredient.product_id == id
+    ).first()
+    
+    if not ingredient:
+        raise HTTPException(status_code=404, detail="Product ingredient not found")
+    
+    db.delete(ingredient)
+    db.commit()
+    
+    return {"message": "Ingredient removed successfully"}

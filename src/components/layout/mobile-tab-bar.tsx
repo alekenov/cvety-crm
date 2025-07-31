@@ -51,10 +51,10 @@ const moreItems = [
     href: "/catalog"
   },
   {
-    id: "warehouse-delivery",
-    label: "Приёмка поставки",
+    id: "supplies",
+    label: "Поставки",
     icon: Store,
-    href: "/warehouse/delivery"
+    href: "/supplies"
   },
   {
     id: "settings",

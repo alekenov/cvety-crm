@@ -20,6 +20,7 @@ interface ResponsiveTableProps<T> {
   mobileCardTitle?: (item: T) => string
   mobileCardSubtitle?: (item: T) => string
   mobileCardActions?: (item: T) => React.ReactNode
+  mobileCardRender?: (item: T, onClick?: () => void) => React.ReactNode
   className?: string
 }
 
@@ -30,6 +31,7 @@ export function ResponsiveTable<T extends { id: string | number }>({
   mobileCardTitle,
   mobileCardSubtitle,
   mobileCardActions,
+  mobileCardRender,
   className
 }: ResponsiveTableProps<T>) {
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -44,52 +46,64 @@ export function ResponsiveTable<T extends { id: string | number }>({
     return (
       <>
         <div className={cn("space-y-3", className)}>
-          {data.map((item) => (
-            <Card 
-              key={item.id}
-              className="cursor-pointer hover:bg-accent/50 transition-colors"
-              onClick={() => onRowClick ? onRowClick(item) : setSelectedItem(item)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-base">
-                      {mobileCardTitle ? mobileCardTitle(item) : String(item[columns[0].key])}
-                    </CardTitle>
-                    {mobileCardSubtitle && (
-                      <p className="text-sm text-muted-foreground">
-                        {mobileCardSubtitle(item)}
-                      </p>
+          {data.map((item) => {
+            // Если есть кастомный рендеринг мобильной карточки, используем его
+            if (mobileCardRender) {
+              return (
+                <div key={item.id}>
+                  {mobileCardRender(item, () => onRowClick ? onRowClick(item) : setSelectedItem(item))}
+                </div>
+              )
+            }
+            
+            // Иначе используем стандартный рендеринг
+            return (
+              <Card 
+                key={item.id}
+                className="cursor-pointer hover:bg-accent/50 transition-colors"
+                onClick={() => onRowClick ? onRowClick(item) : setSelectedItem(item)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-base">
+                        {mobileCardTitle ? mobileCardTitle(item) : String(item[columns[0].key])}
+                      </CardTitle>
+                      {mobileCardSubtitle && (
+                        <p className="text-sm text-muted-foreground">
+                          {mobileCardSubtitle(item)}
+                        </p>
+                      )}
+                    </div>
+                    {mobileCardActions && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        {mobileCardActions(item)}
+                      </div>
                     )}
                   </div>
-                  {mobileCardActions && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                      {mobileCardActions(item)}
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  {mobileColumns.slice(0, 3).map(column => {
-                    const value = item[column.key]
-                    const rendered = column.render ? column.render(value, item) : String(value)
-                    
-                    return (
-                      <div key={String(column.key)} className="flex justify-between items-start">
-                        <span className="text-muted-foreground font-medium min-w-0 flex-shrink-0">
-                          {column.label}:
-                        </span>
-                        <div className="font-medium text-right ml-2 min-w-0 flex-1">
-                          {rendered}
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    {mobileColumns.slice(0, 3).map(column => {
+                      const value = item[column.key]
+                      const rendered = column.render ? column.render(value, item) : String(value)
+                      
+                      return (
+                        <div key={String(column.key)} className="flex justify-between items-start">
+                          <span className="text-muted-foreground font-medium min-w-0 flex-shrink-0">
+                            {column.label}:
+                          </span>
+                          <div className="font-medium text-right ml-2 min-w-0 flex-1">
+                            {rendered}
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
 
         <Sheet open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>

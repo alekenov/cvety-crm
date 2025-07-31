@@ -1,0 +1,28 @@
+<\!DOCTYPE html>
+<html>
+<head>
+    <title>Test Auth</title>
+</head>
+<body>
+    <h1>Test Authentication</h1>
+    <button onclick="testAuth()">Test with Token</button>
+    <button onclick="testNoAuth()">Test without Token</button>
+    <pre id="result"></pre>
+    
+    <script>
+        // Имитируем токен
+        localStorage.setItem('authToken', 'test-token-123');
+        
+        async function testAuth() {
+            const token = localStorage.getItem('authToken');
+            document.getElementById('result').textContent = 'Token in localStorage: ' + token;
+        }
+        
+        async function testNoAuth() {
+            localStorage.removeItem('authToken');
+            document.getElementById('result').textContent = 'Token removed from localStorage';
+        }
+    </script>
+</body>
+</html>
+EOF < /dev/null

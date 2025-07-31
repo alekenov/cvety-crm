@@ -9,7 +9,7 @@ import { NewOrderPage } from "@/pages/orders/new"
 import { OrderDetailPage } from "@/pages/orders/[id]"
 import { WarehousePage } from "@/pages/warehouse"
 import { WarehouseItemDetailPage } from "@/pages/warehouse/[id]"
-import { DeliveryPage } from "@/pages/warehouse/delivery"
+// import { DeliveryPage } from "@/pages/warehouse/delivery"
 import { TrackingPage } from "@/pages/tracking"
 import { CustomersPage } from "@/pages/customers"
 import { CustomerDetailPage } from "@/pages/customers/[id]"
@@ -19,6 +19,8 @@ import { CatalogPage } from "@/pages/catalog"
 import { NewProductPage } from "@/pages/catalog/new"
 import { SettingsPage } from "@/pages/settings"
 import { UsersPage } from "@/pages/settings/users"
+import SuppliesPage from "@/pages/supplies/SuppliesPage"
+import { SupplyDetail } from "@/pages/supplies"
 
 const queryClient = new QueryClient()
 
@@ -41,13 +43,16 @@ function App() {
                     <Route path="/orders/:id" element={<OrderDetailPage />} />
                     <Route path="/warehouse" element={<WarehousePage />} />
                     <Route path="/warehouse/:id" element={<WarehouseItemDetailPage />} />
-                    <Route path="/warehouse/delivery" element={<DeliveryPage />} />
+                    {/* <Route path="/warehouse/delivery" element={<DeliveryPage />} /> */}
                     <Route path="/customers" element={<CustomersPage />} />
                     <Route path="/customers/:id" element={<CustomerDetailPage />} />
                     <Route path="/production" element={<ProductionPage />} />
                     <Route path="/production/calculator" element={<BouquetCalculatorPage />} />
                     <Route path="/catalog" element={<CatalogPage />} />
                     <Route path="/catalog/new" element={<NewProductPage />} />
+                    <Route path="/supplies" element={<SuppliesPage />} />
+                    <Route path="/supplies/import" element={<Navigate to="/supplies" replace />} />
+                    <Route path="/supplies/:id" element={<SupplyDetail />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/settings/users" element={<UsersPage />} />
                   </Routes>

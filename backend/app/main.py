@@ -29,6 +29,11 @@ app = FastAPI(redirect_slashes=False)
 # Get settings for app configuration
 settings = get_settings()
 
+# Mount uploads directory for serving uploaded files
+uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 # Configure FastAPI
 app.title = settings.APP_NAME
 app.openapi_url = f"{settings.API_PREFIX}/openapi.json"

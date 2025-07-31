@@ -9,7 +9,11 @@ from app.core.config import get_settings
 from app.crud import shop as crud_shop
 from app.models.shop import Shop
 
-security = HTTPBearer()
+security = HTTPBearer(
+    scheme_name="JWT",
+    description="JWT token in format: Bearer <token>",
+    auto_error=True
+)
 settings = get_settings()
 
 
@@ -81,3 +85,29 @@ def get_current_active_shop(
             detail="Inactive shop"
         )
     return current_shop
+
+
+def get_optional_current_shop(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    db: Session = Depends(get_db)
+) -> Optional[Shop]:
+    """Get current authenticated shop if token is provided, None otherwise"""
+    if not credentials:
+        return None
+    
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+        shop_id: str = payload.get("sub")
+        
+        if shop_id is None:
+            return None
+            
+        shop = crud_shop.get(db, shop_id=int(shop_id))
+        return shop if shop and shop.is_active else None
+        
+    except JWTError:
+        return None

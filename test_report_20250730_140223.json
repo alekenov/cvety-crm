@@ -1,0 +1,108 @@
+{
+  "timestamp": "2025-07-30T14:02:23.687412",
+  "api_url": "https://cvety-kz-production.up.railway.app/api",
+  "summary": {
+    "total": 16,
+    "passed": 7,
+    "failed": 9,
+    "success_rate": "43.8%"
+  },
+  "results": [
+    {
+      "endpoint": "/customers/",
+      "method": "POST",
+      "success": false,
+      "message": "Status: 200"
+    },
+    {
+      "endpoint": "/customers/",
+      "method": "GET",
+      "success": true,
+      "message": ""
+    },
+    {
+      "endpoint": "/customers/?search=Test",
+      "method": "GET",
+      "success": true,
+      "message": ""
+    },
+    {
+      "endpoint": "/orders/",
+      "method": "POST",
+      "success": false,
+      "message": "Failed to create customer for order"
+    },
+    {
+      "endpoint": "/tracking/",
+      "method": "GET",
+      "success": false,
+      "message": "No orders created for testing"
+    },
+    {
+      "endpoint": "/warehouse/",
+      "method": "POST",
+      "success": false,
+      "message": "Status: 422"
+    },
+    {
+      "endpoint": "/warehouse/",
+      "method": "GET",
+      "success": true,
+      "message": ""
+    },
+    {
+      "endpoint": "/warehouse/?product_type=rose",
+      "method": "GET",
+      "success": true,
+      "message": ""
+    },
+    {
+      "endpoint": "/warehouse/deliveries",
+      "method": "GET",
+      "success": true,
+      "message": ""
+    },
+    {
+      "endpoint": "/products/",
+      "method": "POST",
+      "success": false,
+      "message": "Status: 422"
+    },
+    {
+      "endpoint": "/products/",
+      "method": "GET",
+      "success": true,
+      "message": ""
+    },
+    {
+      "endpoint": "/products/?category=bouquet",
+      "method": "GET",
+      "success": true,
+      "message": ""
+    },
+    {
+      "endpoint": "/production/tasks",
+      "method": "GET",
+      "success": false,
+      "message": ""
+    },
+    {
+      "endpoint": "/production/florists",
+      "method": "GET",
+      "success": false,
+      "message": ""
+    },
+    {
+      "endpoint": "/settings/company",
+      "method": "GET",
+      "success": false,
+      "message": ""
+    },
+    {
+      "endpoint": "/settings/delivery-zones",
+      "method": "GET",
+      "success": false,
+      "message": ""
+    }
+  ]
+}
