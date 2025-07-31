@@ -7,3 +7,7 @@ from .customer import customer
 from .florist_task import florist_task
 from .task_item import task_item
 from .settings import settings
+from .flower_category import flower_category
+from .supply import supply
+from .user import user
+from .order_history import order_history

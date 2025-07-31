@@ -13,11 +13,13 @@ from app.schemas.order import (
     OrderIssueUpdate,
     OrderCreateWithItems,
     OrderResponseWithItems,
+    OrderDetailResponse,
     OrderItemResponse,
     OrderItemCreate,
     OrderItemUpdate
 )
 from app.models.order import OrderStatus
+from app.models.shop import Shop
 
 router = APIRouter()
 
@@ -25,6 +27,7 @@ router = APIRouter()
 @router.get("/", response_model=OrderList)
 def get_orders(
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth but don't filter by shop yet
     skip: int = Query(0, ge=0),
     limit: int = Query(20, le=100),
     page: Optional[int] = Query(None, ge=1),
@@ -48,21 +51,127 @@ def get_orders(
         total_query = total_query.filter(crud.order.model.status == status)
     total = total_query.count()
     
+    # Convert orders to response format with related data
+    items = []
+    for order in orders:
+        # First convert basic order data
+        order_data = {
+            'id': order.id,
+            'created_at': order.created_at,
+            'updated_at': order.updated_at,
+            'status': order.status,
+            'customer_phone': order.customer_phone,
+            'recipient_phone': order.recipient_phone,
+            'recipient_name': order.recipient_name,
+            'address': order.address,
+            'delivery_method': order.delivery_method,
+            'delivery_window': order.delivery_window,
+            'flower_sum': order.flower_sum,
+            'delivery_fee': order.delivery_fee,
+            'total': order.total,
+            'tracking_token': order.tracking_token,
+            'has_pre_delivery_photos': order.has_pre_delivery_photos,
+            'has_issue': order.has_issue,
+            'issue_type': order.issue_type,
+            'issue_comment': order.issue_comment,
+            'customer_id': order.customer_id,
+            'items': [
+                {
+                    'id': item.id,
+                    'product_id': item.product_id,
+                    'quantity': item.quantity,
+                    'price': item.price,
+                    'total': item.total,
+                    'product_name': item.product.name if item.product else '',
+                    'product_category': item.product.category if item.product else ''
+                }
+                for item in order.items
+            ] if order.items else []
+        }
+        
+        # Add customer info
+        if order.customer:
+            order_data['customer'] = {
+                'id': order.customer.id,
+                'name': order.customer.name,
+                'phone': order.customer.phone,
+                'orders_count': order.customer.orders_count,
+                'total_spent': order.customer.total_spent
+            }
+        
+        # Add florist info
+        if order.assigned_florist:
+            order_data['assigned_florist'] = {
+                'id': order.assigned_florist.id,
+                'name': order.assigned_florist.name,
+                'phone': order.assigned_florist.phone
+            }
+        
+        items.append(order_data)
+    
     return {
-        "items": [OrderResponse.model_validate(order) for order in orders],
+        "items": items,
         "total": total
     }
 
 
-@router.get("/{order_id}", response_model=OrderResponseWithItems)
+@router.get("/{order_id}", response_model=OrderDetailResponse)
 def get_order(
     order_id: int,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     order = crud.order.get(db, id=order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    return OrderResponseWithItems.model_validate(order)
+    
+    # Build detailed response
+    order_dict = OrderDetailResponse.model_validate(order).model_dump()
+    
+    # Add customer info
+    if order.customer:
+        order_dict['customer'] = {
+            'id': order.customer.id,
+            'name': order.customer.name,
+            'phone': order.customer.phone,
+            'email': order.customer.email,
+            'orders_count': order.customer.orders_count,
+            'total_spent': order.customer.total_spent
+        }
+    
+    # Add florist info
+    if order.assigned_florist:
+        order_dict['assigned_florist'] = {
+            'id': order.assigned_florist.id,
+            'name': order.assigned_florist.name,
+            'phone': order.assigned_florist.phone
+        }
+    
+    # Add courier info
+    if order.courier:
+        order_dict['courier'] = {
+            'id': order.courier.id,
+            'name': order.courier.name,
+            'phone': order.courier.phone
+        }
+    
+    # Add order history
+    from app.crud.order_history import order_history as crud_order_history
+    history_items = crud_order_history.get_by_order(db, order_id=order_id)
+    order_dict['history'] = [
+        {
+            'id': h.id,
+            'event_type': h.event_type.value,
+            'old_status': h.old_status,
+            'new_status': h.new_status,
+            'comment': h.comment,
+            'created_at': h.created_at.isoformat(),
+            'user': h.user.name if h.user else 'Система'
+        }
+        for h in history_items
+    ]
+    
+    return order_dict
 
 
 @router.post("/", response_model=OrderResponse, status_code=201)
@@ -226,3 +335,39 @@ def delete_order_item(
     db.commit()
     
     return {"detail": "Order item deleted"}
+
+
+@router.post("/{order_id}/assign-florist")
+def assign_florist(
+    order_id: int,
+    florist_id: int,
+    db: Session = Depends(deps.get_db)
+):
+    order = crud.order.get(db, id=order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    from app.crud.user import user as crud_user
+    florist = crud_user.get(db, id=florist_id)
+    if not florist:
+        raise HTTPException(status_code=404, detail="Florist not found")
+    
+    if florist.role != "florist":
+        raise HTTPException(status_code=400, detail="User is not a florist")
+    
+    # Update order
+    order.assigned_florist_id = florist_id
+    
+    # Create history entry
+    from app.crud.order_history import order_history as crud_order_history
+    crud_order_history.create_florist_assignment(
+        db,
+        order_id=order_id,
+        florist_id=florist_id,
+        florist_name=florist.name
+    )
+    
+    db.commit()
+    db.refresh(order)
+    
+    return {"detail": "Florist assigned"}

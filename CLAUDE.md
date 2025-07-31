@@ -143,6 +143,10 @@ railway status           # Check deployment status
 make deploy              # Запускает railway up -c
 ```
 
+### Tips and Memories
+- `делай деплой через railway up -c` - Recommended Railway deployment command
+- **После деплоя в Railway проверяй через MCP Playwright**, то что мы сделали
+
 ### Testing Railway Locally
 ```bash
 # Test Railway-like environment
@@ -190,3 +194,5 @@ railway up -c  # ВАЖНО: используйте флаг -c для CI mode
 3. **Health Check**: Built-in monitoring endpoint
 4. **Production Ready**: Non-root user, security headers
 5. **Railway Compatible**: Same Dockerfile for dev and prod
+```
+```

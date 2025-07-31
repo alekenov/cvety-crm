@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.models.product import ProductCategory
+from app.schemas.product_ingredient import ProductIngredient, ProductIngredientWithDetails
 
 
 class ProductImageBase(BaseModel):
@@ -65,11 +66,20 @@ class Product(ProductBase):
     created_at: datetime
     updated_at: datetime
     images: List[ProductImage] = []
+    ingredients: List[ProductIngredient] = []
     
     # Computed properties
     current_price: float
     discount_percentage: int
 
+    class Config:
+        from_attributes = True
+
+
+class ProductWithIngredientDetails(Product):
+    """Product with detailed ingredient information"""
+    ingredients: List[ProductIngredientWithDetails] = []
+    
     class Config:
         from_attributes = True
 

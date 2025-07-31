@@ -66,9 +66,17 @@ class Order(Base):
     # Tracking
     tracking_token = Column(String, unique=True, index=True)
     
+    # User assignments
+    assigned_florist_id = Column(Integer, ForeignKey("users.id"))
+    courier_id = Column(Integer, ForeignKey("users.id"))
+    courier_phone = Column(String)  # For external couriers
+    
     # Relationships
     customer = relationship("Customer", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    assigned_florist = relationship("User", foreign_keys=[assigned_florist_id], back_populates="assigned_orders")
+    courier = relationship("User", foreign_keys=[courier_id], back_populates="courier_orders")
+    history = relationship("OrderHistory", back_populates="order", cascade="all, delete-orphan", order_by="OrderHistory.created_at")
     
     @property
     def items_total(self):

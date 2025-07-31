@@ -1,10 +1,9 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Phone, MapPin, Clock, Package, ChevronRight } from "lucide-react"
+import { ChevronRight, User } from "lucide-react"
 import type { Order } from "@/lib/types"
-import { formatDistanceToNow, format } from "date-fns"
-import { ru } from "date-fns/locale"
+import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useNavigate } from "react-router-dom"
 
@@ -58,7 +57,7 @@ export function OrderCard({ order, onStatusChange }: OrderCardProps) {
       className="mb-4 cursor-pointer hover:shadow-lg transition-shadow"
       onClick={handleCardClick}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 md:pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg font-semibold">#{order.id}</span>
@@ -68,8 +67,14 @@ export function OrderCard({ order, onStatusChange }: OrderCardProps) {
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </div>
+        {order.assignedTo && (
+          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+            <User className="h-3 w-3" />
+            <span>{order.assignedTo.name}</span>
+          </div>
+        )}
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 md:space-y-3">
         {/* Клиент и телефон */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -81,57 +86,44 @@ export function OrderCard({ order, onStatusChange }: OrderCardProps) {
             className="h-8 px-2"
             onClick={handlePhoneClick}
           >
-            <Phone className="h-4 w-4 mr-1" />
             {order.customerPhone}
           </Button>
         </div>
 
-        {/* Адрес доставки */}
-        {order.address && (
-          <div className="flex items-start gap-2 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-            <span className="line-clamp-2">{order.address}</span>
-          </div>
-        )}
-
-        {/* Время доставки */}
-        {order.deliveryWindow && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>
-              {new Date(order.deliveryWindow.from).toLocaleDateString('ru-RU', {
-                day: 'numeric',
-                month: 'short'
-              })} {format(order.deliveryWindow.from, "HH:mm")} - {format(order.deliveryWindow.to, "HH:mm")}
-            </span>
+        {/* Адрес и время доставки */}
+        {(order.address || order.deliveryWindow) && (
+          <div className="text-sm text-muted-foreground">
+            {order.address && <span>{order.address}</span>}
+            {order.address && order.deliveryWindow && <span> • </span>}
+            {order.deliveryWindow && (
+              <span>
+                {new Date(order.deliveryWindow.from).toLocaleDateString('ru-RU', {
+                  day: 'numeric',
+                  month: 'short'
+                })} {format(order.deliveryWindow.from, "HH:mm")}-{format(order.deliveryWindow.to, "HH:mm")}
+              </span>
+            )}
           </div>
         )}
 
         {/* Товары */}
-        <div className="flex items-start gap-2 text-sm">
-          <Package className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
-          <div className="flex-1">
-            {order.items && order.items.length > 0 ? (
-              <>
-                {order.items.slice(0, 2).map((item, index) => (
-                  <div key={index}>
-                    {item.productName} × {item.quantity}
-                  </div>
-                ))}
-                {order.items.length > 2 && (
-                  <div className="text-muted-foreground">
-                    и еще {order.items.length - 2} товар(ов)
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-muted-foreground">Нет товаров</div>
+        {order.items && order.items.length > 0 && (
+          <div className="text-sm">
+            {order.items.slice(0, 3).map((item, index) => (
+              <div key={index}>
+                {item.productName} × {item.quantity}
+              </div>
+            ))}
+            {order.items.length > 3 && (
+              <div className="text-muted-foreground">
+                еще {order.items.length - 3} товар{order.items.length - 3 === 1 ? '' : order.items.length - 3 < 5 ? 'а' : 'ов'}
+              </div>
             )}
           </div>
-        </div>
+        )}
 
         {/* Сумма и действия */}
-        <div className="flex items-center justify-between pt-2 border-t">
+        <div className="flex items-center justify-between pt-2">
           <span className="font-semibold">
             {(order.totalAmount || 0).toLocaleString('ru-RU')} ₸
           </span>
@@ -144,14 +136,6 @@ export function OrderCard({ order, onStatusChange }: OrderCardProps) {
               {statusConfig[nextStatus].label}
             </Button>
           )}
-        </div>
-
-        {/* Время создания */}
-        <div className="text-xs text-muted-foreground text-right">
-          {formatDistanceToNow(new Date(order.createdAt), {
-            addSuffix: true,
-            locale: ru
-          })}
         </div>
       </CardContent>
     </Card>

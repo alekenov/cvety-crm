@@ -3,13 +3,15 @@ from sqlalchemy.orm import Session
 
 from app import crud, schemas
 from app.api import deps
+from app.models.shop import Shop
 
 router = APIRouter()
 
 
 @router.get("/", response_model=schemas.CompanySettings)
 def read_settings(
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """
     Получить текущие настройки компании.
@@ -21,6 +23,7 @@ def read_settings(
 def update_settings(
     *,
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
     settings_in: schemas.CompanySettingsUpdate
 ):
     """
@@ -31,7 +34,8 @@ def update_settings(
 
 @router.get("/delivery-zones")
 def get_delivery_zones(
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """
     Получить список зон доставки с ценами.

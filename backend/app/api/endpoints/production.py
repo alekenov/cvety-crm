@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app import crud, schemas
 from app.api import deps
 from app.models.production import TaskStatus, TaskPriority
+from app.models.shop import Shop
 from app.services.task_queue import TaskQueueService
 
 router = APIRouter()
@@ -25,6 +26,7 @@ def create_task(
 @router.get("/tasks/")
 def read_tasks(
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
     skip: int = 0,
     limit: int = 100,
     status: Optional[TaskStatus] = None,
@@ -373,7 +375,8 @@ def get_workload(
 @router.get("/florists")
 def get_florists(
     *,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """
     Получить список флористов.

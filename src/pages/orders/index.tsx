@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { MoreHorizontal, Eye, AlertTriangle, Package, Plus } from "lucide-react"
+import { MoreHorizontal, Eye, AlertTriangle, Package, Plus, Search, Calendar as CalendarIcon } from "lucide-react"
 import { toast } from "sonner"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
@@ -48,11 +48,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import type { Order } from "@/lib/types"
+import type { Order, OrderItem, User } from "@/lib/types"
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, DATETIME_FORMAT } from "@/lib/constants"
 import { ordersApi } from "@/lib/api"
 import { TableSkeleton } from "@/components/ui/loading-state"
 import { ErrorState } from "@/components/ui/error-state"
+
+// Remove mock data - now using real API data
 
 // API response type
 interface OrderApiResponse {
@@ -76,6 +78,19 @@ interface OrderApiResponse {
   has_issue: boolean
   issue_type: string | null
   tracking_token: string
+  items?: OrderItem[]
+  assigned_florist?: {
+    id: number
+    name: string
+    phone: string
+  }
+  customer?: {
+    id: number
+    name: string
+    phone: string
+    orders_count: number
+    total_spent: number
+  }
 }
 
 export function OrdersPage() {
@@ -151,7 +166,13 @@ export function OrdersPage() {
           hasIssue: order.has_issue,
           issueType: order.issue_type as Order['issueType'] | undefined,
           trackingToken: order.tracking_token,
-          items: [] // Add empty items array for now
+          items: order.items || [],
+          assignedTo: order.assigned_florist ? {
+            id: String(order.assigned_florist.id),
+            name: order.assigned_florist.name,
+            role: "florist" as const
+          } : undefined,
+          customer: order.customer
         })) as Order[]
       }
     }
@@ -244,33 +265,58 @@ export function OrdersPage() {
       </div>
 
       {/* Filters */}
-      <PageFilters
-        config={{
-          searchPlaceholder: "Поиск по телефону или ID",
-          searchValue: searchQuery,
-          onSearchChange: setSearchQuery,
-          selectFilters: [
-            {
-              value: statusFilter,
-              onChange: (value) => {
+      <div className="space-y-4">
+        {/* Status chips */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setStatusFilter('all')
+              setCurrentPage(1)
+            }}
+          >
+            Все
+          </Button>
+          {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
+            <Button
+              key={value}
+              variant={statusFilter === value ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
                 setStatusFilter(value)
                 setCurrentPage(1)
-              },
-              placeholder: "Все статусы",
-              options: createFilterOptionsFromObject(ORDER_STATUS_LABELS, "Все статусы")
-            }
-          ],
-          dateRange: {
-            from: dateRange.from,
-            to: dateRange.to,
-            onChange: (range) => {
-              setDateRange(range)
-              setCurrentPage(1)
-            },
-            placeholder: "Выберите даты"
-          }
-        }}
-      />
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        
+        {/* Search and date filter */}
+        <div className="flex gap-2">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Поиск"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              // This would open date picker
+              toast.info("Выбор даты будет реализован")
+            }}
+          >
+            <CalendarIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       {/* Table or Cards */}
       {isTablet ? (

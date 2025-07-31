@@ -140,3 +140,11 @@ class OrderCreateWithItems(BaseModel):
 class OrderResponseWithItems(OrderResponse):
     items: List[OrderItemResponse] = []
     customer_id: Optional[int] = None
+    customer: Optional[dict] = None
+    assigned_florist: Optional[dict] = None
+    courier: Optional[dict] = None
+
+
+class OrderDetailResponse(OrderResponseWithItems):
+    """Extended order response with all related data for detail view"""
+    history: List[dict] = []

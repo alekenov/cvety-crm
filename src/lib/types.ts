@@ -68,11 +68,13 @@ export interface ProductUpdate {
 }
 
 export interface OrderItem {
+  id: string
   productId: string
+  productName: string
   product?: Product
   quantity: number
   price: number
-  total: number
+  total?: number
 }
 
 export type IssueType = 
@@ -98,18 +100,22 @@ export interface Order {
   recipientName?: string
   address?: string
   deliveryMethod: DeliveryMethod
-  deliveryWindow: {
+  deliveryWindow?: {
     from: Date
     to: Date
   }
   flowerSum: number
   deliveryFee: number
   total: number
+  totalAmount?: number
   hasPreDeliveryPhotos: boolean
   hasIssue: boolean
   issueType?: IssueType
   trackingToken: string
   updatedAt: Date
+  assignedTo?: User
+  assignedToId?: string
+  items?: OrderItem[]
 }
 
 export interface WarehouseItem {

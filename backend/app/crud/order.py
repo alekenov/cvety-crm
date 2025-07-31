@@ -1,10 +1,10 @@
 from typing import Optional, List, Union
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, cast, String
 import secrets
 
 from app.crud.base import CRUDBase
-from app.models.order import Order, OrderStatus, IssueType
+from app.models.order import Order, OrderStatus, IssueType, OrderItem
 from app.schemas.order import OrderCreate, OrderUpdate, OrderCreateWithItems
 from app.crud.customer import customer as crud_customer
 from app.models.product import Product
@@ -62,6 +62,18 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         db.commit()
         db.refresh(db_obj)
         
+        # Create initial history entry
+        from app.crud.order_history import order_history as crud_order_history
+        from app.models.order_history import OrderEventType
+        crud_order_history.create(
+            db,
+            obj_in={
+                'order_id': db_obj.id,
+                'event_type': OrderEventType.created,
+                'comment': 'Заказ создан'
+            }
+        )
+        
         # Create order items if provided
         if items_data:
             from app.crud.order_item import order_item as crud_order_item
@@ -77,6 +89,15 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         crud_customer.update_statistics(db, customer_id=customer.id)
         
         return db_obj
+    
+    def get(self, db: Session, id: int) -> Optional[Order]:
+        return db.query(Order).options(
+            joinedload(Order.customer),
+            joinedload(Order.assigned_florist),
+            joinedload(Order.courier),
+            joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.history)
+        ).filter(Order.id == id).first()
     
     def get_multi(
         self,
@@ -111,14 +132,28 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         if date_to:
             query = query.filter(Order.created_at <= date_to)
         
-        return query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
+        return query.options(
+            joinedload(Order.customer),
+            joinedload(Order.assigned_florist),
+            joinedload(Order.items).joinedload(OrderItem.product)
+        ).order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
     
     def get_by_tracking_token(self, db: Session, *, tracking_token: str) -> Optional[Order]:
         return db.query(Order).filter(Order.tracking_token == tracking_token).first()
     
-    def update_status(self, db: Session, *, db_obj: Order, status: OrderStatus) -> Order:
+    def update_status(self, db: Session, *, db_obj: Order, status: OrderStatus, user_id: Optional[int] = None) -> Order:
         old_status = db_obj.status
         db_obj.status = status
+        
+        # Create history entry
+        from app.crud.order_history import order_history as crud_order_history
+        crud_order_history.create_status_change(
+            db, 
+            order_id=db_obj.id,
+            old_status=old_status,
+            new_status=status,
+            user_id=user_id
+        )
         
         # Обрабатываем изменения связанные с резервированием/списанием
         if status == OrderStatus.delivery and old_status != OrderStatus.delivery:
