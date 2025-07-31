@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Order, WarehouseItem, Delivery, TrackingData, CompanySettings, Customer, FloristTask, TaskStatus, ProductionQueueStats, Product, ProductWithStats, ProductCreate, ProductUpdate } from './types'
+import type { Order, WarehouseItem, Delivery, TrackingData, CompanySettings, Customer, FloristTask, TaskStatus, ProductionQueueStats, Product, ProductWithStats, ProductCreate, ProductUpdate, FlowerCategory, Supply, SupplyCreate, SupplyImportPreview } from './types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
@@ -90,8 +90,32 @@ export const warehouseApi = {
   },
 
   getById: async (id: string) => {
-    const { data } = await api.get<WarehouseItem>(`/warehouse/${id}`)
-    return data
+    const { data } = await api.get<any>(`/warehouse/${id}`)
+    
+    // Convert snake_case API response to camelCase
+    return {
+      id: data.id.toString(),
+      sku: data.sku,
+      batchCode: data.batch_code,
+      variety: data.variety,
+      heightCm: data.height_cm,
+      farm: data.farm,
+      supplier: data.supplier,
+      deliveryDate: new Date(data.delivery_date),
+      currency: data.currency,
+      rate: data.rate,
+      cost: data.cost,
+      recommendedPrice: data.recommended_price,
+      price: data.price,
+      markupPct: data.markup_pct,
+      qty: data.qty,
+      reservedQty: data.reserved_qty,
+      onShowcase: data.on_showcase,
+      toWriteOff: data.to_write_off,
+      hidden: data.hidden,
+      updatedAt: new Date(data.updated_at),
+      updatedBy: data.updated_by
+    } as WarehouseItem
   },
 
   updateItem: async (id: string, updates: Partial<WarehouseItem>) => {
@@ -119,6 +143,49 @@ export const warehouseApi = {
 
   getDeliveries: async (params?: { skip?: number; limit?: number }) => {
     const { data } = await api.get<{ items: Delivery[]; total: number }>('/warehouse/deliveries', { params })
+    return data
+  },
+
+  // Movement methods
+  getMovements: async (itemId: string, params?: { skip?: number; limit?: number }) => {
+    const { data } = await api.get<{
+      items: Array<{
+        id: number
+        warehouse_item_id: number
+        type: 'in' | 'out' | 'adjustment'
+        quantity: number
+        description: string
+        reference_type?: string
+        reference_id?: string
+        created_at: string
+        created_by: string
+        qty_before: number
+        qty_after: number
+      }>
+      total: number
+    }>(`/warehouse/${itemId}/movements`, { params })
+    
+    // Convert to frontend format
+    return {
+      items: data.items.map(movement => ({
+        id: movement.id.toString(),
+        type: movement.type,
+        quantity: movement.quantity,
+        description: movement.description,
+        orderId: movement.reference_type === 'order' ? movement.reference_id : undefined,
+        createdAt: new Date(movement.created_at),
+        createdBy: movement.created_by
+      })),
+      total: data.total
+    }
+  },
+
+  adjustStock: async (itemId: string, adjustment: { adjustment: number; reason: string; created_by?: string }) => {
+    const { data } = await api.post(`/warehouse/${itemId}/adjust-stock`, {
+      adjustment: adjustment.adjustment,
+      reason: adjustment.reason,
+      created_by: adjustment.created_by || 'user'
+    })
     return data
   },
 }
@@ -761,4 +828,118 @@ export const productionApi = {
       notes: data.instructions || data.florist_notes
     } as FloristTask
   },
+}
+
+// Supplies API
+export const suppliesApi = {
+  // Categories
+  getCategories: async (): Promise<FlowerCategory[]> => {
+    const { data } = await api.get<any[]>('/supplies/categories')
+    return data.map(item => ({
+      ...convertKeysToCamelCase(item),
+      createdAt: new Date(item.created_at),
+      updatedAt: new Date(item.updated_at)
+    }))
+  },
+
+  createCategory: async (category: { name: string; markupPercentage: number; keywords?: string }): Promise<FlowerCategory> => {
+    const { data } = await api.post<any>('/supplies/categories', convertKeysToSnakeCase(category))
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    }
+  },
+
+  updateCategory: async (id: number, updates: { name?: string; markupPercentage?: number; keywords?: string }): Promise<FlowerCategory> => {
+    const { data } = await api.put<any>(`/supplies/categories/${id}`, convertKeysToSnakeCase(updates))
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    }
+  },
+
+  // Supply import
+  parseSupplyText: async (text: string, supplier?: string): Promise<SupplyImportPreview> => {
+    const { data } = await api.post<any>('/supplies/parse', { text, supplier })
+    return {
+      supplier: data.supplier,
+      items: data.items.map((item: any) => convertKeysToCamelCase(item)),
+      totalCost: data.total_cost,
+      errors: data.errors
+    }
+  },
+
+  importSupply: async (supply: SupplyCreate): Promise<Supply> => {
+    const { data } = await api.post<any>('/supplies/import', convertKeysToSnakeCase(supply))
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      items: data.items.map((item: any) => ({
+        ...convertKeysToCamelCase(item),
+        createdAt: new Date(item.created_at),
+        category: item.category ? {
+          ...convertKeysToCamelCase(item.category),
+          createdAt: new Date(item.category.created_at),
+          updatedAt: new Date(item.category.updated_at)
+        } : undefined
+      }))
+    }
+  },
+
+  // Supplies list
+  getSupplies: async (params?: { skip?: number; limit?: number; status?: string }): Promise<{ items: Supply[]; total: number }> => {
+    const { data } = await api.get<any>('/supplies/', { params })
+    return {
+      items: data.items.map((supply: any) => ({
+        ...convertKeysToCamelCase(supply),
+        createdAt: new Date(supply.created_at),
+        items: supply.items.map((item: any) => ({
+          ...convertKeysToCamelCase(item),
+          createdAt: new Date(item.created_at),
+          category: item.category ? {
+            ...convertKeysToCamelCase(item.category),
+            createdAt: new Date(item.category.created_at),
+            updatedAt: new Date(item.category.updated_at)
+          } : undefined
+        }))
+      })),
+      total: data.total
+    }
+  },
+
+  getSupply: async (id: number): Promise<Supply> => {
+    const { data } = await api.get<any>(`/supplies/${id}`)
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      items: data.items.map((item: any) => ({
+        ...convertKeysToCamelCase(item),
+        createdAt: new Date(item.created_at),
+        category: item.category ? {
+          ...convertKeysToCamelCase(item.category),
+          createdAt: new Date(item.category.created_at),
+          updatedAt: new Date(item.category.updated_at)
+        } : undefined
+      }))
+    }
+  },
+
+  archiveSupply: async (id: number): Promise<Supply> => {
+    const { data } = await api.put<any>(`/supplies/${id}/archive`)
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      items: data.items.map((item: any) => ({
+        ...convertKeysToCamelCase(item),
+        createdAt: new Date(item.created_at),
+        category: item.category ? {
+          ...convertKeysToCamelCase(item.category),
+          createdAt: new Date(item.category.created_at),
+          updatedAt: new Date(item.category.updated_at)
+        } : undefined
+      }))
+    }
+  }
 }

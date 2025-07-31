@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, validator
+from enum import Enum
 
 
 class WarehouseItemBase(BaseModel):
@@ -168,3 +169,51 @@ class WarehouseStats(BaseModel):
     writeoff_items: int
     by_variety: dict[str, int]
     by_supplier: dict[str, int]
+
+
+# Movement schemas
+class MovementTypeEnum(str, Enum):
+    IN = "in"
+    OUT = "out"
+    ADJUSTMENT = "adjustment"
+
+
+class WarehouseMovementBase(BaseModel):
+    type: MovementTypeEnum
+    quantity: int = Field(description="Изменение количества (положительное для поступления, отрицательное для расхода)")
+    description: str = Field(min_length=1, max_length=255)
+    reference_type: Optional[str] = Field(None, description="Тип связанного объекта (order, supply, manual)")
+    reference_id: Optional[str] = Field(None, description="ID связанного объекта")
+
+
+class WarehouseMovementCreate(WarehouseMovementBase):
+    warehouse_item_id: int
+    created_by: str = Field(default="system", description="Пользователь, создавший движение")
+
+
+class WarehouseMovementInDB(WarehouseMovementBase):
+    id: int
+    warehouse_item_id: int
+    created_at: datetime
+    created_by: str
+    qty_before: int = Field(description="Количество до движения")
+    qty_after: int = Field(description="Количество после движения")
+    
+    class Config:
+        from_attributes = True
+
+
+class WarehouseMovementResponse(WarehouseMovementInDB):
+    pass
+
+
+class WarehouseMovementList(BaseModel):
+    items: List[WarehouseMovementResponse]
+    total: int
+
+
+# Stock adjustment request
+class StockAdjustmentRequest(BaseModel):
+    adjustment: int = Field(description="Изменение количества (может быть положительным или отрицательным)")
+    reason: str = Field(min_length=1, max_length=255, description="Причина изменения")
+    created_by: str = Field(default="system", description="Пользователь, выполняющий корректировку")

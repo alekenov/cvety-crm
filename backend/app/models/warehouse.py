@@ -1,8 +1,16 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, JSON, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+import enum
 
 from app.db.session import Base
+
+
+class MovementType(str, enum.Enum):
+    """Types of warehouse movements"""
+    IN = "in"           # Incoming stock (deliveries, returns)
+    OUT = "out"         # Outgoing stock (sales, transfers)
+    ADJUSTMENT = "adjustment"  # Manual adjustments (damage, corrections)
 
 
 class WarehouseItem(Base):
@@ -42,6 +50,11 @@ class WarehouseItem(Base):
     
     # Tracking
     updated_by = Column(String)  # User who last updated
+    supply_item_id = Column(Integer, ForeignKey("supply_items.id"))  # Link to supply item
+    
+    # Relationships
+    product_ingredients = relationship("ProductIngredient", back_populates="warehouse_item")
+    supply_item = relationship("SupplyItem", back_populates="warehouse_items")
     
     @property
     def available_qty(self):
@@ -91,3 +104,33 @@ class DeliveryPosition(Base):
     
     # Relationships
     delivery = relationship("Delivery", back_populates="positions")
+
+
+class WarehouseMovement(Base):
+    """
+    Track all movements of warehouse items (in, out, adjustments)
+    """
+    __tablename__ = "warehouse_movements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    warehouse_item_id = Column(Integer, ForeignKey("warehouse_items.id"), nullable=False)
+    
+    # Movement details
+    type = Column(Enum(MovementType), nullable=False, index=True)
+    quantity = Column(Integer, nullable=False)  # Positive for IN, negative for OUT/ADJUSTMENT
+    description = Column(String, nullable=False)
+    
+    # References
+    reference_type = Column(String)  # "order", "supply", "manual", etc.
+    reference_id = Column(String)    # ID of related order/supply/etc.
+    
+    # Tracking
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    created_by = Column(String, nullable=False)  # User who performed the action
+    
+    # Stock levels after this movement (for audit purposes)
+    qty_before = Column(Integer, nullable=False)
+    qty_after = Column(Integer, nullable=False)
+    
+    # Relationships
+    warehouse_item = relationship("WarehouseItem", backref="movements")

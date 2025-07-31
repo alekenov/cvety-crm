@@ -136,6 +136,16 @@ export interface WarehouseItem {
   updatedBy: string
 }
 
+export interface MovementHistory {
+  id: string
+  type: 'in' | 'out' | 'adjustment'
+  quantity: number
+  description: string
+  orderId?: string
+  createdAt: Date
+  createdBy: string
+}
+
 export interface DeliveryPosition {
   variety: string
   heightCm: number
@@ -269,4 +279,79 @@ export interface SystemUser {
   isActive: boolean
   createdAt: Date
   lastLoginAt?: Date
+}
+
+// Supply Management Types
+export interface FlowerCategory {
+  id: number
+  name: string
+  markupPercentage: number
+  keywords?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface SupplyItem {
+  id: number
+  supplyId: number
+  categoryId?: number
+  flowerName: string
+  heightCm: number
+  purchasePrice: number
+  quantity: number
+  remainingQuantity: number
+  retailPrice: number
+  totalCost: number
+  createdAt: Date
+  category?: FlowerCategory
+}
+
+export interface Supply {
+  id: number
+  supplier: string
+  farm?: string
+  deliveryDate: Date
+  currency: string
+  rate: number
+  status: string
+  totalCost: number
+  notes?: string
+  comment?: string
+  createdAt: Date
+  createdBy?: string
+  items: SupplyItem[]
+}
+
+export interface SupplyItemImport {
+  flowerName: string
+  heightCm: number
+  purchasePrice: number
+  quantity: number
+  categoryId?: number
+  categoryName?: string
+  retailPrice?: number
+}
+
+export interface SupplyImportPreview {
+  supplier?: string
+  items: SupplyItemImport[]
+  totalCost: number
+  errors: string[]
+}
+
+export interface SupplyCreate {
+  supplier: string
+  farm?: string
+  deliveryDate?: Date
+  currency?: string
+  rate?: number
+  notes?: string
+  comment?: string
+  items: {
+    flowerName: string
+    heightCm: number
+    purchasePrice: number
+    quantity: number
+    categoryId?: number
+  }[]
 }

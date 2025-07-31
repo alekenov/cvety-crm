@@ -2,12 +2,14 @@ from typing import Optional, List, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func, and_
 
-from app.models.warehouse import WarehouseItem, Delivery, DeliveryPosition
+from app.models.warehouse import WarehouseItem, Delivery, DeliveryPosition, WarehouseMovement, MovementType
 from app.schemas.warehouse import (
     WarehouseItemCreate, 
     WarehouseItemUpdate,
     DeliveryCreate,
-    WarehouseFilterParams
+    WarehouseFilterParams,
+    WarehouseMovementCreate,
+    StockAdjustmentRequest
 )
 
 
@@ -235,6 +237,127 @@ class CRUDWarehouse:
             "by_variety": {v: int(q) for v, q in variety_stats},
             "by_supplier": {s: int(q) for s, q in supplier_stats}
         }
+    
+    # Movement methods
+    def create_movement(
+        self, 
+        db: Session, 
+        movement: WarehouseMovementCreate
+    ) -> WarehouseMovement:
+        """Create a new warehouse movement and update item quantity"""
+        # Get current item
+        item = db.query(WarehouseItem).filter(WarehouseItem.id == movement.warehouse_item_id).first()
+        if not item:
+            raise ValueError(f"Warehouse item {movement.warehouse_item_id} not found")
+        
+        qty_before = item.qty
+        qty_after = qty_before + movement.quantity
+        
+        if qty_after < 0:
+            raise ValueError(f"Insufficient quantity. Current: {qty_before}, Requested: {movement.quantity}")
+        
+        # Create movement record
+        db_movement = WarehouseMovement(
+            warehouse_item_id=movement.warehouse_item_id,
+            type=movement.type,
+            quantity=movement.quantity,
+            description=movement.description,
+            reference_type=movement.reference_type,
+            reference_id=movement.reference_id,
+            created_by=movement.created_by,
+            qty_before=qty_before,
+            qty_after=qty_after
+        )
+        
+        # Update item quantity
+        item.qty = qty_after
+        
+        db.add(db_movement)
+        db.commit()
+        db.refresh(db_movement)
+        
+        return db_movement
+    
+    def get_movements(
+        self, 
+        db: Session, 
+        warehouse_item_id: int,
+        skip: int = 0, 
+        limit: int = 50
+    ) -> tuple[List[WarehouseMovement], int]:
+        """Get movements for a specific warehouse item"""
+        query = db.query(WarehouseMovement).filter(
+            WarehouseMovement.warehouse_item_id == warehouse_item_id
+        )
+        
+        total = query.count()
+        movements = query.order_by(WarehouseMovement.created_at.desc()).offset(skip).limit(limit).all()
+        
+        return movements, total
+    
+    def adjust_stock(
+        self, 
+        db: Session, 
+        warehouse_item_id: int, 
+        adjustment_request: StockAdjustmentRequest
+    ) -> WarehouseMovement:
+        """Adjust stock quantity and create movement record"""
+        movement_data = WarehouseMovementCreate(
+            warehouse_item_id=warehouse_item_id,
+            type=MovementType.ADJUSTMENT,
+            quantity=adjustment_request.adjustment,
+            description=adjustment_request.reason,
+            reference_type="manual",
+            reference_id=None,
+            created_by=adjustment_request.created_by
+        )
+        
+        return self.create_movement(db, movement_data)
+    
+    def update_item(
+        self, 
+        db: Session, 
+        item_id: int, 
+        item_update: WarehouseItemUpdate
+    ) -> Optional[WarehouseItem]:
+        """Update warehouse item and create movement record if quantity changed"""
+        item = db.query(WarehouseItem).filter(WarehouseItem.id == item_id).first()
+        if not item:
+            return None
+        
+        # Check if quantity is being updated
+        old_qty = item.qty
+        new_qty = item_update.qty if item_update.qty is not None else old_qty
+        
+        # Update item fields
+        update_data = item_update.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(item, field, value)
+        
+        # If quantity changed, create movement record
+        if new_qty != old_qty:
+            qty_change = new_qty - old_qty
+            movement_type = MovementType.IN if qty_change > 0 else MovementType.ADJUSTMENT
+            
+            movement = WarehouseMovementCreate(
+                warehouse_item_id=item_id,
+                type=movement_type,
+                quantity=qty_change,
+                description=f"Корректировка количества: {old_qty} → {new_qty}",
+                reference_type="manual",
+                reference_id=None,
+                created_by=item_update.updated_by or "system"
+            )
+            
+            # Create movement record (this will also update quantity, so we need to set it back)
+            item.qty = old_qty  # Reset to old quantity
+            self.create_movement(db, movement)
+        else:
+            # Just commit the changes if no quantity change
+            db.commit()
+            db.refresh(item)
+        
+        return item
 
 
 warehouse = CRUDWarehouse()
