@@ -81,12 +81,13 @@ def get_orders(
             'items': [
                 {
                     'id': item.id,
+                    'order_id': item.order_id,
                     'product_id': item.product_id,
                     'quantity': item.quantity,
                     'price': item.price,
                     'total': item.total,
                     'product_name': item.product.name if item.product else '',
-                    'product_category': item.product.category if item.product else ''
+                    'product_category': item.product.category.value if item.product and hasattr(item.product.category, 'value') else (item.product.category if item.product else '')
                 }
                 for item in order.items
             ] if order.items else []
@@ -133,8 +134,41 @@ def get_order(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Build detailed response
-    order_dict = OrderDetailResponse.model_validate(order).model_dump()
+    # Build detailed response manually
+    order_dict = {
+        'id': order.id,
+        'created_at': order.created_at,
+        'updated_at': order.updated_at,
+        'status': order.status,
+        'customer_phone': order.customer_phone,
+        'recipient_phone': order.recipient_phone,
+        'recipient_name': order.recipient_name,
+        'address': order.address,
+        'delivery_method': order.delivery_method,
+        'delivery_window': order.delivery_window,
+        'flower_sum': order.flower_sum,
+        'delivery_fee': order.delivery_fee,
+        'total': order.total,
+        'tracking_token': order.tracking_token,
+        'has_pre_delivery_photos': order.has_pre_delivery_photos,
+        'has_issue': order.has_issue,
+        'issue_type': order.issue_type,
+        'issue_comment': order.issue_comment,
+        'customer_id': order.customer_id,
+        'items': [
+            {
+                'id': item.id,
+                'order_id': item.order_id,
+                'product_id': item.product_id,
+                'quantity': item.quantity,
+                'price': item.price,
+                'total': item.total,
+                'product_name': item.product.name if item.product else item.product_name,
+                'product_category': item.product.category.value if item.product and hasattr(item.product.category, 'value') else (item.product.category if item.product else item.product_category)
+            }
+            for item in order.items
+        ] if order.items else []
+    }
     
     # Add customer info
     if order.customer:
@@ -146,22 +180,30 @@ def get_order(
             'orders_count': order.customer.orders_count,
             'total_spent': order.customer.total_spent
         }
+    else:
+        order_dict['customer'] = None
     
     # Add florist info
     if order.assigned_florist:
         order_dict['assigned_florist'] = {
             'id': order.assigned_florist.id,
             'name': order.assigned_florist.name,
-            'phone': order.assigned_florist.phone
+            'phone': order.assigned_florist.phone if hasattr(order.assigned_florist, 'phone') else None
         }
+        order_dict['assignedTo'] = order_dict['assigned_florist']  # For frontend compatibility
+    else:
+        order_dict['assigned_florist'] = None
+        order_dict['assignedTo'] = None
     
     # Add courier info
     if order.courier:
         order_dict['courier'] = {
             'id': order.courier.id,
             'name': order.courier.name,
-            'phone': order.courier.phone
+            'phone': order.courier.phone if hasattr(order.courier, 'phone') else None
         }
+    else:
+        order_dict['courier'] = None
     
     # Add order history
     from app.crud.order_history import order_history as crud_order_history
@@ -169,11 +211,11 @@ def get_order(
     order_dict['history'] = [
         {
             'id': h.id,
-            'event_type': h.event_type.value,
+            'event_type': h.event_type.value if hasattr(h.event_type, 'value') else h.event_type,
             'old_status': h.old_status,
             'new_status': h.new_status,
             'comment': h.comment,
-            'created_at': h.created_at.isoformat(),
+            'created_at': h.created_at.isoformat() if h.created_at else None,
             'user': h.user.name if h.user else 'Система'
         }
         for h in history_items
