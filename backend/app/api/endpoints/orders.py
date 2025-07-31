@@ -75,6 +75,9 @@ def get_orders(
             'issue_type': order.issue_type,
             'issue_comment': order.issue_comment,
             'customer_id': order.customer_id,
+            'customer': None,
+            'assigned_florist': None,
+            'assignedTo': None,  # For frontend compatibility
             'items': [
                 {
                     'id': item.id,
@@ -101,11 +104,16 @@ def get_orders(
         
         # Add florist info
         if order.assigned_florist:
-            order_data['assigned_florist'] = {
+            florist_data = {
                 'id': order.assigned_florist.id,
                 'name': order.assigned_florist.name,
-                'phone': order.assigned_florist.phone
+                'phone': order.assigned_florist.phone if hasattr(order.assigned_florist, 'phone') else None
             }
+            order_data['assigned_florist'] = florist_data
+            order_data['assignedTo'] = florist_data  # For frontend compatibility
+        else:
+            order_data['assigned_florist'] = None
+            order_data['assignedTo'] = None
         
         items.append(order_data)
     
