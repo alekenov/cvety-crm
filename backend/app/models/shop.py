@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, JSON
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.session import Base
@@ -24,6 +25,11 @@ class Shop(Base):
     city = Column(String(50), default="Алматы")
     description = Column(Text, nullable=True)
     
+    # Storefront settings
+    whatsapp_number = Column(String(20), nullable=True)  # WhatsApp number for orders
+    shop_domain = Column(String(50), unique=True, nullable=True, index=True)  # Unique domain identifier
+    shop_logo_url = Column(String(255), nullable=True)  # Logo URL for storefront
+    
     # Business hours
     business_hours = Column(JSON, nullable=True)  # {"mon": ["09:00", "18:00"], ...}
     
@@ -44,3 +50,9 @@ class Shop(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     last_login_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    orders = relationship("Order", back_populates="shop")
+    users = relationship("User", back_populates="shop")
+    customers = relationship("Customer", back_populates="shop")
+    products = relationship("Product", back_populates="shop")

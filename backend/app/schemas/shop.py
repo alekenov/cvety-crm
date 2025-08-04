@@ -36,6 +36,9 @@ class Shop(ShopBase):
     id: int
     telegram_id: Optional[str] = None
     telegram_username: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+    shop_domain: Optional[str] = None
+    shop_logo_url: Optional[str] = None
     is_active: bool = True
     is_verified: bool = False
     plan: str = "basic"
@@ -43,6 +46,22 @@ class Shop(ShopBase):
     created_at: datetime
     updated_at: datetime
     last_login_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class ShopPublic(BaseModel):
+    """Public shop information for storefront"""
+    id: int
+    name: str
+    phone: str
+    whatsapp_number: Optional[str] = None
+    address: Optional[str] = None
+    city: str = "Алматы"
+    description: Optional[str] = None
+    business_hours: Optional[Dict[str, List[str]]] = None
+    shop_logo_url: Optional[str] = None
     
     class Config:
         from_attributes = True

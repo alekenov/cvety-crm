@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.routing import APIRoute
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -16,15 +17,99 @@ from app.db.session import get_engine
 from app.db.base import Base
 from app.services.telegram_service import telegram_service
 
+
+def generate_unique_operation_id(route: APIRoute) -> str:
+    """Generate clean operation IDs for better client generation"""
+    if route.tags:
+        # Remove tag prefix for cleaner method names
+        # e.g., "orders-get_orders" -> "get_orders"
+        return route.name
+    return f"{route.name}"
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+# Trigger reload
 
 # Don't log database URL here - do it in startup event after env vars are loaded
 
 # Don't create tables here - do it in startup event
 
-app = FastAPI(redirect_slashes=False)
+app = FastAPI(
+    redirect_slashes=False,
+    title="Cvety.kz API",
+    description="""
+## 🌸 Cvety.kz - Flower Shop Management API
+
+This API provides comprehensive endpoints for managing a flower shop business in Kazakhstan.
+
+### Key Features:
+- 🔐 **Secure Authentication** via Telegram OTP
+- 📦 **Order Management** with real-time status tracking
+- 🌷 **Product Catalog** with categories and pricing
+- 👥 **Customer CRM** with preferences and important dates
+- 📊 **Warehouse Management** with multi-currency support
+- 🎨 **Production Queue** for florist task assignment
+- 📍 **Public Order Tracking** for customers
+
+### Integration Support:
+- **Telegram Bots** - Full webhook support
+- **WhatsApp Business** - Order notifications
+- **Mobile Apps** - Type-safe client generation
+- **AI Assistants** - Semantic API descriptions
+
+### Market Specifics:
+- Currency: KZT (Kazakhstani Tenge)
+- Phone Format: +7 XXX XXX XX XX
+- Languages: Russian (primary), Kazakh
+- Payment: Kaspi Pay integration ready
+    """,
+    version="1.0.0",
+    contact={
+        "name": "Cvety.kz Support",
+        "email": "support@cvety.kz",
+        "url": "https://cvety.kz"
+    },
+    license_info={
+        "name": "Proprietary",
+        "url": "https://cvety.kz/license"
+    },
+    openapi_tags=[
+        {
+            "name": "authentication",
+            "description": "🔐 Telegram OTP-based authentication endpoints"
+        },
+        {
+            "name": "orders",
+            "description": "📦 Order management and workflow"
+        },
+        {
+            "name": "tracking",
+            "description": "📍 Public order tracking (no auth required)"
+        },
+        {
+            "name": "products",
+            "description": "🌷 Product catalog management"
+        },
+        {
+            "name": "customers",
+            "description": "👥 Customer relationship management"
+        },
+        {
+            "name": "warehouse",
+            "description": "📊 Inventory and supply management"
+        },
+        {
+            "name": "production",
+            "description": "🎨 Florist task queue and assignment"
+        },
+        {
+            "name": "settings",
+            "description": "⚙️ Shop configuration and preferences"
+        }
+    ],
+    generate_unique_id_function=generate_unique_operation_id
+)
 
 # Get settings for app configuration
 settings = get_settings()
@@ -35,10 +120,11 @@ os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Configure FastAPI
-app.title = settings.APP_NAME
-app.openapi_url = f"{settings.API_PREFIX}/openapi.json"
-app.docs_url = f"{settings.API_PREFIX}/docs"
-app.redoc_url = f"{settings.API_PREFIX}/redoc"
+app.title = "Cvety.kz API"
+# Remove the API prefix from docs URLs - they should be at root level
+app.openapi_url = "/openapi.json"
+app.docs_url = "/docs"
+app.redoc_url = "/redoc"
 
 # Define static directory paths
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dist")
@@ -114,12 +200,21 @@ def db_health_check(db: Session = Depends(get_db)):
 # Include API router - MUST be before static files
 app.include_router(api_router, prefix=settings.API_PREFIX)
 
+# Mount static files directory if it exists
+# This needs to be after API routes but before catch-all
+if os.path.exists(static_dir):
+    app.mount("/assets", StaticFiles(directory=static_dir), name="static_assets")
+elif os.path.exists(docker_static_dir):
+    app.mount("/assets", StaticFiles(directory=docker_static_dir), name="static_assets")
+
 # Add a catch-all route for SPA to handle client-side routing
+# This should only handle non-API routes
 @app.get("/{path:path}")
 async def catch_all(path: str):
     """Catch-all route to serve index.html for client-side routing"""
-    # Check if this is an API route first
-    if path.startswith("api/"):
+    # Skip catch-all for API routes, docs, and health endpoints
+    if path.startswith("api/") or path == "api" or path in ["docs", "redoc", "openapi.json", "health"]:
+        # Raise 404 for unknown API routes
         raise HTTPException(status_code=404, detail="API endpoint not found")
     
     # Check if static file exists

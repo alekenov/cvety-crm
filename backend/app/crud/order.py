@@ -15,7 +15,7 @@ def generate_tracking_token() -> str:
 
 
 class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
-    def create(self, db: Session, *, obj_in: Union[OrderCreate, OrderCreateWithItems]) -> Order:
+    def create(self, db: Session, *, obj_in: Union[OrderCreate, OrderCreateWithItems], shop_id: int = None) -> Order:
         # Get or create customer
         customer = crud_customer.get_or_create(
             db,
@@ -56,7 +56,8 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
             **obj_dict,
             delivery_window=delivery_window_json,
             tracking_token=generate_tracking_token(),
-            customer_id=customer.id
+            customer_id=customer.id,
+            shop_id=shop_id if shop_id else 1
         )
         db.add(db_obj)
         db.commit()
@@ -89,6 +90,54 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         crud_customer.update_statistics(db, customer_id=customer.id)
         
         return db_obj
+    
+    def create_with_items(self, db: Session, *, order_data: dict) -> Order:
+        """Create order with items from dict data"""
+        # Extract items
+        items_data = order_data.pop('items', [])
+        
+        # Get shop_id
+        shop_id = order_data.pop('shop_id', 1)
+        
+        # Create OrderCreateWithItems object
+        from app.schemas.order import OrderCreateWithItems, OrderItemCreate, DeliveryWindow
+        
+        # Handle delivery_window
+        delivery_window = None
+        if 'delivery_window' in order_data and order_data['delivery_window']:
+            dw = order_data['delivery_window']
+            if isinstance(dw, dict):
+                # Try both field name formats
+                from_value = dw.get('from_time') or dw.get('from')
+                to_value = dw.get('to_time') or dw.get('to')
+                if from_value and to_value:
+                    delivery_window = DeliveryWindow(
+                        from_time=from_value,
+                        to_time=to_value
+                    )
+        
+        # Create items list
+        items = []
+        for item in items_data:
+            items.append(OrderItemCreate(
+                product_id=item['product_id'],
+                quantity=item['quantity'],
+                price=item.get('price')
+            ))
+        
+        # Create order input object
+        order_in = OrderCreateWithItems(
+            customer_phone=order_data['customer_phone'],
+            recipient_phone=order_data.get('recipient_phone'),
+            recipient_name=order_data.get('recipient_name'),
+            address=order_data.get('address'),
+            delivery_method=order_data['delivery_method'],
+            delivery_fee=order_data.get('delivery_fee', 0),
+            items=items,
+            delivery_window=delivery_window
+        )
+        
+        return self.create(db, obj_in=order_in, shop_id=shop_id)
     
     def get(self, db: Session, id: int) -> Optional[Order]:
         return db.query(Order).options(

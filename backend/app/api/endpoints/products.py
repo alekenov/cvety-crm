@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app import crud, schemas
 from app.api import deps
@@ -13,7 +14,7 @@ router = APIRouter()
 @router.get("/", response_model=Dict[str, Any])
 def read_products(
     db: Session = Depends(deps.get_db),
-    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    shop: Shop = Depends(deps.get_current_shop),  # Require auth
     skip: int = 0,
     limit: int = 100,
     category: Optional[str] = None,
@@ -27,34 +28,54 @@ def read_products(
     """
     Retrieve products with optional filters.
     """
-    products = crud.product.get_active(
-        db=db,
-        skip=skip,
-        limit=limit,
-        category=category,
-        search=search,
-        is_popular=is_popular,
-        is_new=is_new,
-        min_price=min_price,
-        max_price=max_price,
-        on_sale=on_sale
+    # Filter by shop_id directly in the query
+    from app.models.product import Product
+    query = db.query(Product).filter(
+        Product.shop_id == shop.id,
+        Product.is_active == True
     )
     
-    # Get total count of products with filters applied
-    try:
-        total = crud.product.count_active(
-            db=db,
-            category=category,
-            search=search,
-            is_popular=is_popular,
-            is_new=is_new,
-            min_price=min_price,
-            max_price=max_price,
-            on_sale=on_sale
+    # Apply additional filters
+    if category:
+        query = query.filter(Product.category == category)
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                Product.name.ilike(search_pattern),
+                Product.description.ilike(search_pattern)
+            )
         )
-    except AttributeError:
-        # Fallback if count_active is not available
-        total = len(products)
+    if is_popular is not None:
+        query = query.filter(Product.is_popular == is_popular)
+    if is_new is not None:
+        query = query.filter(Product.is_new == is_new)
+    
+    products = query.offset(skip).limit(limit).all()
+    
+    # Get total count with the same filters
+    total_query = db.query(Product).filter(
+        Product.shop_id == shop.id,
+        Product.is_active == True
+    )
+    
+    # Apply same filters for count
+    if category:
+        total_query = total_query.filter(Product.category == category)
+    if search:
+        search_pattern = f"%{search}%"
+        total_query = total_query.filter(
+            or_(
+                Product.name.ilike(search_pattern),
+                Product.description.ilike(search_pattern)
+            )
+        )
+    if is_popular is not None:
+        total_query = total_query.filter(Product.is_popular == is_popular)
+    if is_new is not None:
+        total_query = total_query.filter(Product.is_new == is_new)
+    
+    total = total_query.count()
     
     # Convert SQLAlchemy models to Pydantic schemas
     product_schemas = [schemas.Product.from_orm(product) for product in products]

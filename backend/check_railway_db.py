@@ -1,64 +1,92 @@
 #!/usr/bin/env python3
-"""Check Railway PostgreSQL connection and data"""
+"""Check Railway database structure"""
 
 import os
-from sqlalchemy import create_engine, text
-from app.core.config import settings
+import psycopg2
+from psycopg2 import sql
 
-def check_railway_db():
-    """Check connection to Railway PostgreSQL"""
-    print("🔍 Checking Railway PostgreSQL connection...")
-    print(f"DATABASE_URL: {settings.DATABASE_URL[:30]}...")
+def main():
+    db_url = os.environ.get('DATABASE_URL')
+    if not db_url:
+        print("DATABASE_URL not found")
+        return
     
     try:
-        engine = create_engine(settings.DATABASE_URL)
+        conn = psycopg2.connect(db_url)
+        cursor = conn.cursor()
         
-        # Test connection
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT version()"))
-            version = result.scalar()
-            print(f"✅ Connected to PostgreSQL: {version}")
-            
-            # Check tables
-            result = conn.execute(text("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                ORDER BY table_name
-            """))
-            tables = [row[0] for row in result]
-            
-            if not tables:
-                print("⚠️  No tables found. Run 'alembic upgrade head' first!")
-                return
-            
-            print(f"\n📊 Found {len(tables)} tables:")
-            for table in tables:
-                print(f"   - {table}")
-            
-            # Check data counts
-            print("\n📈 Data counts:")
-            for table in ['customers', 'orders', 'products', 'warehouse_items']:
-                if table in tables:
-                    result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
-                    count = result.scalar()
-                    print(f"   - {table}: {count} records")
-            
-            # Check if we need to initialize data
-            result = conn.execute(text("SELECT COUNT(*) FROM customers"))
-            if result.scalar() == 0:
-                print("\n⚠️  Database is empty. Run one of these commands:")
-                print("   - python import_to_postgres.py  (if you have sqlite_export.json)")
-                print("   - python init_database.py       (to create sample data)")
-            else:
-                print("\n✅ Database contains data and is ready!")
-                
+        # Check orders table columns
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'orders'
+            ORDER BY ordinal_position
+        """)
+        
+        print("Orders table columns:")
+        columns = [row[0] for row in cursor.fetchall()]
+        for col in columns:
+            print(f"  - {col}")
+        
+        # Check if specific columns exist
+        required_columns = ['assigned_florist_id', 'courier_id', 'shop_id']
+        missing = [col for col in required_columns if col not in columns]
+        
+        if missing:
+            print(f"\nMissing columns in orders table: {missing}")
+        else:
+            print("\nAll required columns exist in orders table")
+        
+        # Check order_items columns
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'order_items'
+            ORDER BY ordinal_position
+        """)
+        
+        print("\nOrder_items table columns:")
+        item_columns = [row[0] for row in cursor.fetchall()]
+        for col in item_columns:
+            print(f"  - {col}")
+        
+        # Check if order_history table exists
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'order_history'
+            )
+        """)
+        
+        has_history = cursor.fetchone()[0]
+        print(f"\nOrder_history table exists: {has_history}")
+        
+        # Check sample order data
+        cursor.execute("SELECT COUNT(*) FROM orders")
+        order_count = cursor.fetchone()[0]
+        print(f"\nTotal orders: {order_count}")
+        
+        # Check sample order with joins
+        cursor.execute("""
+            SELECT o.id, o.shop_id, o.assigned_florist_id, o.courier_id,
+                   COUNT(oi.id) as item_count
+            FROM orders o
+            LEFT JOIN order_items oi ON o.id = oi.order_id
+            GROUP BY o.id
+            LIMIT 5
+        """)
+        
+        print("\nSample orders:")
+        for row in cursor.fetchall():
+            print(f"  Order {row[0]}: shop_id={row[1]}, florist_id={row[2]}, courier_id={row[3]}, items={row[4]}")
+        
     except Exception as e:
-        print(f"❌ Error: {e}")
-        print("\n💡 Tips:")
-        print("1. Make sure DATABASE_URL is set in .env file")
-        print("2. Check if Railway PostgreSQL is running")
-        print("3. Verify DATABASE_URL format (should start with postgresql://)")
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 if __name__ == "__main__":
-    check_railway_db()
+    main()

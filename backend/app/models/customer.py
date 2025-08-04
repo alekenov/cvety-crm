@@ -9,9 +9,12 @@ class Customer(Base):
     __tablename__ = "customers"
 
     id = Column(Integer, primary_key=True, index=True)
-    phone = Column(String, unique=True, nullable=False, index=True)
+    phone = Column(String, nullable=False, index=True)
     name = Column(String)
     email = Column(String)
+    
+    # Shop association for multi-tenancy
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False, default=1)
     
     # Statistics
     orders_count = Column(Integer, default=0)
@@ -31,6 +34,11 @@ class Customer(Base):
     orders = relationship("Order", back_populates="customer")
     addresses = relationship("CustomerAddress", back_populates="customer", cascade="all, delete-orphan")
     important_dates = relationship("CustomerImportantDate", back_populates="customer", cascade="all, delete-orphan")
+    shop = relationship("Shop", back_populates="customers")
+    
+    __table_args__ = (
+        UniqueConstraint('phone', 'shop_id', name='_customer_phone_shop_uc'),
+    )
     
     @property
     def primary_address(self):

@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_missing_order_columns'
-down_revision = '9e14c68966fa'
+down_revision = '1cb156b39497'
 branch_labels = None
 depends_on = None
 
@@ -24,22 +24,25 @@ def upgrade():
     
     if 'assigned_florist_id' not in columns:
         op.add_column('orders', sa.Column('assigned_florist_id', sa.Integer(), nullable=True))
-        op.create_foreign_key(None, 'orders', 'users', ['assigned_florist_id'], ['id'])
+        # Skip foreign key for SQLite
     
     if 'courier_id' not in columns:
         op.add_column('orders', sa.Column('courier_id', sa.Integer(), nullable=True))
-        op.create_foreign_key(None, 'orders', 'users', ['courier_id'], ['id'])
+        # Skip foreign key for SQLite
+    
+    if 'courier_phone' not in columns:
+        op.add_column('orders', sa.Column('courier_phone', sa.String(), nullable=True))
     
     if 'shop_id' not in columns:
         op.add_column('orders', sa.Column('shop_id', sa.Integer(), nullable=False, server_default='1'))
-        op.create_foreign_key(None, 'orders', 'shops', ['shop_id'], ['id'])
+        # Skip foreign key for SQLite
     
     # Add missing columns to customers table if they don't exist
     customer_columns = [col['name'] for col in inspector.get_columns('customers')]
     
     if 'shop_id' not in customer_columns:
         op.add_column('customers', sa.Column('shop_id', sa.Integer(), nullable=False, server_default='1'))
-        op.create_foreign_key(None, 'customers', 'shops', ['shop_id'], ['id'])
+        # Skip foreign key for SQLite
     
     if 'orders_count' not in customer_columns:
         op.add_column('customers', sa.Column('orders_count', sa.Integer(), nullable=False, server_default='0'))
@@ -61,14 +64,14 @@ def upgrade():
     
     if 'shop_id' not in product_columns:
         op.add_column('products', sa.Column('shop_id', sa.Integer(), nullable=False, server_default='1'))
-        op.create_foreign_key(None, 'products', 'shops', ['shop_id'], ['id'])
+        # Skip foreign key for SQLite
     
     # Add missing columns to users table if they don't exist
     user_columns = [col['name'] for col in inspector.get_columns('users')]
     
     if 'shop_id' not in user_columns:
         op.add_column('users', sa.Column('shop_id', sa.Integer(), nullable=False, server_default='1'))
-        op.create_foreign_key(None, 'users', 'shops', ['shop_id'], ['id'])
+        # Skip foreign key for SQLite
     
     # Check if we need to create order_history table
     if 'order_history' not in inspector.get_table_names():

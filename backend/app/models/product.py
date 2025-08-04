@@ -24,9 +24,12 @@ class Product(Base):
     # Images
     image_url = Column(String)  # Main image
     
+    # Shop association for multi-tenancy
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False, default=1)
+    
     # Pricing
-    cost_price = Column(Float, nullable=False)
-    retail_price = Column(Float, nullable=False)
+    cost_price = Column(Float, nullable=False, default=0)
+    retail_price = Column(Float, nullable=False)  # Retail price
     sale_price = Column(Float)
     
     # Flags
@@ -42,6 +45,7 @@ class Product(Base):
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
     order_items = relationship("OrderItem", back_populates="product")
     ingredients = relationship("ProductIngredient", back_populates="product", cascade="all, delete-orphan")
+    shop = relationship("Shop", back_populates="products")
     
     @property
     def current_price(self):

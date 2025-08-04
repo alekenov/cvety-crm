@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, Dict, List
 from pydantic import BaseModel
 
-from app.models.order import OrderStatus, DeliveryMethod, IssueType
+from app.models.order import OrderStatus, DeliveryMethod, IssueType, PaymentMethod
 
 
 class DeliveryWindow(BaseModel):
@@ -23,6 +23,7 @@ class OrderBase(BaseModel):
     recipient_phone: Optional[str] = None
     recipient_name: Optional[str] = None
     address: Optional[str] = None
+    address_needs_clarification: bool = False
     delivery_method: DeliveryMethod
     flower_sum: float
     delivery_fee: float = 0
@@ -31,6 +32,24 @@ class OrderBase(BaseModel):
 
 class OrderCreate(OrderBase):
     delivery_window: Optional[DeliveryWindow] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "customer_phone": "+77011234567",
+                "recipient_phone": "+77017654321",
+                "recipient_name": "Айгуль Касымова",
+                "address": "г. Алматы, пр. Достык 89, кв. 45",
+                "delivery_method": "delivery",
+                "delivery_window": {
+                    "from_time": "2024-12-26T14:00:00",
+                    "to_time": "2024-12-26T16:00:00"
+                },
+                "flower_sum": 25000.0,
+                "delivery_fee": 2000.0,
+                "total": 27000.0
+            }
+        }
 
 
 class OrderUpdate(BaseModel):
@@ -38,10 +57,14 @@ class OrderUpdate(BaseModel):
     recipient_phone: Optional[str] = None
     recipient_name: Optional[str] = None
     address: Optional[str] = None
+    address_needs_clarification: Optional[bool] = None
     delivery_method: Optional[DeliveryMethod] = None
+    delivery_window: Optional[Dict] = None
     flower_sum: Optional[float] = None
     delivery_fee: Optional[float] = None
     total: Optional[float] = None
+    payment_method: Optional[PaymentMethod] = None
+    payment_date: Optional[datetime] = None
 
 
 class OrderStatusUpdate(BaseModel):
@@ -64,6 +87,11 @@ class OrderInDB(OrderBase):
     issue_comment: Optional[str] = None
     tracking_token: str
     delivery_window: Optional[Dict] = None
+    payment_method: Optional[PaymentMethod] = None
+    payment_date: Optional[datetime] = None
+    card_text: Optional[str] = None
+    delivery_time_text: Optional[str] = None
+    source: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -107,6 +135,7 @@ class OrderItemBase(BaseModel):
 class OrderItemCreate(BaseModel):
     product_id: int
     quantity: int
+    price: Optional[float] = None
 
 
 class OrderItemUpdate(BaseModel):
@@ -137,12 +166,31 @@ class OrderCreateWithItems(BaseModel):
     delivery_window: Optional[DeliveryWindow] = None
 
 
+# Public order creation schema for storefront
+class PublicOrderCreate(BaseModel):
+    customer_phone: str
+    recipient_phone: Optional[str] = None
+    recipient_name: Optional[str] = None
+    address: Optional[str] = None
+    delivery_method: DeliveryMethod
+    delivery_fee: float = 0
+    items: List[OrderItemCreate]
+    delivery_window: Optional[DeliveryWindow] = None
+    card_text: Optional[str] = None
+    delivery_time_text: Optional[str] = None
+    shop_id: int
+
+
 class OrderResponseWithItems(OrderResponse):
     items: List[OrderItemResponse] = []
     customer_id: Optional[int] = None
     customer: Optional[dict] = None
     assigned_florist: Optional[dict] = None
     courier: Optional[dict] = None
+
+
+class PublicOrderResponse(OrderResponse):
+    items: List[OrderItemResponse] = []
 
 
 class OrderDetailResponse(OrderResponseWithItems):
