@@ -45,6 +45,7 @@ class Product(Base):
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
     order_items = relationship("OrderItem", back_populates="product")
     ingredients = relationship("ProductIngredient", back_populates="product", cascade="all, delete-orphan")
+    components = relationship("ProductComponent", back_populates="product", cascade="all, delete-orphan")
     shop = relationship("Shop", back_populates="products")
     
     @property

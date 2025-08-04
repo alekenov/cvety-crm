@@ -54,6 +54,7 @@ class WarehouseItem(Base):
     
     # Relationships
     product_ingredients = relationship("ProductIngredient", back_populates="warehouse_item")
+    product_components = relationship("ProductComponent", back_populates="warehouse_item")
     supply_item = relationship("SupplyItem", back_populates="warehouse_items")
     
     @property

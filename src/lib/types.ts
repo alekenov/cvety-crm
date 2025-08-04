@@ -267,6 +267,30 @@ export interface ProductIngredientCreate {
   notes?: string
 }
 
+export type ComponentType = 'flower' | 'material' | 'service'
+
+export interface ProductComponent {
+  id: number
+  productId: number
+  componentType: ComponentType
+  name: string
+  description?: string
+  quantity: number
+  unit: string
+  unitCost: number
+  unitPrice: number
+}
+
+export interface ProductComponentCreate {
+  componentType: ComponentType
+  name: string
+  description?: string
+  quantity: number
+  unit: string
+  unitCost: number
+  unitPrice: number
+}
+
 export interface ProductIngredientUpdate {
   quantity?: number
   notes?: string

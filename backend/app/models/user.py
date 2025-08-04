@@ -37,3 +37,4 @@ class User(Base):
     courier_orders = relationship("Order", foreign_keys="Order.courier_id", back_populates="courier")
     order_history_entries = relationship("OrderHistory", back_populates="user")
     comments = relationship("Comment", back_populates="user")
+    uploaded_photos = relationship("OrderPhoto", back_populates="uploaded_by")

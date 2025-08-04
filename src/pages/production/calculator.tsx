@@ -8,7 +8,8 @@ import {
   TrendingUp,
   Search,
   Info,
-  Settings
+  Settings,
+  ShoppingBag
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -50,6 +51,169 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 import type { BouquetItem, WarehouseItem } from "@/lib/types"
 import { calculatorApi, warehouseApi } from "@/lib/api"
+
+// Create Product Dialog Component
+interface CreateProductDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  calculationData: {
+    flowers: Array<{name: string, quantity: number, price: number}>
+    materials: Array<{name: string, quantity: number, price: number}>
+    labor_cost: number
+    margin_percentage: number
+    total_cost: number
+    final_price: number
+  }
+}
+
+function CreateProductDialog({ open, onOpenChange, calculationData }: CreateProductDialogProps) {
+  const [productName, setProductName] = useState("")
+  const [productDescription, setProductDescription] = useState("")
+  const [isCreating, setIsCreating] = useState(false)
+
+  // Auto-generate product name and description when dialog opens
+  useEffect(() => {
+    if (open && calculationData.flowers.length > 0) {
+      const flowerNames = calculationData.flowers.map(f => f.name)
+      const autoName = flowerNames.length <= 2 
+        ? `Букет из ${flowerNames.join(', ')}`
+        : `Букет из ${flowerNames[0]} и ${flowerNames.length - 1} других цветов`
+      
+      setProductName(autoName)
+      
+      const flowerDetails = calculationData.flowers.map(f => `${f.name} - ${f.quantity} шт.`)
+      const materialDetails = calculationData.materials.map(m => m.name)
+      
+      const descParts = []
+      if (flowerDetails.length > 0) {
+        descParts.push(`Состав: ${flowerDetails.join('; ')}`)
+      }
+      if (materialDetails.length > 0) {
+        descParts.push(`Декор: ${materialDetails.join(', ')}`)
+      }
+      
+      setProductDescription(descParts.join('. '))
+    }
+  }, [open, calculationData])
+
+  const handleCreateProduct = async () => {
+    if (!productName.trim()) {
+      toast.error("Введите название товара")
+      return
+    }
+
+    setIsCreating(true)
+    try {
+      const response = await fetch('/api/calculator/create-product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        body: JSON.stringify({
+          calculation: calculationData,
+          product_name: productName,
+          product_description: productDescription,
+          category: 'bouquet'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Ошибка создания товара')
+      }
+
+      const product = await response.json()
+      toast.success(`Товар "${product.name}" успешно создан`)
+      onOpenChange(false)
+      
+      // Optionally redirect to products page
+      setTimeout(() => {
+        window.location.href = '/catalog'
+      }, 1000)
+      
+    } catch (error) {
+      console.error('Error creating product:', error)
+      toast.error(error instanceof Error ? error.message : 'Ошибка создания товара')
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Создать товар из расчета</DialogTitle>
+          <DialogDescription>
+            Создайте товар в каталоге на основе рассчитанного букета
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {/* Calculation Summary */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium mb-2">Расчет букета</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Себестоимость:</span>
+                <span className="ml-2 font-medium">{calculationData.total_cost.toLocaleString()} ₸</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Цена продажи:</span>
+                <span className="ml-2 font-medium text-green-600">{calculationData.final_price.toLocaleString()} ₸</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Наценка:</span>
+                <span className="ml-2 font-medium">{calculationData.margin_percentage}%</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Прибыль:</span>
+                <span className="ml-2 font-medium">{(calculationData.final_price - calculationData.total_cost).toLocaleString()} ₸</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Product Details Form */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="product-name">Название товара *</Label>
+              <Input
+                id="product-name"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                placeholder="Введите название товара"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="product-description">Описание товара</Label>
+              <div className="relative">
+                <textarea
+                  id="product-description"
+                  value={productDescription}
+                  onChange={(e) => setProductDescription(e.target.value)}
+                  placeholder="Описание товара будет автоматически сгенерировано"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  rows={3}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
+            Отмена
+          </Button>
+          <Button onClick={handleCreateProduct} disabled={isCreating || !productName.trim()}>
+            {isCreating ? "Создание..." : "Создать товар"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 // Mock warehouse items for selection
 const mockWarehouseItems: WarehouseItem[] = [
@@ -155,6 +319,7 @@ export function BouquetCalculatorPage() {
   const [laborCost, setLaborCost] = useState(2000)
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showCreateProductDialog, setShowCreateProductDialog] = useState(false)
   const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<WarehouseItem | null>(null)
   const [itemQty, setItemQty] = useState(1)
   const [decorMaterials, setDecorMaterials] = useState<{ id: number; name: string; price: number; category?: string }[]>([])
@@ -339,6 +504,16 @@ export function BouquetCalculatorPage() {
             <Plus className="mr-2 h-4 w-4" />
             Добавить цветы
           </Button>
+          {(selectedItems.length > 0 || decorItems.length > 0) && (
+            <Button 
+              variant="default" 
+              onClick={() => setShowCreateProductDialog(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Создать товар
+            </Button>
+          )}
         </div>
       </div>
 
@@ -672,6 +847,28 @@ export function BouquetCalculatorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Create Product Dialog */}
+      <CreateProductDialog 
+        open={showCreateProductDialog}
+        onOpenChange={setShowCreateProductDialog}
+        calculationData={{
+          flowers: selectedItems.map(item => ({
+            name: item.name,
+            quantity: item.qty,
+            price: item.price
+          })),
+          materials: decorItems.map(item => ({
+            name: item.name,
+            quantity: item.qty,
+            price: item.price
+          })),
+          labor_cost: laborCost,
+          margin_percentage: calculateMarginPercent(),
+          total_cost: calculateTotalCost(),
+          final_price: calculateTotalPrice()
+        }}
+      />
     </div>
   )
 }
