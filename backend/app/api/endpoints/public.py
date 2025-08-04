@@ -12,6 +12,12 @@ from app.models.shop import Shop
 from app.models.product import Product
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.customer import Customer
+from app.models.comment import Comment, AuthorType
+from app.models.order_photo import OrderPhoto, CustomerFeedback
+# from app.models.order_history import OrderHistory, OrderEventType
+from app.schemas.public import AddressUpdateRequest, AddressUpdateResponse
+from app.schemas.comment import CommentCreatePublic, CommentListPublic, CommentPublic
+from app.schemas.order_photo import OrderPhotoPublic, CustomerFeedbackCreate, CustomerFeedbackResponse
 from app.services.telegram_service import telegram_service
 
 router = APIRouter()
@@ -314,3 +320,210 @@ async def send_order_notification(order: Order, shop: Shop):
                     
     except Exception as e:
         print(f"❌ Ошибка при отправке уведомлений о заказе {order.id}: {e}")
+
+
+# Customer interaction endpoints
+
+@router.patch("/orders/{tracking_token}/address", response_model=AddressUpdateResponse)
+def update_order_address(
+    tracking_token: str,
+    address_update: AddressUpdateRequest,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Update delivery address for an order.
+    Only allowed before order is assembled.
+    """
+    order = db.query(Order).filter(Order.tracking_token == tracking_token).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Check if order can still be modified
+    modifiable_statuses = [OrderStatus.new, OrderStatus.paid]
+    if order.status not in modifiable_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot modify address for order with status '{order.status}'. Address can only be changed for new or paid orders."
+        )
+    
+    # Store old address for history
+    old_address = order.address
+    
+    # Update order
+    order.address = address_update.address
+    if address_update.recipient_name:
+        order.recipient_name = address_update.recipient_name
+    if address_update.recipient_phone:
+        order.recipient_phone = address_update.recipient_phone
+    
+    order.updated_at = datetime.now()
+    
+    # TODO: Add history entry when order_history table is ready
+    # history_entry = OrderHistory(
+    #     order_id=order.id,
+    #     event_type=OrderEventType.updated,
+    #     comment=f"Клиент изменил адрес доставки с '{old_address}' на '{address_update.address}'"
+    # )
+    # db.add(history_entry)
+    
+    db.commit()
+    
+    return AddressUpdateResponse(
+        success=True,
+        message="Адрес доставки успешно обновлен",
+        updated_address=order.address
+    )
+
+
+@router.get("/orders/{tracking_token}/comments", response_model=CommentListPublic)
+def get_order_comments(
+    tracking_token: str,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Get all comments for an order (both staff and customer comments).
+    """
+    order = db.query(Order).filter(Order.tracking_token == tracking_token).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    comments = db.query(Comment).options(
+        joinedload(Comment.user)
+    ).filter(Comment.order_id == order.id).order_by(Comment.created_at).all()
+    
+    # Convert to public format
+    public_comments = []
+    for comment in comments:
+        if comment.author_type == AuthorType.staff and comment.user:
+            author_name = comment.user.name
+        elif comment.author_type == AuthorType.customer:
+            author_name = comment.customer_name or "Клиент"
+        else:
+            author_name = "Неизвестно"
+            
+        public_comments.append(CommentPublic(
+            id=comment.id,
+            text=comment.text,
+            author_type=comment.author_type,
+            author_name=author_name,
+            created_at=comment.created_at
+        ))
+    
+    return CommentListPublic(
+        items=public_comments,
+        total=len(public_comments)
+    )
+
+
+@router.post("/orders/{tracking_token}/comments")
+def create_customer_comment(
+    tracking_token: str,
+    comment_data: CommentCreatePublic,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Create a new comment from customer.
+    """
+    order = db.query(Order).filter(Order.tracking_token == tracking_token).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Create customer comment
+    comment = Comment(
+        order_id=order.id,
+        user_id=None,  # Customer comments don't have user_id
+        text=comment_data.text,
+        author_type=AuthorType.customer,
+        customer_name=comment_data.customer_name
+    )
+    
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    
+    return {
+        "success": True,
+        "message": "Комментарий добавлен",
+        "comment_id": comment.id
+    }
+
+
+@router.get("/orders/{tracking_token}/photos")
+def get_order_photos(
+    tracking_token: str,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Get all photos for an order.
+    """
+    order = db.query(Order).filter(Order.tracking_token == tracking_token).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    photos = db.query(OrderPhoto).filter(
+        OrderPhoto.order_id == order.id
+    ).order_by(OrderPhoto.created_at).all()
+    
+    # Convert to public format
+    public_photos = []
+    for photo in photos:
+        public_photos.append(OrderPhotoPublic(
+            id=photo.id,
+            photo_url=photo.photo_url,
+            photo_type=photo.photo_type,
+            description=photo.description,
+            customer_feedback=photo.customer_feedback,
+            feedback_comment=photo.feedback_comment,
+            created_at=photo.created_at
+        ))
+    
+    return {
+        "items": public_photos,
+        "total": len(public_photos)
+    }
+
+
+@router.post("/orders/{tracking_token}/feedback", response_model=CustomerFeedbackResponse)
+def submit_customer_feedback(
+    tracking_token: str,
+    feedback_data: CustomerFeedbackCreate,
+    db: Session = Depends(deps.get_db)
+):
+    """
+    Submit customer feedback (like/dislike) for a photo.
+    """
+    order = db.query(Order).filter(Order.tracking_token == tracking_token).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Find the photo
+    photo = db.query(OrderPhoto).filter(
+        OrderPhoto.id == feedback_data.photo_id,
+        OrderPhoto.order_id == order.id
+    ).first()
+    
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found for this order")
+    
+    # Check if feedback already exists
+    if photo.customer_feedback is not None:
+        raise HTTPException(status_code=400, detail="Feedback already submitted for this photo")
+    
+    # Update photo with feedback
+    photo.customer_feedback = feedback_data.feedback
+    photo.feedback_comment = feedback_data.comment
+    photo.feedback_date = datetime.now()
+    
+    db.commit()
+    
+    feedback_text = "👍 Нравится" if feedback_data.feedback == CustomerFeedback.like else "👎 Не нравится"
+    
+    return CustomerFeedbackResponse(
+        success=True,
+        message=f"Спасибо за отзыв: {feedback_text}"
+    )

@@ -12,3 +12,4 @@ from app.models.order_history import OrderHistory
 from app.models.comment import Comment
 from app.models.supply import Supply, SupplyItem, FlowerCategory
 from app.models.product_ingredient import ProductIngredient
+from app.models.product_component import ProductComponent
