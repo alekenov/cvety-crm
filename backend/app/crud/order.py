@@ -10,8 +10,25 @@ from app.crud.customer import customer as crud_customer
 from app.models.product import Product
 
 
-def generate_tracking_token() -> str:
-    return secrets.token_urlsafe(16)
+def generate_tracking_token(db: Session = None) -> str:
+    """Generate a secure 9-digit tracking token that's unique in the database"""
+    max_attempts = 100
+    
+    for _ in range(max_attempts):
+        # Generate a secure 9-digit number (100000000 to 999999999)
+        token = str(secrets.randbelow(900000000) + 100000000)
+        
+        # If db session provided, check uniqueness
+        if db:
+            from app.models.order import Order
+            existing = db.query(Order).filter(Order.tracking_token == token).first()
+            if not existing:
+                return token
+        else:
+            return token
+    
+    # Fallback if all attempts failed (very unlikely)
+    raise ValueError("Could not generate unique tracking token after maximum attempts")
 
 
 class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
@@ -55,7 +72,7 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         db_obj = Order(
             **obj_dict,
             delivery_window=delivery_window_json,
-            tracking_token=generate_tracking_token(),
+            tracking_token=generate_tracking_token(db),
             customer_id=customer.id,
             shop_id=shop_id if shop_id else 1
         )

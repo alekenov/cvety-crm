@@ -1,10 +1,12 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app import crud, schemas
 from app.api import deps
 from app.models.shop import Shop
+from app.models.product import ProductCategory
 
 router = APIRouter()
 
@@ -150,3 +152,92 @@ def update_calculator_settings(
     )
     
     return settings
+
+
+# Create Product from Calculator endpoint
+class BouquetCalculationItem(BaseModel):
+    """Single item in bouquet calculation"""
+    name: str
+    quantity: int
+    price: float
+
+
+class BouquetCalculation(BaseModel):
+    """Bouquet calculation data from frontend"""
+    flowers: List[BouquetCalculationItem]
+    materials: List[BouquetCalculationItem]
+    labor_cost: float
+    margin_percentage: float
+    total_cost: float
+    final_price: float
+
+
+class CreateProductFromCalculator(BaseModel):
+    """Request schema for creating product from calculator"""
+    calculation: BouquetCalculation
+    product_name: Optional[str] = None
+    product_description: Optional[str] = None
+    category: ProductCategory = ProductCategory.bouquet
+
+
+@router.post("/create-product", response_model=schemas.Product, status_code=201)
+def create_product_from_calculator(
+    request: CreateProductFromCalculator,
+    db: Session = Depends(deps.get_db),
+    shop: Shop = Depends(deps.get_current_shop)
+):
+    """
+    Create a new product from calculator data.
+    Auto-generates name and description if not provided.
+    """
+    calc = request.calculation
+    
+    # Auto-generate product name if not provided
+    if not request.product_name:
+        flower_names = [item.name for item in calc.flowers]
+        if len(flower_names) <= 2:
+            product_name = f"Букет из {', '.join(flower_names)}"
+        else:
+            product_name = f"Букет из {flower_names[0]} и {len(flower_names)-1} других цветов"
+    else:
+        product_name = request.product_name
+    
+    # Auto-generate description if not provided
+    if not request.product_description:
+        flower_details = []
+        for item in calc.flowers:
+            flower_details.append(f"{item.name} - {item.quantity} шт.")
+        
+        material_details = []
+        for item in calc.materials:
+            material_details.append(f"{item.name}")
+        
+        description_parts = []
+        if flower_details:
+            description_parts.append(f"Состав: {'; '.join(flower_details)}")
+        if material_details:
+            description_parts.append(f"Декор: {', '.join(material_details)}")
+        
+        product_description = ". ".join(description_parts)
+    else:
+        product_description = request.product_description
+    
+    # Create product with shop_id
+    from app.models.product import Product
+    
+    product = Product(
+        name=product_name,
+        category=request.category,
+        description=product_description,
+        cost_price=calc.total_cost,
+        retail_price=calc.final_price,
+        is_active=True,
+        is_new=True,
+        shop_id=shop.id
+    )
+    
+    db.add(product)
+    db.commit()
+    db.refresh(product)
+    
+    return product

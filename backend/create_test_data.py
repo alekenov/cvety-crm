@@ -8,7 +8,7 @@ from app.models.customer import Customer
 from app.models.product import Product
 from app.models.order import Order, OrderStatus, DeliveryMethod
 from app.models.order_history import OrderHistory, OrderEventType
-from app.crud.order import generate_tracking_token
+import secrets
 
 
 def create_test_users(db: Session):
@@ -129,7 +129,7 @@ def create_test_orders(db: Session, customers, florists, products):
             flower_sum=0,
             delivery_fee=1500 if random.random() > 0.3 else 0,
             total=0,
-            tracking_token=generate_tracking_token(),
+            tracking_token=str(secrets.randbelow(900000000) + 100000000),
             assigned_florist_id=florist.id if florist else None,
             created_at=order_date,
             updated_at=order_date
