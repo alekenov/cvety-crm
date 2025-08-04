@@ -43,8 +43,8 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { TableSkeleton } from "@/components/ui/loading-state"
-import { ErrorState } from "@/components/ui/error-state"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { ErrorState } from "@/components/ui/error-alert"
 
 import type { FloristTask, TaskStatus } from "@/lib/types"
 import { productionApi } from "@/lib/api"

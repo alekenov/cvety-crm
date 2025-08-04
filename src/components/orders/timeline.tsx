@@ -1,5 +1,6 @@
 import { CheckCircle2, Circle, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { formatRelativeDate } from "@/lib/date-utils"
 
 export interface TimelineEvent {
   id: string
@@ -49,7 +50,7 @@ export function Timeline({ events, className }: TimelineProps) {
                 <span className="font-medium">{event.user}</span>
                 <span className="text-muted-foreground">•</span>
                 <time className="text-muted-foreground">
-                  {event.timestamp.toLocaleString('ru-RU')}
+                  {formatRelativeDate(event.timestamp)}
                 </time>
               </div>
               <p className="mt-1 text-sm text-foreground">{event.comment}</p>

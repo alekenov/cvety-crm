@@ -11,3 +11,4 @@ from .flower_category import flower_category
 from .supply import supply
 from .user import user
 from .order_history import order_history
+from .decorative_material import decorative_material, calculator_settings

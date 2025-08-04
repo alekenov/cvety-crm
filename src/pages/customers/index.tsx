@@ -29,8 +29,8 @@ import {
 
 import type { Customer } from "@/lib/types"
 import { customersApi } from "@/lib/api"
-import { TableSkeleton } from "@/components/ui/loading-state"
-import { ErrorState } from "@/components/ui/error-state"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { ErrorState } from "@/components/ui/error-alert"
 
 // API response type
 interface CustomerApiResponse {
@@ -310,45 +310,35 @@ export function CustomersPage() {
             key: 'name',
             label: 'Клиент',
             render: (value, customer) => (
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <div className="font-medium">{value as string}</div>
-                  {customer.notes && (
-                    <div className="text-xs text-muted-foreground line-clamp-1">
-                      {customer.notes}
-                    </div>
-                  )}
-                </div>
+              <div>
+                <div className="font-medium">{value as string}</div>
+                {customer.notes && (
+                  <div className="text-xs text-muted-foreground line-clamp-1">
+                    {customer.notes}
+                  </div>
+                )}
               </div>
             ),
-            priority: 0
+            priority: 0,
+            hideOnMobile: true
           },
           {
             key: 'phone',
             label: 'Контакты',
             render: (value, customer) => (
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-sm">
-                  <Phone className="h-3 w-3" />
-                  {value as string}
-                </div>
-                {customer.email && (
-                  <div className="text-xs text-muted-foreground">
-                    {customer.email}
-                  </div>
-                )}
+              <div className="text-sm">
+                {value as string}
               </div>
             ),
-            priority: 1
+            priority: 1,
+            hideOnMobile: true
           },
           {
             key: 'ordersCount',
             label: 'Заказы',
-            render: (value) => (
-              <div className="flex items-center gap-1">
-                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                {value as number}
+            render: (value, customer) => (
+              <div>
+                {value as number} {value === 1 ? 'заказ' : 'заказов'} на {formatCurrency(customer.totalSpent)}
               </div>
             ),
             priority: 2
@@ -361,7 +351,8 @@ export function CustomersPage() {
                 {formatCurrency(value as number)}
               </div>
             ),
-            priority: 3
+            priority: 3,
+            hideOnMobile: true
           },
           {
             key: 'updatedAt',
@@ -382,47 +373,12 @@ export function CustomersPage() {
         ]}
         mobileCardTitle={(customer) => customer.name}
         mobileCardSubtitle={(customer) => customer.phone}
-        mobileCardActions={(customer) => (
-          <div className="flex gap-1">
-            <Button
-              variant="ghost" 
-              size="icon"
-              onClick={() => handleCreateOrder(customer.id)}
-              className="h-8 w-8"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <User className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Действия</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleCreateOrder(customer.id)}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Создать заказ
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => navigate(`/customers/${customer.id}`)}
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Открыть карточку
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
+        mobileCardActions={() => null}
       />
 
       {/* Summary */}
       <div className="flex gap-4 text-sm text-muted-foreground">
         <span>Всего клиентов: {data?.total || 0}</span>
-        <span>•</span>
         <span>
           Общая сумма заказов: {formatCurrency(
             customers.reduce((sum, c) => sum + c.totalSpent, 0)

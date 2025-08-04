@@ -48,3 +48,9 @@ from .order_history import (
     OrderHistory, OrderHistoryCreate, OrderHistoryUpdate, OrderHistoryWithUser
 )
 from .tracking import TrackingResponse
+from .decorative_material import (
+    DecorativeMaterialBase, DecorativeMaterialCreate, DecorativeMaterialUpdate,
+    DecorativeMaterialResponse, DecorativeMaterialList,
+    CalculatorSettingsBase, CalculatorSettingsCreate, CalculatorSettingsUpdate,
+    CalculatorSettingsResponse
+)

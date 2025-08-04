@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { MoreHorizontal, Eye, AlertTriangle, Package, Plus, Search, Calendar as CalendarIcon } from "lucide-react"
+import { MoreHorizontal, Eye, AlertTriangle, Package, Plus, Search, Calendar as CalendarIcon, Copy } from "lucide-react"
 import { toast } from "sonner"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
@@ -51,8 +51,8 @@ import {
 import type { Order, OrderItem, User } from "@/lib/types"
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, DATETIME_FORMAT } from "@/lib/constants"
 import { ordersApi } from "@/lib/api"
-import { TableSkeleton } from "@/components/ui/loading-state"
-import { ErrorState } from "@/components/ui/error-state"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { ErrorState } from "@/components/ui/error-alert"
 
 // Remove mock data - now using real API data
 
@@ -231,6 +231,12 @@ export function OrdersPage() {
 
   const handleOpenTracking = (trackingToken: string) => {
     window.open(`/tracking/${trackingToken}`, '_blank')
+  }
+
+  const handleCopyTrackingLink = (trackingToken: string) => {
+    const trackingUrl = `${window.location.origin}/tracking/${trackingToken}`
+    navigator.clipboard.writeText(trackingUrl)
+    toast.success("Ссылка для отслеживания скопирована")
   }
 
   const formatCurrency = (amount: number) => {
@@ -442,8 +448,18 @@ export function OrdersPage() {
               size="icon"
               onClick={() => handleOpenTracking(order.trackingToken)}
               className="h-8 w-8"
+              title="Открыть трекинг"
             >
               <Eye className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => handleCopyTrackingLink(order.trackingToken)}
+              className="h-8 w-8"
+              title="Скопировать ссылку трекинга"
+            >
+              <Copy className="h-4 w-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -463,6 +479,13 @@ export function OrdersPage() {
                     {label}
                   </DropdownMenuItem>
                 ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleCopyTrackingLink(order.trackingToken)}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Скопировать ссылку трекинга
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => handleMarkIssue(order.id)}

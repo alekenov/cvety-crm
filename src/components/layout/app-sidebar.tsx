@@ -2,6 +2,7 @@ import {
   Package,
   ShoppingCart,
   Store,
+  Store2,
   Truck,
   ChevronRight,
   Users,
@@ -47,6 +48,12 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
       ]
     },
     {
+      label: "Витрина",
+      items: [
+        { title: "Витрина магазина", url: "/storefront", icon: Store2, external: true },
+      ]
+    },
+    {
       label: "Товары",
       items: [
         { title: "Каталог товаров", url: "/catalog", icon: BookOpen },
@@ -86,14 +93,22 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={location.pathname === item.url}
+                    isActive={!item.external && location.pathname === item.url}
                     onClick={onNavigate}
                   >
-                    <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                      <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-                    </Link>
+                    {item.external ? (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                        <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
+                      </a>
+                    ) : (
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                        <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
+                      </Link>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

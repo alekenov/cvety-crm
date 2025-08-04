@@ -24,8 +24,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import type { WarehouseItem } from "@/lib/types"
 import { VARIETIES } from "@/lib/constants"
 import { warehouseApi } from "@/lib/api"
-import { TableSkeleton } from "@/components/ui/loading-state"
-import { ErrorState } from "@/components/ui/error-state"
+import { TableSkeleton } from "@/components/ui/table-skeleton"
+import { ErrorState } from "@/components/ui/error-alert"
 
 // API response type
 interface WarehouseItemApiResponse {
@@ -103,7 +103,7 @@ export function WarehousePage() {
           heightCm: item.height_cm,
           farm: item.farm,
           supplier: item.supplier,
-          deliveryDate: new Date(item.delivery_date),
+          deliveryDate: item.delivery_date ? new Date(item.delivery_date) : null,
           currency: item.currency as 'USD' | 'EUR' | 'KZT',
           rate: item.rate,
           cost: item.cost,
@@ -115,7 +115,7 @@ export function WarehousePage() {
           onShowcase: item.on_showcase,
           toWriteOff: item.to_write_off,
           hidden: item.hidden,
-          updatedAt: new Date(item.updated_at),
+          updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
           updatedBy: item.updated_by || 'system'
         })) as WarehouseItem[]
       }
@@ -258,7 +258,7 @@ export function WarehousePage() {
             label: 'Поставка',
             render: (value) => (
               <div className="text-sm">
-                {new Date(value as Date).toLocaleDateString('ru-KZ')}
+                {value ? new Date(value as Date).toLocaleDateString('ru-KZ') : '-'}
               </div>
             ),
             hideOnMobile: true

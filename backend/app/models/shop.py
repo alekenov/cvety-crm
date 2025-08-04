@@ -56,3 +56,5 @@ class Shop(Base):
     users = relationship("User", back_populates="shop")
     customers = relationship("Customer", back_populates="shop")
     products = relationship("Product", back_populates="shop")
+    decorative_materials = relationship("DecorativeMaterial", back_populates="shop")
+    calculator_settings = relationship("CalculatorSettings", back_populates="shop", uselist=False)

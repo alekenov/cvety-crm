@@ -22,6 +22,31 @@ services:
              python init_test_data.py || true &&
              uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 
+  # Staging environment for testing schema changes
+  app-staging:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db-staging:5432/flower_shop_staging
+      - SECRET_KEY=staging-secret-key
+      - RAILWAY_ENVIRONMENT=staging
+    depends_on:
+      db-staging:
+        condition: service_healthy
+    volumes:
+      - ./backend/app:/app/backend/app:ro
+      - ./src:/app/src:ro
+    command: >
+      sh -c "cd backend && 
+             alembic upgrade head &&
+             python init_test_data.py || true &&
+             uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+    profiles:
+      - staging
+
   db:
     image: postgres:15-alpine
     restart: always
@@ -39,5 +64,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # Staging database for testing schema changes
+  db-staging:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flower_shop_staging
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - staging
+
 volumes:
   postgres_data:
+  postgres_data_staging:

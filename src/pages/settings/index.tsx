@@ -13,8 +13,10 @@ import {
   Plus,
   Trash2,
   AlertCircle,
-  Loader2
+  Loader2,
+  Calculator
 } from "lucide-react"
+import { Link } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -219,11 +221,19 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Общие настройки</h1>
-        <p className="text-muted-foreground">
-          Управление настройками компании
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Общие настройки</h1>
+          <p className="text-muted-foreground">
+            Управление настройками компании
+          </p>
+        </div>
+        <Link to="/settings/calculator">
+          <Button variant="outline">
+            <Calculator className="mr-2 h-4 w-4" />
+            Настройки калькулятора
+          </Button>
+        </Link>
       </div>
 
       <Form {...form}>

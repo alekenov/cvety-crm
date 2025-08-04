@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ChevronRight, User } from "lucide-react"
+import { ChevronRight, User, AlertCircle } from "lucide-react"
 import type { Order } from "@/lib/types"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
@@ -23,7 +23,7 @@ const statusConfig = {
 
 export function OrderCard({ order, onStatusChange }: OrderCardProps) {
   const navigate = useNavigate()
-  const status = statusConfig[order.status]
+  const status = statusConfig[order.status] || { label: order.status, color: 'bg-gray-500' }
   
   const handlePhoneClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -91,16 +91,29 @@ export function OrderCard({ order, onStatusChange }: OrderCardProps) {
         </div>
 
         {/* Адрес и время доставки */}
-        {(order.address || order.deliveryWindow) && (
+        {(order.address || order.deliveryWindow || order.addressNeedsClarification) && (
           <div className="text-sm text-muted-foreground">
-            {order.address && <span>{order.address}</span>}
-            {order.address && order.deliveryWindow && <span> • </span>}
-            {order.deliveryWindow && (
+            <div>
+              {order.address ? (
+                <>
+                  <span>{order.address}</span>
+                  {order.addressNeedsClarification && (
+                    <span className="inline-flex items-center gap-1 text-amber-600 ml-2">
+                      <AlertCircle className="h-3 w-3" />
+                      <span className="text-xs">Требует уточнения</span>
+                    </span>
+                  )}
+                </>
+              ) : order.addressNeedsClarification ? (
+                <span className="text-amber-600">Адрес требует уточнения</span>
+              ) : null}
+            </div>
+            {order.deliveryWindow && order.deliveryWindow.from && (
               <span>
                 {new Date(order.deliveryWindow.from).toLocaleDateString('ru-RU', {
                   day: 'numeric',
                   month: 'short'
-                })} {format(order.deliveryWindow.from, "HH:mm")}-{format(order.deliveryWindow.to, "HH:mm")}
+                })} {format(new Date(order.deliveryWindow.from), "HH:mm")}-{format(new Date(order.deliveryWindow.to), "HH:mm")}
               </span>
             )}
           </div>
@@ -125,7 +138,7 @@ export function OrderCard({ order, onStatusChange }: OrderCardProps) {
         {/* Сумма и действия */}
         <div className="flex items-center justify-between pt-2">
           <span className="font-semibold">
-            {(order.totalAmount || 0).toLocaleString('ru-RU')} ₸
+            {((order.totalAmount || order.total) || 0).toLocaleString('ru-RU')} ₸
           </span>
           {nextStatus && (
             <Button
