@@ -2,7 +2,6 @@ import {
   Package,
   ShoppingCart,
   Store,
-  Store2,
   Truck,
   ChevronRight,
   Users,
@@ -12,6 +11,7 @@ import {
   UserCog,
   BookOpen,
   PackagePlus,
+  ShoppingBag,
 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
@@ -50,7 +50,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
     {
       label: "Витрина",
       items: [
-        { title: "Витрина магазина", url: "/storefront", icon: Store2, external: true },
+        { title: "Витрина магазина", url: "/storefront", icon: ShoppingBag, external: true },
       ]
     },
     {

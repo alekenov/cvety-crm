@@ -189,6 +189,7 @@ def create_product_from_calculator(
     """
     Create a new product from calculator data.
     Auto-generates name and description if not provided.
+    Creates detailed product components.
     """
     calc = request.calculation
     
@@ -224,6 +225,7 @@ def create_product_from_calculator(
     
     # Create product with shop_id
     from app.models.product import Product
+    from app.models.product_component import ProductComponent, ComponentType
     
     product = Product(
         name=product_name,
@@ -237,6 +239,51 @@ def create_product_from_calculator(
     )
     
     db.add(product)
+    db.commit()
+    db.refresh(product)
+    
+    # Create components for flowers
+    for flower in calc.flowers:
+        component = ProductComponent(
+            product_id=product.id,
+            component_type=ComponentType.flower,
+            name=flower.name,
+            description="Основной цветок",
+            quantity=flower.quantity,
+            unit="шт",
+            unit_cost=0,  # We don't have cost info in calculator
+            unit_price=flower.price
+        )
+        db.add(component)
+    
+    # Create components for materials
+    for material in calc.materials:
+        component = ProductComponent(
+            product_id=product.id,
+            component_type=ComponentType.material,
+            name=material.name,
+            description="Декоративный материал",
+            quantity=material.quantity,
+            unit="шт",
+            unit_cost=0,
+            unit_price=material.price
+        )
+        db.add(component)
+    
+    # Create component for labor
+    if calc.labor_cost > 0:
+        component = ProductComponent(
+            product_id=product.id,
+            component_type=ComponentType.service,
+            name="Работа флориста",
+            description="Профессиональная сборка букета",
+            quantity=1,
+            unit="услуга",
+            unit_cost=calc.labor_cost,
+            unit_price=calc.labor_cost
+        )
+        db.add(component)
+    
     db.commit()
     db.refresh(product)
     

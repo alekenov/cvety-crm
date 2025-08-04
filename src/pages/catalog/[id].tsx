@@ -6,14 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { productsApi, productIngredientsApi } from "@/lib/api"
-import type { ProductWithStats, ProductIngredientWithDetails } from "@/lib/types"
+import { productsApi, productComponentsApi } from "@/lib/api"
+import type { ProductWithStats, ProductComponent } from "@/lib/types"
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [product, setProduct] = useState<ProductWithStats | null>(null)
-  const [ingredients, setIngredients] = useState<ProductIngredientWithDetails[]>([])
+  const [components, setComponents] = useState<ProductComponent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,14 +25,14 @@ export function ProductDetailPage() {
         setLoading(true)
         setError(null)
         
-        // Load product and ingredients in parallel
-        const [productData, ingredientsData] = await Promise.all([
+        // Load product and components in parallel
+        const [productData, componentsData] = await Promise.all([
           productsApi.getById(parseInt(id)),
-          productIngredientsApi.getAll(parseInt(id))
+          productComponentsApi.getAll(parseInt(id))
         ])
         
         setProduct(productData)
-        setIngredients(ingredientsData)
+        setComponents(componentsData)
       } catch (err) {
         setError('Ошибка при загрузке товара')
         console.error('Error loading product:', err)
@@ -60,7 +60,7 @@ export function ProductDetailPage() {
   }
 
   const calculateTotalCost = () => {
-    return ingredients.reduce((total, ing) => total + (ing.price * ing.quantity), 0)
+    return components.reduce((total, comp) => total + comp.totalCost, 0)
   }
 
   const getCategoryLabel = (category: string) => {
@@ -170,7 +170,7 @@ export function ProductDetailPage() {
             </Card>
           )}
 
-          {/* Ingredients */}
+          {/* Components */}
           <Card>
             <CardHeader>
               <CardTitle>
@@ -178,35 +178,42 @@ export function ProductDetailPage() {
                 Состав букета
               </CardTitle>
               <CardDescription>
-                {ingredients.length > 0 
-                  ? `${ingredients.length} позиций`
+                {components.length > 0 
+                  ? `${components.length} позиций`
                   : "Состав не указан"
                 }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {ingredients.length > 0 ? (
+              {components.length > 0 ? (
                 <div className="space-y-4">
-                  {ingredients.map((ing) => (
-                    <div key={ing.id} className="flex items-center justify-between">
+                  {components.map((comp) => (
+                    <div key={comp.id} className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="font-medium">
-                          {ing.variety} ({ing.heightCm} см)
+                          {comp.name}
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {ing.supplier} / {ing.farm}
-                        </div>
-                        {ing.notes && (
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {ing.notes}
+                        {comp.description && (
+                          <div className="text-sm text-muted-foreground">
+                            {comp.description}
                           </div>
                         )}
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {comp.componentType === 'flower' && '🌹 Цветок'}
+                          {comp.componentType === 'material' && '🎀 Материал'}
+                          {comp.componentType === 'service' && '👨‍🎨 Услуга'}
+                        </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium">{ing.quantity} шт</div>
+                        <div className="font-medium">{comp.quantity} {comp.unit}</div>
                         <div className="text-sm text-muted-foreground">
-                          {ing.price.toLocaleString()} ₸ / шт
+                          {comp.unitPrice.toLocaleString()} ₸ / {comp.unit}
                         </div>
+                        {comp.totalPrice > 0 && (
+                          <div className="text-sm font-semibold">
+                            = {comp.totalPrice.toLocaleString()} ₸
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -218,7 +225,7 @@ export function ProductDetailPage() {
                 </div>
               ) : (
                 <p className="text-muted-foreground">
-                  Состав букета не указан. Добавьте ингредиенты при редактировании товара.
+                  Состав букета не указан. Добавьте компоненты при редактировании товара.
                 </p>
               )}
             </CardContent>

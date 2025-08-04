@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from app.models.product import ProductCategory
 from app.schemas.product_ingredient import ProductIngredient, ProductIngredientWithDetails
+from app.schemas.product_component import ProductComponent
 
 
 class ProductImageBase(BaseModel):
@@ -67,6 +68,7 @@ class Product(ProductBase):
     updated_at: datetime
     images: List[ProductImage] = []
     ingredients: List[ProductIngredient] = []
+    components: List[ProductComponent] = []
     
     # Computed properties
     current_price: float

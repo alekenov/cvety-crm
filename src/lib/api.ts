@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Order, WarehouseItem, Delivery, TrackingData, CompanySettings, Customer, FloristTask, TaskStatus, ProductionQueueStats, Product, ProductWithStats, ProductCreate, ProductUpdate, ProductIngredient, ProductIngredientWithDetails, ProductIngredientCreate, ProductIngredientUpdate, FlowerCategory, Supply, SupplyCreate, SupplyImportPreview } from './types'
+import type { Order, WarehouseItem, Delivery, TrackingData, CompanySettings, Customer, FloristTask, TaskStatus, ProductionQueueStats, Product, ProductWithStats, ProductCreate, ProductUpdate, ProductIngredient, ProductIngredientWithDetails, ProductIngredientCreate, ProductIngredientUpdate, ProductComponent, ProductComponentCreate, FlowerCategory, Supply, SupplyCreate, SupplyImportPreview } from './types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
@@ -487,6 +487,28 @@ export const productIngredientsApi = {
 
   delete: async (productId: number, ingredientId: number) => {
     await api.delete(`/products/${productId}/ingredients/${ingredientId}`)
+  }
+}
+
+// Product Components API
+export const productComponentsApi = {
+  getAll: async (productId: number) => {
+    const { data } = await api.get<any[]>(`/products/${productId}/components`)
+    return data.map(item => convertKeysToCamelCase(item)) as ProductComponent[]
+  },
+
+  add: async (productId: number, component: ProductComponentCreate) => {
+    const { data } = await api.post<any>(`/products/${productId}/components`, component)
+    return convertKeysToCamelCase(data) as ProductComponent
+  },
+
+  update: async (productId: number, componentId: number, updates: Partial<ProductComponentCreate>) => {
+    const { data } = await api.put<any>(`/products/${productId}/components/${componentId}`, updates)
+    return convertKeysToCamelCase(data) as ProductComponent
+  },
+
+  delete: async (productId: number, componentId: number) => {
+    await api.delete(`/products/${productId}/components/${componentId}`)
   }
 }
 

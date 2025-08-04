@@ -328,3 +328,164 @@ def remove_product_ingredient(
     db.commit()
     
     return {"message": "Ingredient removed successfully"}
+
+
+# Product Components endpoints
+@router.get("/{id}/components", response_model=List[Dict[str, Any]])
+def get_product_components(
+    *,
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    id: int
+):
+    """
+    Get all components for a product.
+    """
+    from app.models.product_component import ProductComponent
+    
+    product = crud.product.get(db=db, id=id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    components = db.query(ProductComponent).filter(ProductComponent.product_id == id).all()
+    
+    result = []
+    for comp in components:
+        result.append({
+            "id": comp.id,
+            "product_id": comp.product_id,
+            "component_type": comp.component_type.value,
+            "name": comp.name,
+            "description": comp.description,
+            "quantity": comp.quantity,
+            "unit": comp.unit,
+            "unit_cost": comp.unit_cost,
+            "unit_price": comp.unit_price,
+            "total_cost": comp.unit_cost * comp.quantity,
+            "total_price": comp.unit_price * comp.quantity
+        })
+    
+    return result
+
+
+@router.post("/{id}/components", response_model=Dict[str, Any], status_code=201)
+def add_product_component(
+    *,
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    id: int,
+    component_in: Dict[str, Any]
+):
+    """
+    Add component to product.
+    """
+    product = crud.product.get(db=db, id=id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    from app.models.product_component import ProductComponent, ComponentType
+    
+    # Create component
+    component = ProductComponent(
+        product_id=id,
+        component_type=ComponentType(component_in["component_type"]),
+        name=component_in["name"],
+        description=component_in.get("description"),
+        quantity=component_in["quantity"],
+        unit=component_in.get("unit", "шт"),
+        unit_cost=component_in.get("unit_cost", 0),
+        unit_price=component_in.get("unit_price", 0)
+    )
+    
+    db.add(component)
+    db.commit()
+    db.refresh(component)
+    
+    return {
+        "id": component.id,
+        "product_id": component.product_id,
+        "component_type": component.component_type.value,
+        "name": component.name,
+        "description": component.description,
+        "quantity": component.quantity,
+        "unit": component.unit,
+        "unit_cost": component.unit_cost,
+        "unit_price": component.unit_price,
+        "total_cost": component.unit_cost * component.quantity,
+        "total_price": component.unit_price * component.quantity
+    }
+
+
+@router.put("/{id}/components/{component_id}", response_model=Dict[str, Any])
+def update_product_component(
+    *,
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    id: int,
+    component_id: int,
+    component_update: Dict[str, Any]
+):
+    """
+    Update product component.
+    """
+    from app.models.product_component import ProductComponent
+    
+    component = db.query(ProductComponent).filter(
+        ProductComponent.id == component_id,
+        ProductComponent.product_id == id
+    ).first()
+    
+    if not component:
+        raise HTTPException(status_code=404, detail="Product component not found")
+    
+    # Update fields
+    for field, value in component_update.items():
+        if field == "component_type":
+            from app.models.product_component import ComponentType
+            setattr(component, field, ComponentType(value))
+        else:
+            setattr(component, field, value)
+    
+    db.commit()
+    db.refresh(component)
+    
+    return {
+        "id": component.id,
+        "product_id": component.product_id,
+        "component_type": component.component_type.value,
+        "name": component.name,
+        "description": component.description,
+        "quantity": component.quantity,
+        "unit": component.unit,
+        "unit_cost": component.unit_cost,
+        "unit_price": component.unit_price,
+        "total_cost": component.unit_cost * component.quantity,
+        "total_price": component.unit_price * component.quantity
+    }
+
+
+@router.delete("/{id}/components/{component_id}")
+def delete_product_component(
+    *,
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
+    id: int,
+    component_id: int
+):
+    """
+    Delete product component.
+    """
+    from app.models.product_component import ProductComponent
+    
+    component = db.query(ProductComponent).filter(
+        ProductComponent.id == component_id,
+        ProductComponent.product_id == id
+    ).first()
+    
+    if not component:
+        raise HTTPException(status_code=404, detail="Product component not found")
+    
+    db.delete(component)
+    db.commit()
+    
+    return {"message": "Component deleted successfully"}

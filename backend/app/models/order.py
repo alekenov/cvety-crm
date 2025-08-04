@@ -100,6 +100,7 @@ class Order(Base):
     courier = relationship("User", foreign_keys=[courier_id], back_populates="courier_orders")
     history = relationship("OrderHistory", back_populates="order", cascade="all, delete-orphan", order_by="OrderHistory.created_at")
     comments = relationship("Comment", back_populates="order", cascade="all, delete-orphan", order_by="Comment.created_at")
+    photos = relationship("OrderPhoto", back_populates="order", cascade="all, delete-orphan", order_by="OrderPhoto.created_at")
     shop = relationship("Shop", back_populates="orders")
     
     @property

@@ -14,14 +14,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { PhotoUpload } from "@/components/catalog/photo-upload"
 import { BouquetCalculator } from "@/components/catalog/bouquet-calculator"
 import { toast } from "sonner"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { productsApi, productIngredientsApi } from "@/lib/api"
-import type { Product, ProductIngredientWithDetails } from "@/lib/types"
+import { productsApi, productComponentsApi } from "@/lib/api"
+import type { Product, ProductComponent } from "@/lib/types"
 
 const productSchema = z.object({
   name: z.string().min(1, "Название обязательно"),
@@ -42,10 +50,20 @@ export function EditProductPage() {
   const navigate = useNavigate()
   const [product, setProduct] = useState<Product | null>(null)
   const [photos, setPhotos] = useState<string[]>([])
-  const [ingredients, setIngredients] = useState<any[]>([])
+  const [components, setComponents] = useState<ProductComponent[]>([])
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [calculatedCost, setCalculatedCost] = useState(0)
+  const [showAddComponent, setShowAddComponent] = useState(false)
+  const [newComponent, setNewComponent] = useState({
+    name: '',
+    description: '',
+    componentType: 'flower' as 'flower' | 'material' | 'service',
+    quantity: 1,
+    unit: 'шт',
+    unitCost: 0,
+    unitPrice: 0
+  })
 
   const {
     register,
@@ -73,10 +91,10 @@ export function EditProductPage() {
       try {
         setLoading(true)
         
-        // Load product and ingredients
-        const [productData, ingredientsData] = await Promise.all([
+        // Load product and components
+        const [productData, componentsData] = await Promise.all([
           productsApi.getById(parseInt(id)),
-          productIngredientsApi.getAll(parseInt(id))
+          productComponentsApi.getAll(parseInt(id))
         ])
         
         setProduct(productData)
@@ -99,22 +117,8 @@ export function EditProductPage() {
           setPhotos(productData.images.map(img => img.imageUrl))
         }
         
-        // Transform ingredients for the calculator
-        const transformedIngredients = ingredientsData.map(ing => ({
-          warehouseItemId: ing.warehouseItemId,
-          quantity: ing.quantity,
-          notes: ing.notes,
-          warehouseItem: {
-            id: ing.warehouseItemId,
-            variety: ing.variety,
-            heightCm: ing.heightCm,
-            supplier: ing.supplier,
-            farm: ing.farm,
-            availableQty: ing.availableQty,
-            priceKzt: ing.priceKzt || ing.price || 0
-          }
-        }))
-        setIngredients(transformedIngredients)
+        // Set components
+        setComponents(componentsData)
       } catch (err) {
         toast.error('Ошибка при загрузке товара')
         console.error('Error loading product:', err)
@@ -165,39 +169,6 @@ export function EditProductPage() {
         await productsApi.updateImages(product.id, photos)
       }
       
-      // Update ingredients
-      // First, get current ingredients
-      const currentIngredients = await productIngredientsApi.getAll(product.id)
-      
-      // Remove ingredients that are no longer in the list
-      for (const current of currentIngredients) {
-        const stillExists = ingredients.some(ing => ing.warehouseItemId === current.warehouseItemId)
-        if (!stillExists) {
-          await productIngredientsApi.delete(product.id, current.id)
-        }
-      }
-      
-      // Add new ingredients or update existing ones
-      for (const ing of ingredients) {
-        const existing = currentIngredients.find(c => c.warehouseItemId === ing.warehouseItemId)
-        if (existing) {
-          // Update if quantity or notes changed
-          if (existing.quantity !== ing.quantity || existing.notes !== ing.notes) {
-            await productIngredientsApi.update(product.id, existing.id, {
-              quantity: ing.quantity,
-              notes: ing.notes
-            })
-          }
-        } else {
-          // Add new ingredient
-          await productIngredientsApi.add(product.id, {
-            warehouseItemId: ing.warehouseItemId,
-            quantity: ing.quantity,
-            notes: ing.notes
-          })
-        }
-      }
-      
       toast.success("Товар успешно обновлен")
       navigate(`/catalog/${product.id}`)
     } catch (err) {
@@ -205,6 +176,81 @@ export function EditProductPage() {
       console.error('Error updating product:', err)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Component management functions
+  const updateComponentQuantity = async (componentId: number, newQuantity: number) => {
+    if (newQuantity < 1) return
+    
+    try {
+      const updatedComponent = await productComponentsApi.update(parseInt(id!), componentId, {
+        quantity: newQuantity
+      })
+      
+      setComponents(prev => prev.map(comp => 
+        comp.id === componentId ? updatedComponent : comp
+      ))
+      
+      toast.success("Количество обновлено")
+    } catch (err) {
+      toast.error("Ошибка при обновлении количества")
+      console.error('Error updating component quantity:', err)
+    }
+  }
+
+  const deleteComponent = async (componentId: number) => {
+    if (!window.confirm("Вы уверены, что хотите удалить этот компонент?")) {
+      return
+    }
+    
+    try {
+      await productComponentsApi.delete(parseInt(id!), componentId)
+      
+      setComponents(prev => prev.filter(comp => comp.id !== componentId))
+      
+      toast.success("Компонент удален")
+    } catch (err) {
+      toast.error("Ошибка при удалении компонента")
+      console.error('Error deleting component:', err)
+    }
+  }
+
+  const handleAddComponent = async () => {
+    if (!newComponent.name.trim()) {
+      toast.error("Введите название компонента")
+      return
+    }
+    
+    try {
+      const addedComponent = await productComponentsApi.add(parseInt(id!), {
+        name: newComponent.name,
+        description: newComponent.description,
+        component_type: newComponent.componentType,
+        quantity: newComponent.quantity,
+        unit: newComponent.unit,
+        unit_cost: newComponent.unitCost,
+        unit_price: newComponent.unitPrice
+      })
+      
+      setComponents(prev => [...prev, addedComponent])
+      setShowAddComponent(false)
+      
+      // Reset form
+      setNewComponent({
+        name: '',
+        description: '',
+        componentType: 'flower',
+        quantity: 1,
+        unit: 'шт',
+        unitCost: 0,
+        unitPrice: 0
+      })
+      
+      toast.success("Компонент добавлен")
+    } catch (err) {
+      toast.error("Ошибка при добавлении компонента")
+      console.error('Error adding component:', err)
     }
   }
 
@@ -321,11 +367,59 @@ export function EditProductPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <BouquetCalculator
-                ingredients={ingredients}
-                onChange={setIngredients}
-                onCostChange={setCalculatedCost}
-              />
+              {/* Components management */}
+              {components.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Текущий состав:</h4>
+                    <Button size="sm" variant="outline" onClick={() => setShowAddComponent(true)}>
+                      + Добавить компонент
+                    </Button>
+                  </div>
+                  {components.map((comp) => (
+                    <div key={comp.id} className="flex items-center justify-between border rounded p-3">
+                      <div className="flex-1">
+                        <div className="font-medium">{comp.name}</div>
+                        {comp.description && (
+                          <div className="text-sm text-muted-foreground">{comp.description}</div>
+                        )}
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {comp.componentType === 'flower' && '🌹 Цветок'}
+                          {comp.componentType === 'material' && '🎀 Материал'}
+                          {comp.componentType === 'service' && '👨‍🎨 Услуга'}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => updateComponentQuantity(comp.id, comp.quantity - 1)}>-</Button>
+                            <span className="font-medium min-w-[60px] text-center">{comp.quantity} {comp.unit}</span>
+                            <Button size="sm" variant="ghost" onClick={() => updateComponentQuantity(comp.id, comp.quantity + 1)}>+</Button>
+                          </div>
+                          <div className="text-sm text-muted-foreground text-center">
+                            {comp.unitPrice.toLocaleString()} ₸ / {comp.unit}
+                          </div>
+                          {comp.totalPrice > 0 && (
+                            <div className="text-sm font-semibold text-center">
+                              = {comp.totalPrice.toLocaleString()} ₸
+                            </div>
+                          )}
+                        </div>
+                        <Button size="sm" variant="destructive" onClick={() => deleteComponent(comp.id)}>
+                          🗑️
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">Состав не указан</p>
+                  <Button size="sm" variant="outline" onClick={() => setShowAddComponent(true)}>
+                    + Добавить первый компонент
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -454,6 +548,115 @@ export function EditProductPage() {
           </Button>
         </div>
       </form>
+
+      {/* Add Component Modal */}
+      <Dialog open={showAddComponent} onOpenChange={setShowAddComponent}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Добавить компонент</DialogTitle>
+            <DialogDescription>
+              Добавьте новый компонент в состав товара
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="componentName">Название</Label>
+              <Input
+                id="componentName"
+                placeholder="Например: Роза красная 60см"
+                value={newComponent.name}
+                onChange={(e) => setNewComponent(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="componentDescription">Описание (необязательно)</Label>
+              <Input
+                id="componentDescription"
+                placeholder="Дополнительная информация"
+                value={newComponent.description}
+                onChange={(e) => setNewComponent(prev => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="componentType">Тип компонента</Label>
+              <Select
+                value={newComponent.componentType}
+                onValueChange={(value) => setNewComponent(prev => ({ ...prev, componentType: value as any }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flower">🌹 Цветок</SelectItem>
+                  <SelectItem value="material">🎀 Материал</SelectItem>
+                  <SelectItem value="service">👨‍🎨 Услуга</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="componentQuantity">Количество</Label>
+                <Input
+                  id="componentQuantity"
+                  type="number"
+                  min="1"
+                  value={newComponent.quantity}
+                  onChange={(e) => setNewComponent(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="componentUnit">Единица</Label>
+                <Input
+                  id="componentUnit"
+                  placeholder="шт, см, кг"
+                  value={newComponent.unit}
+                  onChange={(e) => setNewComponent(prev => ({ ...prev, unit: e.target.value }))}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="componentUnitCost">Себестоимость за единицу</Label>
+                <Input
+                  id="componentUnitCost"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newComponent.unitCost}
+                  onChange={(e) => setNewComponent(prev => ({ ...prev, unitCost: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="componentUnitPrice">Цена за единицу</Label>
+                <Input
+                  id="componentUnitPrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newComponent.unitPrice}
+                  onChange={(e) => setNewComponent(prev => ({ ...prev, unitPrice: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddComponent(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleAddComponent}>
+              Добавить компонент
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
