@@ -4,7 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Package, MapPin, Phone, Calendar, Clock, CreditCard, Star, CheckCircle, ArrowLeft, ShoppingCart, ExternalLink, Copy, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Package, MapPin, Phone, Calendar, Clock, CreditCard, Star, CheckCircle, ArrowLeft, ShoppingCart, ExternalLink, Copy, Loader2, Edit3, MessageCircle, Camera, ThumbsUp, ThumbsDown, Send, User } from 'lucide-react';
 import { ReviewDialog } from '@/components/ReviewDialog';
 import { toast } from 'sonner';
 
@@ -29,6 +32,24 @@ interface TrackingInfo {
     price: number;
   }>;
   tracking_token: string;
+}
+
+interface Comment {
+  id: number;
+  text: string;
+  author_type: 'staff' | 'customer';
+  author_name: string;
+  created_at: string;
+}
+
+interface OrderPhoto {
+  id: number;
+  photo_url: string;
+  photo_type: 'pre_delivery' | 'completion' | 'process';
+  description?: string;
+  customer_feedback?: 'like' | 'dislike';
+  feedback_comment?: string;
+  created_at: string;
 }
 
 const statusNames = {
@@ -68,6 +89,16 @@ export function TrackingPage() {
   const [hasReviewed, setHasReviewed] = useState(false);
   const [isNewOrder, setIsNewOrder] = useState(false);
 
+  // Customer interaction features
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [photos, setPhotos] = useState<OrderPhoto[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [editingAddress, setEditingAddress] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
+  const [newRecipientName, setNewRecipientName] = useState('');
+  const [newRecipientPhone, setNewRecipientPhone] = useState('');
+
   // Загружаем информацию о заказе при загрузке страницы
   useEffect(() => {
     const loadTrackingInfo = async () => {
@@ -98,6 +129,11 @@ export function TrackingPage() {
         const now = new Date();
         const diffInMinutes = (now.getTime() - orderCreatedAt.getTime()) / (1000 * 60);
         setIsNewOrder(diffInMinutes <= 5);
+
+        // Initialize address edit form
+        setNewAddress(data.address || '');
+        setNewRecipientName(data.recipient_name || '');
+        setNewRecipientPhone(data.recipient_phone || '');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Произошла ошибка');
         setTrackingInfo(null);
@@ -107,6 +143,33 @@ export function TrackingPage() {
     };
 
     loadTrackingInfo();
+  }, [token]);
+
+  // Load comments and photos
+  useEffect(() => {
+    if (!token) return;
+
+    const loadCommentsAndPhotos = async () => {
+      try {
+        // Load comments
+        const commentsResponse = await fetch(`/api/public/orders/${token}/comments`);
+        if (commentsResponse.ok) {
+          const commentsData = await commentsResponse.json();
+          setComments(commentsData.items || []);
+        }
+
+        // Load photos
+        const photosResponse = await fetch(`/api/public/orders/${token}/photos`);
+        if (photosResponse.ok) {
+          const photosData = await photosResponse.json();
+          setPhotos(photosData.items || []);
+        }
+      } catch (err) {
+        console.error('Error loading comments and photos:', err);
+      }
+    };
+
+    loadCommentsAndPhotos();
   }, [token]);
 
   const formatDate = (dateString: string) => {
@@ -136,6 +199,119 @@ export function TrackingPage() {
   const handleReturnToShop = () => {
     // Extract shop ID from URL or use default
     navigate('/shop/1');
+  };
+
+  // Address editing functions
+  const canEditAddress = trackingInfo && (trackingInfo.status === 'new' || trackingInfo.status === 'paid');
+
+  const handleUpdateAddress = async () => {
+    if (!token || !newAddress.trim()) return;
+
+    try {
+      const response = await fetch(`/api/public/orders/${token}/address`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: newAddress,
+          recipient_name: newRecipientName,
+          recipient_phone: newRecipientPhone,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message);
+        setEditingAddress(false);
+        
+        // Update tracking info
+        if (trackingInfo) {
+          setTrackingInfo({
+            ...trackingInfo,
+            address: newAddress,
+            recipient_name: newRecipientName,
+            recipient_phone: newRecipientPhone,
+          });
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Ошибка при обновлении адреса');
+      }
+    } catch (err) {
+      toast.error('Ошибка при обновлении адреса');
+    }
+  };
+
+  // Comment functions
+  const handleAddComment = async () => {
+    if (!token || !newComment.trim() || !customerName.trim()) return;
+
+    try {
+      const response = await fetch(`/api/public/orders/${token}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: newComment,
+          customer_name: customerName,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Комментарий добавлен');
+        setNewComment('');
+        
+        // Reload comments
+        const commentsResponse = await fetch(`/api/public/orders/${token}/comments`);
+        if (commentsResponse.ok) {
+          const commentsData = await commentsResponse.json();
+          setComments(commentsData.items || []);
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Ошибка при добавлении комментария');
+      }
+    } catch (err) {
+      toast.error('Ошибка при добавлении комментария');
+    }
+  };
+
+  // Photo feedback functions
+  const handlePhotoFeedback = async (photoId: number, feedback: 'like' | 'dislike', comment?: string) => {
+    if (!token) return;
+
+    try {
+      const response = await fetch(`/api/public/orders/${token}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          photo_id: photoId,
+          feedback,
+          comment,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message);
+        
+        // Update photos state
+        setPhotos(photos.map(photo => 
+          photo.id === photoId 
+            ? { ...photo, customer_feedback: feedback, feedback_comment: comment }
+            : photo
+        ));
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Ошибка при отправке отзыва');
+      }
+    } catch (err) {
+      toast.error('Ошибка при отправке отзыва');
+    }
   };
 
   if (loading) {
@@ -291,10 +467,22 @@ export function TrackingPage() {
                   )}
                   {trackingInfo.address && (
                     <div>
-                      <span className="text-gray-600 flex items-center gap-1 mb-1">
-                        <MapPin className="h-4 w-4" />
-                        Адрес доставки:
-                      </span>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-gray-600 flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          Адрес доставки:
+                        </span>
+                        {canEditAddress && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingAddress(true)}
+                            className="h-6 px-2"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                       <p className="text-sm">{trackingInfo.address}</p>
                     </div>
                   )}
@@ -340,6 +528,196 @@ export function TrackingPage() {
                     <span>Итого:</span>
                     <span className="text-primary">{formatPrice(trackingInfo.total)}</span>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Address Edit Dialog */}
+            <Dialog open={editingAddress} onOpenChange={setEditingAddress}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Изменить адрес доставки</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Адрес доставки</label>
+                    <Textarea
+                      value={newAddress}
+                      onChange={(e) => setNewAddress(e.target.value)}
+                      placeholder="Введите новый адрес"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Имя получателя</label>
+                    <Input
+                      value={newRecipientName}
+                      onChange={(e) => setNewRecipientName(e.target.value)}
+                      placeholder="Имя получателя"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Телефон получателя</label>
+                    <Input
+                      value={newRecipientPhone}
+                      onChange={(e) => setNewRecipientPhone(e.target.value)}
+                      placeholder="+7 (XXX) XXX-XX-XX"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" onClick={() => setEditingAddress(false)}>
+                      Отмена
+                    </Button>
+                    <Button onClick={handleUpdateAddress}>
+                      Сохранить
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Photos Section */}
+            {photos.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5" />
+                    Фото букета
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {photos.map((photo) => (
+                      <div key={photo.id} className="space-y-3">
+                        <div className="relative">
+                          <img
+                            src={photo.photo_url}
+                            alt={photo.description || "Фото букета"}
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                          <Badge className="absolute top-2 left-2 bg-white/90 text-gray-700">
+                            {photo.photo_type === 'pre_delivery' && 'Перед доставкой'}
+                            {photo.photo_type === 'completion' && 'Готово'}
+                            {photo.photo_type === 'process' && 'В работе'}
+                          </Badge>
+                        </div>
+                        
+                        {photo.description && (
+                          <p className="text-sm text-gray-600">{photo.description}</p>
+                        )}
+
+                        {photo.customer_feedback ? (
+                          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            {photo.customer_feedback === 'like' ? (
+                              <ThumbsUp className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <ThumbsDown className="h-4 w-4 text-red-600" />
+                            )}
+                            <span className="text-sm">
+                              {photo.customer_feedback === 'like' ? 'Вам понравилось' : 'Вам не понравилось'}
+                            </span>
+                            {photo.feedback_comment && (
+                              <span className="text-sm text-gray-600">: {photo.feedback_comment}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handlePhotoFeedback(photo.id, 'like')}
+                              className="flex-1"
+                            >
+                              <ThumbsUp className="h-4 w-4 mr-1" />
+                              Нравится
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handlePhotoFeedback(photo.id, 'dislike')}
+                              className="flex-1"
+                            >
+                              <ThumbsDown className="h-4 w-4 mr-1" />
+                              Не нравится
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Comments Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Комментарии
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Existing Comments */}
+                {comments.length > 0 && (
+                  <div className="space-y-4 mb-6">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-shrink-0">
+                          {comment.author_type === 'staff' ? (
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <User className="h-4 w-4 text-blue-600" />
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <MessageCircle className="h-4 w-4 text-green-600" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-sm">{comment.author_name}</span>
+                            {comment.author_type === 'staff' && (
+                              <Badge variant="secondary" className="text-xs">Сотрудник</Badge>
+                            )}
+                            <span className="text-xs text-gray-500">
+                              {formatDate(comment.created_at)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700">{comment.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add Comment Form */}
+                <div className="space-y-3 border-t pt-4">
+                  <h4 className="font-medium">Добавить комментарий</h4>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input
+                      placeholder="Ваше имя"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                    />
+                    <div></div>
+                  </div>
+                  <Textarea
+                    placeholder="Ваш комментарий"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows={3}
+                  />
+                  <Button
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim() || !customerName.trim()}
+                    className="w-full md:w-auto"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Отправить комментарий
+                  </Button>
                 </div>
               </CardContent>
             </Card>
