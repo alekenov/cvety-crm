@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Package, MapPin, Phone, Calendar, Clock, CreditCard, Star } from 'lucide-react';
+import { Package, MapPin, Phone, Calendar, Clock, CreditCard, Star, CheckCircle, ArrowLeft, ShoppingCart, ExternalLink, Copy, Loader2 } from 'lucide-react';
 import { ReviewDialog } from '@/components/ReviewDialog';
+import { toast } from 'sonner';
 
 interface TrackingInfo {
   order_number: string;
@@ -60,11 +60,13 @@ const deliveryMethodNames = {
 
 export function TrackingPage() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const [trackingInfo, setTrackingInfo] = useState<TrackingInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [isNewOrder, setIsNewOrder] = useState(false);
 
   // Загружаем информацию о заказе при загрузке страницы
   useEffect(() => {
@@ -90,6 +92,12 @@ export function TrackingPage() {
 
         const data = await response.json();
         setTrackingInfo(data);
+        
+        // Check if order is new (created within last 5 minutes)
+        const orderCreatedAt = new Date(data.created_at);
+        const now = new Date();
+        const diffInMinutes = (now.getTime() - orderCreatedAt.getTime()) / (1000 * 60);
+        setIsNewOrder(diffInMinutes <= 5);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Произошла ошибка');
         setTrackingInfo(null);
@@ -119,213 +127,218 @@ export function TrackingPage() {
     (trackingInfo.status === 'completed' || trackingInfo.status === 'delivery') && 
     !hasReviewed;
 
+  const handleCopyTrackingLink = () => {
+    const trackingUrl = `${window.location.origin}/status/${token}`;
+    navigator.clipboard.writeText(trackingUrl);
+    toast.success('Ссылка для отслеживания скопирована');
+  };
+
+  const handleReturnToShop = () => {
+    // Extract shop ID from URL or use default
+    navigate('/shop/1');
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Package className="h-8 w-8 text-blue-600 animate-spin" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Загрузка информации о заказе...</h2>
-          <p className="text-gray-600">Пожалуйста, подождите</p>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (error) {
+  if (error || !trackingInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-            <Package className="h-8 w-8 text-red-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Заказ не найден</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <p className="text-sm text-gray-500">
-            Проверьте правильность ссылки для отслеживания или обратитесь в службу поддержки.
-          </p>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <h2 className="text-xl font-semibold mb-2">Ошибка</h2>
+            <p className="text-gray-600 mb-4">{error || 'Заказ не найден'}</p>
+            <Button onClick={handleReturnToShop}>
+              Вернуться в магазин
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-              <Package className="h-8 w-8 text-blue-600" />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Отслеживание заказа
-            </h1>
-            <p className="text-lg text-gray-600 max-w-lg mx-auto">
-              Актуальная информация о статусе вашего заказа
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header with context-aware success message */}
+      {isNewOrder ? (
+        <header className="bg-white shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <Button 
+              variant="ghost" 
+              onClick={handleReturnToShop}
+              className="mb-2"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Вернуться в магазин
+            </Button>
           </div>
-        </div>
-      </div>
+        </header>
+      ) : (
+        <header className="bg-white shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                <Package className="h-8 w-8 text-blue-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Отслеживание заказа
+              </h1>
+              <p className="text-gray-600">
+                Номер заказа: <span className="font-mono font-bold">#{trackingInfo.order_number}</span>
+              </p>
+            </div>
+          </div>
+        </header>
+      )}
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Success Message for New Orders */}
+        {isNewOrder && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 text-center">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-green-900 mb-2">
+              Заказ успешно оформлен!
+            </h1>
+            <p className="text-green-700 mb-4">
+              Номер вашего заказа: <span className="font-mono font-bold">#{trackingInfo.order_number}</span>
+            </p>
+            <p className="text-gray-600 mb-4">
+              Мы отправили детали заказа на ваш телефон
+            </p>
+            <div className="bg-white rounded-lg p-4 inline-block">
+              <p className="text-sm text-gray-600 mb-2">Ссылка для отслеживания:</p>
+              <div className="flex items-center gap-2">
+                <span className="text-blue-600 break-all">
+                  {window.location.origin}/status/{token}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCopyTrackingLink}
+                  className="h-8 w-8 flex-shrink-0"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {trackingInfo && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-            {/* Order Status */}
-            <Card className="shadow-lg border-0 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold">#{trackingInfo.order_number}</h3>
-                    <p className="text-blue-100">Номер заказа</p>
+          <div className="space-y-6">
+            {/* Order Status - Improved design with grid layout */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Order Info Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Информация о заказе
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Статус:</span>
+                    <Badge className={statusColors[trackingInfo.status as keyof typeof statusColors]}>
+                      {statusNames[trackingInfo.status as keyof typeof statusNames]}
+                    </Badge>
                   </div>
-                  <Badge className={`${statusColors[trackingInfo.status as keyof typeof statusColors]} text-xs font-semibold px-3 py-1`}>
-                    {statusNames[trackingInfo.status as keyof typeof statusNames]}
-                  </Badge>
-                </div>
-              </div>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 font-medium">Создан</p>
-                      <p className="font-semibold text-gray-900">{formatDate(trackingInfo.created_at)}</p>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Дата оформления:</span>
+                    <span>{formatDate(trackingInfo.created_at)}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 font-medium">Обновлен</p>
-                      <p className="font-semibold text-gray-900">{formatDate(trackingInfo.updated_at)}</p>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Способ доставки:</span>
+                    <span>{deliveryMethodNames[trackingInfo.delivery_method as keyof typeof deliveryMethodNames]}</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  {trackingInfo.delivery_window && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Время доставки:</span>
+                      <span>
+                        {formatDate(trackingInfo.delivery_window.from_time || '')} - 
+                        {formatDate(trackingInfo.delivery_window.to_time || '')}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Delivery Info */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gray-50 border-b">
-                <CardTitle className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                    <MapPin className="h-4 w-4 text-orange-600" />
-                  </div>
-                  Информация о доставке
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+              {/* Contact Info Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Phone className="h-5 w-5" />
+                    Контактная информация
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {trackingInfo.recipient_name && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Получатель:</span>
+                      <span>{trackingInfo.recipient_name}</span>
+                    </div>
+                  )}
+                  {trackingInfo.recipient_phone && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Телефон:</span>
+                      <span>{trackingInfo.recipient_phone}</span>
+                    </div>
+                  )}
+                  {trackingInfo.address && (
                     <div>
-                      <p className="text-sm font-medium text-gray-500 mb-1">Способ получения</p>
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                          <MapPin className="h-3 w-3 text-blue-600" />
-                        </div>
-                        <p className="font-semibold text-gray-900">
-                          {deliveryMethodNames[trackingInfo.delivery_method as keyof typeof deliveryMethodNames]}
-                        </p>
-                      </div>
+                      <span className="text-gray-600 flex items-center gap-1 mb-1">
+                        <MapPin className="h-4 w-4" />
+                        Адрес доставки:
+                      </span>
+                      <p className="text-sm">{trackingInfo.address}</p>
                     </div>
-                    
-                    {trackingInfo.recipient_name && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">Получатель</p>
-                        <p className="font-semibold text-gray-900">{trackingInfo.recipient_name}</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {trackingInfo.recipient_phone && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">Телефон</p>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                            <Phone className="h-3 w-3 text-green-600" />
-                          </div>
-                          <p className="font-semibold text-gray-900">{trackingInfo.recipient_phone}</p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {trackingInfo.delivery_window && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">Время доставки</p>
-                        <p className="font-semibold text-gray-900">
-                          {trackingInfo.delivery_window.from_time && trackingInfo.delivery_window.to_time
-                            ? `${formatDate(trackingInfo.delivery_window.from_time)} - ${formatDate(trackingInfo.delivery_window.to_time)}`
-                            : 'Время уточняется'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {trackingInfo.address && (
-                  <div className="mt-6 pt-6 border-t">
-                    <p className="text-sm font-medium text-gray-500 mb-2">Адрес доставки</p>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="font-semibold text-gray-900">{trackingInfo.address}</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
-            {/* Order Items */}
-            <Card className="shadow-lg border-0">
-              <CardHeader className="bg-gray-50 border-b">
-                <CardTitle className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Package className="h-4 w-4 text-purple-600" />
-                  </div>
-                  Состав заказа
-                </CardTitle>
+
+            {/* Order Items - Improved Card Design */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Состав заказа</CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
+              <CardContent>
+                <div className="space-y-3">
                   {trackingInfo.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900">{item.product_name}</p>
-                        <p className="text-sm text-gray-600">Количество: {item.quantity} шт.</p>
+                    <div key={index} className="flex justify-between items-center py-2 border-b last:border-0">
+                      <div>
+                        <p className="font-medium">{item.product_name}</p>
+                        <p className="text-sm text-gray-600">
+                          {item.quantity} × {formatPrice(item.price)}
+                        </p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg text-gray-900">{formatPrice(item.price * item.quantity)}</p>
-                        <p className="text-sm text-gray-500">{formatPrice(item.price)} за шт.</p>
-                      </div>
+                      <span className="font-semibold">
+                        {formatPrice(item.quantity * item.price)}
+                      </span>
                     </div>
                   ))}
-                  
-                  <div className="border-t pt-4 mt-6">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Стоимость товаров:</span>
-                        <span className="font-semibold">{formatPrice(trackingInfo.total - trackingInfo.delivery_fee)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Доставка:</span>
-                        <span className="font-semibold">
-                          {trackingInfo.delivery_fee > 0 ? formatPrice(trackingInfo.delivery_fee) : 'Бесплатно'}
-                        </span>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between items-center bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
-                        <span className="text-xl font-bold text-gray-900">Итого к оплате:</span>
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="h-5 w-5 text-blue-600" />
-                          <span className="text-2xl font-bold text-blue-600">{formatPrice(trackingInfo.total)}</span>
-                        </div>
-                      </div>
+                </div>
+
+                <div className="border-t mt-4 pt-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span>Товары:</span>
+                    <span>{formatPrice(trackingInfo.total - trackingInfo.delivery_fee)}</span>
+                  </div>
+                  {trackingInfo.delivery_fee > 0 && (
+                    <div className="flex justify-between">
+                      <span>Доставка:</span>
+                      <span>{formatPrice(trackingInfo.delivery_fee)}</span>
                     </div>
+                  )}
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Итого:</span>
+                    <span className="text-primary">{formatPrice(trackingInfo.total)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -377,6 +390,23 @@ export function TrackingPage() {
           </div>
         )}
 
+        {/* Action Buttons */}
+        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+          <Button 
+            variant="outline"
+            onClick={handleReturnToShop}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Продолжить покупки
+          </Button>
+          <Button 
+            onClick={handleCopyTrackingLink}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            Скопировать ссылку
+          </Button>
+        </div>
+
         {/* Review Dialog */}
         <ReviewDialog
           open={showReviewDialog}
@@ -385,7 +415,7 @@ export function TrackingPage() {
           productName={trackingInfo?.items?.[0]?.product_name}
           onSubmit={handleReviewSubmit}
         />
-      </div>
+      </main>
     </div>
   );
 }
