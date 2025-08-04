@@ -225,7 +225,7 @@ export function OrderDetailPage() {
 
   const handleCopyTrackingLink = () => {
     if (order?.tracking_token) {
-      const trackingUrl = `${window.location.origin}/tracking/${order.tracking_token}`
+      const trackingUrl = `${window.location.origin}/status/${order.tracking_token}`
       navigator.clipboard.writeText(trackingUrl)
       toast.success("Ссылка для отслеживания скопирована")
     }
@@ -233,7 +233,7 @@ export function OrderDetailPage() {
 
   const handleOpenTracking = () => {
     if (order?.tracking_token) {
-      const trackingUrl = `${window.location.origin}/tracking/${order.tracking_token}`
+      const trackingUrl = `${window.location.origin}/status/${order.tracking_token}`
       window.open(trackingUrl, '_blank')
     }
   }

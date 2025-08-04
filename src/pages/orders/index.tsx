@@ -230,11 +230,11 @@ export function OrdersPage() {
   }
 
   const handleOpenTracking = (trackingToken: string) => {
-    window.open(`/tracking/${trackingToken}`, '_blank')
+    window.open(`/status/${trackingToken}`, '_blank')
   }
 
   const handleCopyTrackingLink = (trackingToken: string) => {
-    const trackingUrl = `${window.location.origin}/tracking/${trackingToken}`
+    const trackingUrl = `${window.location.origin}/status/${trackingToken}`
     navigator.clipboard.writeText(trackingUrl)
     toast.success("Ссылка для отслеживания скопирована")
   }
