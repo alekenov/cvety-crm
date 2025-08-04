@@ -90,3 +90,26 @@ class ProductWithStats(Product):
     
     class Config:
         from_attributes = True
+
+
+class ProductPublic(BaseModel):
+    """Public product information for storefront"""
+    id: int
+    name: str
+    category: ProductCategory
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    retail_price: float
+    sale_price: Optional[float] = None
+    is_active: bool = True
+    is_popular: bool = False
+    is_new: bool = False
+    
+    class Config:
+        from_attributes = True
+
+
+class ProductListPublic(BaseModel):
+    """Public product list response"""
+    items: List[ProductPublic]
+    total: int

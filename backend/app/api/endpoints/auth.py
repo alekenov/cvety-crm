@@ -38,7 +38,53 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-@router.post("/request-otp", status_code=201)
+@router.post("/request-otp", status_code=201,
+    summary="Request OTP code",
+    description="""
+    Request a one-time password (OTP) for phone number authentication.
+    
+    ## Process:
+    1. Provide phone number in Kazakhstan format (+7XXXXXXXXXX)
+    2. System generates 6-digit OTP code
+    3. Code is sent via Telegram if user has connected their account
+    4. Code expires after 5 minutes
+    
+    ## Delivery methods:
+    - **telegram**: Sent to user's Telegram (requires @cvety_kz_bot)
+    - **sms**: SMS delivery (not implemented yet)
+    - **debug**: Returns OTP in response (only in DEBUG mode)
+    
+    ## Rate limiting:
+    - Maximum 3 requests per minute per phone number
+    - After 3 failed attempts, account is temporarily locked
+    
+    ## Response:
+    - Success: Message with delivery method
+    - Rate limited: 429 error
+    """,
+    responses={
+        201: {
+            "description": "OTP requested successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "message": "OTP sent to your Telegram",
+                        "delivery_method": "telegram"
+                    }
+                }
+            }
+        },
+        429: {
+            "description": "Too many requests",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Too many requests. Please try again later."
+                    }
+                }
+            }
+        }
+    })
 async def request_otp(
     request: PhoneAuthRequest,
     db: Session = Depends(deps.get_db)
@@ -89,7 +135,58 @@ async def request_otp(
         }
 
 
-@router.post("/verify-otp", response_model=AuthToken, status_code=200)
+@router.post("/verify-otp", response_model=AuthToken, status_code=200,
+    summary="Verify OTP and get access token",
+    description="""
+    Verify the OTP code and receive a JWT access token for API authentication.
+    
+    ## Process:
+    1. Submit phone number and 6-digit OTP code
+    2. System validates the code (must be used within 5 minutes)
+    3. If valid, returns JWT access token
+    4. If shop doesn't exist, creates new shop account
+    
+    ## JWT Token:
+    - Valid for 24 hours (configurable)
+    - Contains shop_id and phone number
+    - Use in Authorization header: `Bearer <token>`
+    
+    ## Multi-tenancy:
+    - Each phone number = separate shop (tenant)
+    - All API calls are scoped to authenticated shop
+    - Shops are isolated from each other
+    
+    ## Response includes:
+    - **access_token**: JWT token for API calls
+    - **token_type**: Always "bearer"
+    - **shop_id**: Unique shop identifier
+    - **shop_name**: Display name of the shop
+    """,
+    responses={
+        200: {
+            "description": "Authentication successful",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "token_type": "bearer",
+                        "shop_id": 1,
+                        "shop_name": "Цветочный магазин 4567"
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "Invalid OTP",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Invalid or expired OTP code"
+                    }
+                }
+            }
+        }
+    })
 async def verify_otp(
     request: OTPVerifyRequest,
     db: Session = Depends(deps.get_db)
@@ -177,3 +274,75 @@ async def get_otp_status(
     # In production, add proper admin check
     status = otp_service.get_otp_status(phone)
     return status
+
+
+@router.post("/create-test-shop", status_code=201)
+async def create_test_shop(
+    db: Session = Depends(deps.get_db)
+):
+    """Create test shop for development (only works in DEBUG mode)"""
+    if not settings.DEBUG:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint is only available in DEBUG mode"
+        )
+    
+    # Check if test shop already exists
+    existing_shop = crud_shop.get_by_phone(db, phone="+77011234567")
+    
+    if existing_shop:
+        return {
+            "message": "Test shop already exists",
+            "shop": {
+                "id": existing_shop.id,
+                "name": existing_shop.name,
+                "phone": existing_shop.phone,
+                "email": existing_shop.email
+            },
+            "instructions": {
+                "phone": "+77011234567",
+                "otp": "Any 6-digit code works in DEBUG mode"
+            }
+        }
+    
+    # Create test shop
+    from app.schemas.shop import ShopCreate
+    
+    test_shop_data = ShopCreate(
+        name="Тестовый магазин цветов",
+        phone="+77011234567",
+        email="test@cvety.kz",
+        telegram_id="123456789",
+        telegram_username="test_flower_shop",
+        address="ул. Тестовая, 123",
+        city="Алматы",
+        description="Тестовый магазин для разработки",
+        business_hours={
+            "mon": ["09:00", "18:00"],
+            "tue": ["09:00", "18:00"],
+            "wed": ["09:00", "18:00"],
+            "thu": ["09:00", "18:00"],
+            "fri": ["09:00", "18:00"],
+            "sat": ["10:00", "16:00"],
+            "sun": []
+        },
+        is_active=True,
+        is_verified=True,
+        plan="premium"
+    )
+    
+    test_shop = crud_shop.create(db, obj_in=test_shop_data)
+    
+    return {
+        "message": "Test shop created successfully",
+        "shop": {
+            "id": test_shop.id,
+            "name": test_shop.name,
+            "phone": test_shop.phone,
+            "email": test_shop.email
+        },
+        "instructions": {
+            "phone": "+77011234567",
+            "otp": "Any 6-digit code works in DEBUG mode"
+        }
+    }

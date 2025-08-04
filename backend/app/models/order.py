@@ -12,6 +12,8 @@ class OrderStatus(str, enum.Enum):
     assembled = "assembled"
     delivery = "delivery"
     self_pickup = "self_pickup"
+    delivered = "delivered"
+    completed = "completed"
     issue = "issue"
 
 
@@ -27,6 +29,13 @@ class IssueType(str, enum.Enum):
     wrong_order = "wrong_order"
     delivery_delay = "delivery_delay"
     other = "other"
+
+
+class PaymentMethod(str, enum.Enum):
+    kaspi = "kaspi"
+    cash = "cash"
+    transfer = "transfer"
+    qr = "qr"
 
 
 class Order(Base):
@@ -49,6 +58,7 @@ class Order(Base):
     
     # Delivery info
     address = Column(String)
+    address_needs_clarification = Column(Boolean, default=False)
     delivery_method = Column(SQLEnum(DeliveryMethod), nullable=False)
     delivery_window = Column(JSON)  # {"from": "2024-01-26T14:00:00", "to": "2024-01-26T16:00:00"}
     
@@ -66,6 +76,18 @@ class Order(Base):
     # Tracking
     tracking_token = Column(String, unique=True, index=True)
     
+    # Payment info
+    payment_method = Column(SQLEnum(PaymentMethod))
+    payment_date = Column(DateTime(timezone=True))
+    
+    # Storefront specific fields
+    card_text = Column(String)  # Text for the greeting card
+    delivery_time_text = Column(String)  # User-friendly delivery time (e.g., "14:00-16:00")
+    source = Column(String, default="crm")  # Source of order: "crm", "storefront", "whatsapp", etc.
+    
+    # Shop association
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False, default=1)
+    
     # User assignments
     assigned_florist_id = Column(Integer, ForeignKey("users.id"))
     courier_id = Column(Integer, ForeignKey("users.id"))
@@ -77,6 +99,8 @@ class Order(Base):
     assigned_florist = relationship("User", foreign_keys=[assigned_florist_id], back_populates="assigned_orders")
     courier = relationship("User", foreign_keys=[courier_id], back_populates="courier_orders")
     history = relationship("OrderHistory", back_populates="order", cascade="all, delete-orphan", order_by="OrderHistory.created_at")
+    comments = relationship("Comment", back_populates="order", cascade="all, delete-orphan", order_by="Comment.created_at")
+    shop = relationship("Shop", back_populates="orders")
     
     @property
     def items_total(self):
