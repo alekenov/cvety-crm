@@ -7,7 +7,8 @@ import {
   DollarSign,
   TrendingUp,
   Search,
-  Info
+  Info,
+  Settings
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -329,10 +330,16 @@ export function BouquetCalculatorPage() {
             Расчет стоимости и маржинальности букета
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Добавить цветы
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.location.href = '/settings/calculator'}>
+            <Settings className="mr-2 h-4 w-4" />
+            Настройки
+          </Button>
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Добавить цветы
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
