@@ -202,10 +202,9 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 # Mount static files directory if it exists
 # This needs to be after API routes but before catch-all
-if os.path.exists(static_dir):
-    app.mount("/assets", StaticFiles(directory=static_dir), name="static_assets")
-elif os.path.exists(docker_static_dir):
-    app.mount("/assets", StaticFiles(directory=docker_static_dir), name="static_assets")
+assets_dir = os.path.join(static_dir, "assets") if os.path.exists(static_dir) else os.path.join(docker_static_dir, "assets")
+if os.path.exists(assets_dir):
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="static_assets")
 
 # Add a catch-all route for SPA to handle client-side routing
 # This should only handle non-API routes
