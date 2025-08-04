@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PhotoUpload } from "@/components/catalog/photo-upload"
+import { BouquetCalculator } from "@/components/catalog/bouquet-calculator"
 import { toast } from "sonner"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { productsApi, productIngredientsApi } from "@/lib/api"
 
 const productSchema = z.object({
   name: z.string().min(1, "Название обязательно"),
@@ -37,7 +39,9 @@ type ProductFormData = z.infer<typeof productSchema>
 export function NewProductPage() {
   const navigate = useNavigate()
   const [photos, setPhotos] = useState<string[]>([])
+  const [ingredients, setIngredients] = useState<any[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [calculatedCost, setCalculatedCost] = useState(0)
 
   const {
     register,
@@ -56,6 +60,13 @@ export function NewProductPage() {
       retailPrice: 0
     }
   })
+
+  // Update cost price when ingredients change
+  useEffect(() => {
+    if (watch("category") === "bouquet" && calculatedCost > 0) {
+      setValue("costPrice", calculatedCost)
+    }
+  }, [calculatedCost, setValue, watch])
 
   const watchRetailPrice = watch("retailPrice")
   const watchSalePrice = watch("salePrice")
@@ -77,11 +88,34 @@ export function NewProductPage() {
 
     setIsSubmitting(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    toast.success("Товар успешно добавлен")
-    navigate("/catalog")
+    try {
+      // Create product
+      const createdProduct = await productsApi.create(data)
+      
+      // Upload images
+      if (photos.length > 0) {
+        await productsApi.updateImages(createdProduct.id, photos)
+      }
+      
+      // Add ingredients if it's a bouquet
+      if (data.category === "bouquet" && ingredients.length > 0) {
+        for (const ing of ingredients) {
+          await productIngredientsApi.add(createdProduct.id, {
+            warehouseItemId: ing.warehouseItemId,
+            quantity: ing.quantity,
+            notes: ing.notes
+          })
+        }
+      }
+      
+      toast.success("Товар успешно добавлен")
+      navigate(`/catalog/${createdProduct.id}`)
+    } catch (err) {
+      toast.error('Ошибка при создании товара')
+      console.error('Error creating product:', err)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -167,6 +201,25 @@ export function NewProductPage() {
           </CardContent>
         </Card>
 
+        {/* Bouquet composition for bouquet category */}
+        {watch("category") === "bouquet" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Состав букета</CardTitle>
+              <CardDescription>
+                Укажите цветы и их количество для расчета себестоимости
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BouquetCalculator
+                ingredients={ingredients}
+                onChange={setIngredients}
+                onCostChange={setCalculatedCost}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Pricing */}
         <Card>
           <CardHeader>
@@ -181,6 +234,7 @@ export function NewProductPage() {
                   type="number"
                   placeholder="0"
                   {...register("costPrice", { valueAsNumber: true })}
+                  disabled={watch("category") === "bouquet" && calculatedCost > 0}
                 />
                 {errors.costPrice && (
                   <p className="text-sm text-destructive">{errors.costPrice.message}</p>

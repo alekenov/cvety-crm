@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   Calculator, 
   Plus, 
@@ -48,6 +48,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 import type { BouquetItem, WarehouseItem } from "@/lib/types"
+import { calculatorApi, warehouseApi } from "@/lib/api"
 
 // Mock warehouse items for selection
 const mockWarehouseItems: WarehouseItem[] = [
@@ -145,14 +146,7 @@ const mockWarehouseItems: WarehouseItem[] = [
   }
 ]
 
-const decorMaterials = [
-  { name: "Упаковка крафт", price: 500 },
-  { name: "Упаковка корейская", price: 800 },
-  { name: "Лента атласная", price: 300 },
-  { name: "Лента бархатная", price: 500 },
-  { name: "Открытка", price: 200 },
-  { name: "Топпер", price: 1000 }
-]
+// Decorative materials will be loaded from API
 
 export function BouquetCalculatorPage() {
   const [selectedItems, setSelectedItems] = useState<BouquetItem[]>([])
@@ -162,8 +156,71 @@ export function BouquetCalculatorPage() {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedWarehouseItem, setSelectedWarehouseItem] = useState<WarehouseItem | null>(null)
   const [itemQty, setItemQty] = useState(1)
+  const [decorMaterials, setDecorMaterials] = useState<{ id: number; name: string; price: number; category?: string }[]>([])
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(true)
+  const [warehouseItems, setWarehouseItems] = useState<WarehouseItem[]>([])
+  const [isLoadingWarehouse, setIsLoadingWarehouse] = useState(false)
+  
+  // Load decorative materials and settings from API
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoadingMaterials(true)
+        
+        // Load decorative materials
+        const materialsResponse = await calculatorApi.getMaterials()
+        if (materialsResponse.items) {
+          setDecorMaterials(materialsResponse.items.filter((m: any) => m.is_active))
+        }
+        
+        // Load calculator settings
+        const settingsResponse = await calculatorApi.getSettings()
+        if (settingsResponse.default_labor_cost) {
+          setLaborCost(Number(settingsResponse.default_labor_cost))
+        }
+      } catch (error) {
+        console.error('Failed to load calculator data:', error)
+        // Use fallback data if API fails
+        setDecorMaterials([
+          { id: 1, name: "Упаковка крафт", price: 500 },
+          { id: 2, name: "Упаковка корейская", price: 800 },
+          { id: 3, name: "Лента атласная", price: 300 },
+          { id: 4, name: "Лента бархатная", price: 500 },
+          { id: 5, name: "Открытка", price: 200 },
+          { id: 6, name: "Топпер", price: 1000 }
+        ])
+      } finally {
+        setIsLoadingMaterials(false)
+      }
+    }
+    
+    loadData()
+  }, [])
+  
+  // Load warehouse items when dialog opens
+  useEffect(() => {
+    if (showAddDialog && warehouseItems.length === 0) {
+      loadWarehouseItems()
+    }
+  }, [showAddDialog])
+  
+  const loadWarehouseItems = async () => {
+    try {
+      setIsLoadingWarehouse(true)
+      const response = await warehouseApi.getAll({ onShowcase: true, limit: 100 })
+      if (response.items) {
+        setWarehouseItems(response.items)
+      }
+    } catch (error) {
+      console.error('Failed to load warehouse items:', error)
+      // Use mock data as fallback
+      setWarehouseItems(mockWarehouseItems)
+    } finally {
+      setIsLoadingWarehouse(false)
+    }
+  }
 
-  const filteredWarehouseItems = mockWarehouseItems.filter(item =>
+  const filteredWarehouseItems = warehouseItems.filter(item =>
     item.variety.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -215,7 +272,7 @@ export function BouquetCalculatorPage() {
     setSelectedItems(updatedItems)
   }
 
-  const handleAddDecor = (material: { name: string; price: number }) => {
+  const handleAddDecor = (material: { id?: number; name: string; price: number }) => {
     const existingIndex = decorItems.findIndex(item => item.name === material.name)
     
     if (existingIndex >= 0) {
@@ -355,19 +412,23 @@ export function BouquetCalculatorPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>Декоративные материалы</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {decorMaterials.map((material) => (
-                    <Button
-                      key={material.name}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddDecor(material)}
-                    >
-                      <Plus className="mr-1 h-3 w-3" />
-                      {material.name} ({formatCurrency(material.price)})
-                    </Button>
-                  ))}
-                </div>
+                {isLoadingMaterials ? (
+                  <div className="text-sm text-muted-foreground mt-2">Загрузка материалов...</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {decorMaterials.map((material) => (
+                      <Button
+                        key={material.id}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddDecor(material)}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        {material.name} ({formatCurrency(material.price)})
+                      </Button>
+                    ))}
+                  </div>
+                )}
                 
                 {decorItems.length > 0 && (
                   <div className="mt-4 space-y-2">
@@ -535,6 +596,11 @@ export function BouquetCalculatorPage() {
             </div>
 
             <ScrollArea className="h-[300px] rounded-md border p-4">
+              {isLoadingWarehouse ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Загрузка товаров со склада...
+                </div>
+              ) : (
               <div className="space-y-2">
                 {filteredWarehouseItems.map((item) => (
                   <div
@@ -563,6 +629,7 @@ export function BouquetCalculatorPage() {
                   </div>
                 ))}
               </div>
+              )}
             </ScrollArea>
 
             {selectedWarehouseItem && (

@@ -327,3 +327,8 @@ make db-backup                     # Backup before changes
 - **Railway**: PostgreSQL (auto-provided via DATABASE_URL)
 - **Migrations**: Run automatically on Railway via `docker-entrypoint.sh`
 - **Type differences**: See DATABASE_STANDARDS.md for mapping table
+
+## Auth and Phone Verification Memories
+
+### Phone Authorization Methods
+- **+77771234567 этот номер используй для авторизации** - Special phone number for testing authorization flow

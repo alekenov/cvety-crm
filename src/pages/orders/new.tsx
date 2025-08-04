@@ -67,10 +67,55 @@ export function NewOrderPage() {
     }
   }
 
-  const handleCreateOrder = () => {
-    const totals = calculateTotals()
-    toast.success(`Заказ на сумму ${totals.total.toLocaleString()} ₸ успешно создан!`)
-    navigate('/orders')
+  const handleCreateOrder = async () => {
+    try {
+      if (!selectedCustomer) {
+        toast.error('Выберите клиента')
+        return
+      }
+      
+      if (orderItems.length === 0) {
+        toast.error('Добавьте товары в заказ')
+        return
+      }
+      
+      if (!deliveryInfo.date) {
+        toast.error('Выберите дату доставки')
+        return
+      }
+      
+      // Format delivery window
+      const deliveryWindow = deliveryInfo.timeFrom && deliveryInfo.timeTo ? {
+        from: `${deliveryInfo.date.toISOString().split('T')[0]}T${deliveryInfo.timeFrom}:00`,
+        to: `${deliveryInfo.date.toISOString().split('T')[0]}T${deliveryInfo.timeTo}:00`
+      } : undefined
+      
+      // Import ordersApi
+      const { ordersApi } = await import('@/lib/api')
+      
+      const orderData = {
+        customerPhone: selectedCustomer.phone,
+        recipientPhone: deliveryInfo.recipientPhone || selectedCustomer.phone,
+        recipientName: deliveryInfo.recipientName || selectedCustomer.name,
+        address: deliveryInfo.address,
+        deliveryMethod: deliveryInfo.method,
+        deliveryWindow,
+        comment: deliveryInfo.comment,
+        items: orderItems.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price
+        }))
+      }
+      
+      const newOrder = await ordersApi.create(orderData)
+      const totals = calculateTotals()
+      toast.success(`Заказ #${newOrder.id} на сумму ${totals.total.toLocaleString()} ₸ успешно создан!`)
+      navigate('/orders')
+    } catch (error) {
+      console.error('Error creating order:', error)
+      toast.error('Ошибка при создании заказа')
+    }
   }
 
   return (

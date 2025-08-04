@@ -1,0 +1,444 @@
+INFO:     Will watch for changes in these directories: ['/Users/alekenov/projects/shadcn-test/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [39287] using WatchFiles
+INFO:     Started server process [39292]
+INFO:     Waiting for application startup.
+INFO:app.main:Starting Cvety.kz API
+INFO:app.main:PORT: 8000
+INFO:app.main:Environment: development
+INFO:app.main:DATABASE_URL from env: NOT SET...
+INFO:app.main:DATABASE_URL from settings: sqlite:///./flower_shop.db...
+INFO:app.main:Connecting to database: Invalid DATABASE_URL format (length: 26)
+INFO:app.db.session:Database engine created successfully: sqlite:///./flower_shop.db...
+INFO:app.main:Database tables created successfully
+INFO:app.main:Database connection test: OK
+INFO:app.services.telegram_service:Telegram bot initialized: @lekenbot
+INFO:app.main:Telegram bot polling started
+INFO:app.main:Application startup complete
+INFO:     Application startup complete.
+INFO:app.services.telegram_service:Webhook removed
+INFO:app.services.telegram_service:Starting Telegram bot polling...
+INFO:aiogram.dispatcher:Start polling
+INFO:aiogram.dispatcher:Run polling for bot @lekenbot id=823344503 - 'Доставка цветов по Казахстану'
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.196116 seconds and try again... (tryings = 1, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.491434 seconds and try again... (tryings = 2, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 1.817829 seconds and try again... (tryings = 3, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 2.414227 seconds and try again... (tryings = 4, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 2.979175 seconds and try again... (tryings = 5, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 3.954601 seconds and try again... (tryings = 6, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.032549 seconds and try again... (tryings = 7, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.975895 seconds and try again... (tryings = 8, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.190197 seconds and try again... (tryings = 9, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.984988 seconds and try again... (tryings = 10, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.883601 seconds and try again... (tryings = 11, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.978210 seconds and try again... (tryings = 12, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.078320 seconds and try again... (tryings = 13, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.988706 seconds and try again... (tryings = 14, bot id = 823344503)
+INFO:     127.0.0.1:64904 - "GET /api/orders/?limit=1 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/cors.py", line 83, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/to_thread.py", line 33, in run_sync
+    return await get_asynclib().run_sync_in_worker_thread(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 877, in run_sync_in_worker_thread
+    return await future
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 807, in run
+    result = context.run(func, *args)
+  File "/Users/alekenov/projects/shadcn-test/backend/app/api/endpoints/orders.py", line 57, in get_orders
+    order_dict = OrderResponseWithItems.model_validate(order).model_dump()
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/pydantic/main.py", line 503, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for OrderResponseWithItems
+customer
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.customer.Cust...r object at 0x114fbcdf0>, input_type=Customer]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+assigned_florist
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.user.User object at 0x114fbcee0>, input_type=User]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.723080 seconds and try again... (tryings = 15, bot id = 823344503)
+INFO:     127.0.0.1:64933 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64937 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64934 - "GET /api/customers/?limit=20&skip=0 HTTP/1.1" 200 OK
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 4.962862 seconds and try again... (tryings = 16, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.258383 seconds and try again... (tryings = 17, bot id = 823344503)
+ERROR:aiogram.dispatcher:Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+WARNING:aiogram.dispatcher:Sleep for 5.186906 seconds and try again... (tryings = 18, bot id = 823344503)
+WARNING:  WatchFiles detected changes in 'app/api/endpoints/orders.py'. Reloading...
+WARNING:aiogram.dispatcher:Received SIGTERM signal
+INFO:aiogram.dispatcher:Polling stopped for bot @lekenbot id=823344503 - 'Доставка цветов по Казахстану'
+INFO:aiogram.dispatcher:Polling stopped
+INFO:     127.0.0.1:65038 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65040 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65036 - "GET /api/customers/?limit=20&skip=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65046 - "GET /api/orders/?limit=2 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/cors.py", line 83, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/to_thread.py", line 33, in run_sync
+    return await get_asynclib().run_sync_in_worker_thread(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 877, in run_sync_in_worker_thread
+    return await future
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 807, in run
+    result = context.run(func, *args)
+  File "/Users/alekenov/projects/shadcn-test/backend/app/api/endpoints/orders.py", line 57, in get_orders
+    # First convert basic order data
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/pydantic/main.py", line 503, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for OrderResponseWithItems
+customer
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.customer.Cust...r object at 0x1161b35b0>, input_type=Customer]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+assigned_florist
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.user.User object at 0x1161b36a0>, input_type=User]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+INFO:     127.0.0.1:65152 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65154 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65151 - "GET /api/orders/?page=1&limit=20 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/cors.py", line 83, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/to_thread.py", line 33, in run_sync
+    return await get_asynclib().run_sync_in_worker_thread(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 877, in run_sync_in_worker_thread
+    return await future
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 807, in run
+    result = context.run(func, *args)
+  File "/Users/alekenov/projects/shadcn-test/backend/app/api/endpoints/orders.py", line 57, in get_orders
+    # First convert basic order data
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/pydantic/main.py", line 503, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for OrderResponseWithItems
+customer
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.customer.Cust...r object at 0x1161d1040>, input_type=Customer]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+assigned_florist
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.user.User object at 0x1161d1130>, input_type=User]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+INFO:     127.0.0.1:65173 - "GET /api/orders/?page=1&limit=20 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/cors.py", line 83, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/to_thread.py", line 33, in run_sync
+    return await get_asynclib().run_sync_in_worker_thread(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 877, in run_sync_in_worker_thread
+    return await future
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 807, in run
+    result = context.run(func, *args)
+  File "/Users/alekenov/projects/shadcn-test/backend/app/api/endpoints/orders.py", line 57, in get_orders
+    # First convert basic order data
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/pydantic/main.py", line 503, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for OrderResponseWithItems
+customer
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.customer.Cust...r object at 0x1161f7d60>, input_type=Customer]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+assigned_florist
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.user.User object at 0x1161f7e50>, input_type=User]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+INFO:     127.0.0.1:65175 - "GET /api/orders/?page=1&limit=20 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/cors.py", line 83, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/to_thread.py", line 33, in run_sync
+    return await get_asynclib().run_sync_in_worker_thread(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 877, in run_sync_in_worker_thread
+    return await future
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 807, in run
+    result = context.run(func, *args)
+  File "/Users/alekenov/projects/shadcn-test/backend/app/api/endpoints/orders.py", line 57, in get_orders
+    # First convert basic order data
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/pydantic/main.py", line 503, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for OrderResponseWithItems
+customer
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.customer.Cust...r object at 0x116225bb0>, input_type=Customer]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+assigned_florist
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.user.User object at 0x116225ca0>, input_type=User]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+INFO:     127.0.0.1:65201 - "GET /api/orders/?page=1&limit=20 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/protocols/http/httptools_impl.py", line 426, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/cors.py", line 83, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/starlette/concurrency.py", line 40, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/to_thread.py", line 33, in run_sync
+    return await get_asynclib().run_sync_in_worker_thread(
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 877, in run_sync_in_worker_thread
+    return await future
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/anyio/_backends/_asyncio.py", line 807, in run
+    result = context.run(func, *args)
+  File "/Users/alekenov/projects/shadcn-test/backend/app/api/endpoints/orders.py", line 57, in get_orders
+    # First convert basic order data
+  File "/Users/alekenov/Library/Python/3.9/lib/python/site-packages/pydantic/main.py", line 503, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for OrderResponseWithItems
+customer
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.customer.Cust...r object at 0x116257c10>, input_type=Customer]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type
+assigned_florist
+  Input should be a valid dictionary [type=dict_type, input_value=<app.models.user.User object at 0x116257d00>, input_type=User]
+    For further information visit https://errors.pydantic.dev/2.5/v/dict_type

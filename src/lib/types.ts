@@ -34,6 +34,7 @@ export interface Product {
   images: ProductImage[]
   currentPrice: number
   discountPercentage: number
+  ingredients?: ProductIngredientWithDetails[]
 }
 
 export interface ProductWithStats extends Product {
@@ -99,6 +100,7 @@ export interface Order {
   recipientPhone?: string
   recipientName?: string
   address?: string
+  addressNeedsClarification?: boolean
   deliveryMethod: DeliveryMethod
   deliveryWindow?: {
     from: Date
@@ -240,6 +242,34 @@ export interface ProductionQueueStats {
   urgentTasks: number
   tasksByType: Record<string, number>
   tasksByPriority: Record<string, number>
+}
+
+export interface ProductIngredient {
+  id: number
+  productId: number
+  warehouseItemId: number
+  quantity: number
+  notes?: string
+}
+
+export interface ProductIngredientWithDetails extends ProductIngredient {
+  variety: string
+  heightCm: number
+  supplier: string
+  farm: string
+  availableQty: number
+  price: number
+}
+
+export interface ProductIngredientCreate {
+  warehouseItemId: number
+  quantity: number
+  notes?: string
+}
+
+export interface ProductIngredientUpdate {
+  quantity?: number
+  notes?: string
 }
 
 export interface BouquetItem {

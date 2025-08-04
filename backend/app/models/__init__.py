@@ -10,6 +10,7 @@ from app.models.product_ingredient import ProductIngredient
 from app.models.user import User, UserRole
 from app.models.order_history import OrderHistory, OrderEventType
 from app.models.comment import Comment
+from app.models.decorative_material import DecorativeMaterial, CalculatorSettings
 
 __all__ = [
     "Shop",
@@ -39,5 +40,7 @@ __all__ = [
     "UserRole",
     "OrderHistory",
     "OrderEventType",
-    "Comment"
+    "Comment",
+    "DecorativeMaterial",
+    "CalculatorSettings"
 ]

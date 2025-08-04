@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Order, WarehouseItem, Delivery, TrackingData, CompanySettings, Customer, FloristTask, TaskStatus, ProductionQueueStats, Product, ProductWithStats, ProductCreate, ProductUpdate, FlowerCategory, Supply, SupplyCreate, SupplyImportPreview } from './types'
+import type { Order, WarehouseItem, Delivery, TrackingData, CompanySettings, Customer, FloristTask, TaskStatus, ProductionQueueStats, Product, ProductWithStats, ProductCreate, ProductUpdate, ProductIngredient, ProductIngredientWithDetails, ProductIngredientCreate, ProductIngredientUpdate, FlowerCategory, Supply, SupplyCreate, SupplyImportPreview } from './types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
@@ -18,6 +18,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // Add shop phone header (required for multi-tenancy)
+    // In test mode, use a fixed phone number
+    config.headers['X-Shop-Phone'] = '+77007893838'
     return config
   },
   (error) => {
@@ -36,6 +39,38 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+// Calculator API
+export const calculatorApi = {
+  getMaterials: async () => {
+    const { data } = await api.get('/calculator/materials')
+    return data
+  },
+  
+  getSettings: async () => {
+    const { data } = await api.get('/calculator/settings')
+    return data
+  },
+  
+  updateSettings: async (settings: any) => {
+    const { data } = await api.patch('/calculator/settings', settings)
+    return data
+  },
+  
+  createMaterial: async (material: any) => {
+    const { data } = await api.post('/calculator/materials', material)
+    return data
+  },
+  
+  updateMaterial: async (id: number, material: any) => {
+    const { data } = await api.patch(`/calculator/materials/${id}`, material)
+    return data
+  },
+  
+  deleteMaterial: async (id: number) => {
+    await api.delete(`/calculator/materials/${id}`)
+  }
+}
 
 // Orders API
 export const ordersApi = {
@@ -70,6 +105,70 @@ export const ordersApi = {
     const { data } = await api.patch<Order>(`/orders/${id}`, updates)
     return data
   },
+  rollbackStatus: async (id: number, targetStatus: string, reason: string) => {
+    const { data } = await api.post<Order>(`/orders/${id}/rollback-status`, {
+      target_status: targetStatus,
+      reason
+    })
+    return data
+  },
+
+  create: async (orderData: {
+    customerPhone: string
+    recipientPhone?: string
+    recipientName?: string
+    address?: string
+    deliveryMethod: 'delivery' | 'self_pickup'
+    deliveryWindow?: {
+      from: string
+      to: string
+    }
+    comment?: string
+    items: Array<{
+      productId: string
+      quantity: number
+      price: number
+    }>
+  }) => {
+    // Convert camelCase to snake_case for API
+    // Also remove spaces from phone numbers (backend expects format: +7XXXXXXXXXX)
+    const apiData = {
+      customer_phone: orderData.customerPhone.replace(/\s/g, ''),
+      recipient_phone: orderData.recipientPhone?.replace(/\s/g, ''),
+      recipient_name: orderData.recipientName,
+      address: orderData.address,
+      delivery_method: orderData.deliveryMethod,
+      delivery_window: orderData.deliveryWindow ? {
+        from_time: orderData.deliveryWindow.from,
+        to_time: orderData.deliveryWindow.to
+      } : undefined,
+      comment: orderData.comment,
+      items: orderData.items.map(item => ({
+        product_id: parseInt(item.productId),
+        quantity: item.quantity,
+        price: item.price
+      }))
+    }
+    
+    console.log('Sending order data to API:', apiData)
+    
+    const { data } = await api.post<Order>('/orders/with-items', apiData)
+    return data
+  },
+  
+  cancelOrder: async (id: number, reason: string) => {
+    const { data } = await api.post<Order>(`/orders/${id}/cancel`, {
+      cancellation_reason: reason
+    })
+    return data
+  },
+  
+  updateDeliveryWindow: async (id: number, deliveryWindow: { from: string; to: string }) => {
+    const { data } = await api.patch<Order>(`/orders/${id}`, {
+      delivery_window: deliveryWindow
+    })
+    return data
+  },
 }
 
 // Warehouse API
@@ -85,8 +184,11 @@ export const warehouseApi = {
     page?: number
     limit?: number
   }) => {
-    const { data } = await api.get<{ items: WarehouseItem[]; total: number }>('/warehouse/', { params })
-    return data
+    const { data } = await api.get<{ items: any[]; total: number }>('/warehouse/', { params })
+    return {
+      items: data.items.map(item => convertKeysToCamelCase(item)) as WarehouseItem[],
+      total: data.total
+    }
   },
 
   getById: async (id: string) => {
@@ -366,6 +468,28 @@ export const customersApi = {
 }
 
 
+// Product Ingredients API
+export const productIngredientsApi = {
+  getAll: async (productId: number) => {
+    const { data } = await api.get<any[]>(`/products/${productId}/ingredients`)
+    return data.map(item => convertKeysToCamelCase(item)) as ProductIngredientWithDetails[]
+  },
+
+  add: async (productId: number, ingredient: ProductIngredientCreate) => {
+    const { data } = await api.post<any>(`/products/${productId}/ingredients`, ingredient)
+    return convertKeysToCamelCase(data) as ProductIngredient
+  },
+
+  update: async (productId: number, ingredientId: number, updates: ProductIngredientUpdate) => {
+    const { data } = await api.put<any>(`/products/${productId}/ingredients/${ingredientId}`, updates)
+    return convertKeysToCamelCase(data) as ProductIngredient
+  },
+
+  delete: async (productId: number, ingredientId: number) => {
+    await api.delete(`/products/${productId}/ingredients/${ingredientId}`)
+  }
+}
+
 // Products API
 export const productsApi = {
   getAll: async (params?: {
@@ -414,15 +538,7 @@ export const productsApi = {
     const { data } = await api.get<any>(`/products/${id}`)
     
     // Convert response from snake_case to camelCase
-    return convertKeysToCamelCase({
-      ...data,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-      images: (data.images || []).map((img: any) => convertKeysToCamelCase({
-        ...img,
-        createdAt: new Date(img.created_at)
-      }))
-    }) as ProductWithStats
+    return convertKeysToCamelCase(data) as ProductWithStats
   },
 
   create: async (product: ProductCreate) => {
@@ -450,15 +566,7 @@ export const productsApi = {
     const { data } = await api.put<any>(`/products/${id}`, updateData)
     
     // Convert response from snake_case to camelCase
-    return convertKeysToCamelCase({
-      ...data,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-      images: (data.images || []).map((img: any) => convertKeysToCamelCase({
-        ...img,
-        createdAt: new Date(img.created_at)
-      }))
-    }) as Product
+    return convertKeysToCamelCase(data) as Product
   },
 
   toggleActive: async (id: number) => {
@@ -480,15 +588,7 @@ export const productsApi = {
     const { data } = await api.put<any>(`/products/${id}/images`, imageUrls)
     
     // Convert response from snake_case to camelCase
-    return convertKeysToCamelCase({
-      ...data,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-      images: (data.images || []).map((img: any) => convertKeysToCamelCase({
-        ...img,
-        createdAt: new Date(img.created_at)
-      }))
-    }) as Product
+    return convertKeysToCamelCase(data) as Product
   },
 
   delete: async (id: number) => {
@@ -524,6 +624,24 @@ const convertKeysToCamelCase = (obj: any): any => {
     const camelKey = toCamelCase(key)
     converted[camelKey] = convertKeysToCamelCase(value)
   }
+  
+  // Special handling for warehouse items - map price to priceKzt
+  if (converted.price !== undefined && !converted.priceKzt) {
+    converted.priceKzt = converted.price
+  }
+  
+  // Convert date strings to Date objects
+  const dateFields = ['createdAt', 'updatedAt', 'deliveryDate', 'created_at', 'updated_at', 'delivery_date']
+  dateFields.forEach(field => {
+    if (converted[field] && typeof converted[field] === 'string') {
+      try {
+        converted[field] = new Date(converted[field])
+      } catch (e) {
+        // Keep original value if date parsing fails
+      }
+    }
+  })
+  
   return converted
 }
 
