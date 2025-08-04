@@ -436,7 +436,7 @@ def create_order_with_items(
         # Manually serialize the related objects to dictionaries
         order_dict = {
             'id': db_order.id,
-            'order_number': f"CVE-{db_order.id:06d}",
+            'order_number': db_order.tracking_token,
             'status': db_order.status,
             'customer_phone': db_order.customer_phone,
             'recipient_phone': db_order.recipient_phone,

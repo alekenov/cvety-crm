@@ -189,7 +189,7 @@ export function TrackingPage() {
                 Отслеживание заказа
               </h1>
               <p className="text-gray-600">
-                Номер заказа: <span className="font-mono font-bold">#{trackingInfo.order_number}</span>
+                Номер заказа: <span className="font-mono font-bold">{trackingInfo.order_number}</span>
               </p>
             </div>
           </div>
@@ -205,7 +205,7 @@ export function TrackingPage() {
               Заказ успешно оформлен!
             </h1>
             <p className="text-green-700 mb-4">
-              Номер вашего заказа: <span className="font-mono font-bold">#{trackingInfo.order_number}</span>
+              Номер вашего заказа: <span className="font-mono font-bold">{trackingInfo.order_number}</span>
             </p>
             <p className="text-gray-600 mb-4">
               Мы отправили детали заказа на ваш телефон

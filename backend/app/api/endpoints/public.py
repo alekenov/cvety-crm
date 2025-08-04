@@ -139,7 +139,7 @@ def create_public_order(
         total=total,
         status=OrderStatus.new,
         shop_id=order_data.shop_id,
-        tracking_token=str(secrets.randbelow(999999999999)).zfill(12),
+        tracking_token=str(secrets.randbelow(900000000) + 100000000),
         card_text=order_data.card_text,
         delivery_time_text=order_data.delivery_time_text,
         source="storefront"
@@ -235,7 +235,7 @@ def get_order_status(
         })
     
     return schemas.TrackingResponse(
-        order_number=f"CVE-{order.id:06d}",
+        order_number=order.tracking_token,
         status=order.status,
         created_at=order.created_at,
         updated_at=order.updated_at,
@@ -280,7 +280,7 @@ async def send_order_notification(order: Order, shop: Shop):
             message = f"""
 {status_emoji} **Новый заказ в витрине!**
 
-📦 **Заказ:** CVE-{order.id:06d}
+📦 **Заказ:** {order.tracking_token}
 🔢 **Трекинг:** {order.tracking_token}
 👤 **Клиент:** {order.recipient_name}
 📱 **Телефон:** {order.customer_phone}
@@ -295,7 +295,7 @@ async def send_order_notification(order: Order, shop: Shop):
 💳 **Итого:** {int(order.total):,} ₸
 
 🌐 **Источник:** Интернет-витрина
-📋 **Статус:** {order.tracking_token}
+📋 **Статус:** Новый
 🔗 **Отследить:** https://cvety.kz/status/{order.tracking_token}
 
 ⏰ {order.created_at.strftime('%d.%m.%Y %H:%M')}

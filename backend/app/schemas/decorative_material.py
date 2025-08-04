@@ -42,10 +42,10 @@ class DecorativeMaterialList(BaseModel):
 
 
 class CalculatorSettingsBase(BaseModel):
-    default_labor_cost: Decimal = Field(default=2000, max_digits=10, decimal_places=2)
-    min_margin_percent: Decimal = Field(default=30, max_digits=5, decimal_places=2)
-    recommended_margin_percent: Decimal = Field(default=50, max_digits=5, decimal_places=2)
-    premium_margin_percent: Decimal = Field(default=100, max_digits=5, decimal_places=2)
+    default_labor_cost: Decimal = Field(default=2000, ge=0)
+    min_margin_percent: Decimal = Field(default=30, ge=0, le=1000)
+    recommended_margin_percent: Decimal = Field(default=50, ge=0, le=1000)
+    premium_margin_percent: Decimal = Field(default=100, ge=0, le=1000)
 
 
 class CalculatorSettingsCreate(CalculatorSettingsBase):
@@ -53,10 +53,10 @@ class CalculatorSettingsCreate(CalculatorSettingsBase):
 
 
 class CalculatorSettingsUpdate(BaseModel):
-    default_labor_cost: Optional[Decimal] = Field(None, max_digits=10, decimal_places=2)
-    min_margin_percent: Optional[Decimal] = Field(None, max_digits=5, decimal_places=2)
-    recommended_margin_percent: Optional[Decimal] = Field(None, max_digits=5, decimal_places=2)
-    premium_margin_percent: Optional[Decimal] = Field(None, max_digits=5, decimal_places=2)
+    default_labor_cost: Optional[Decimal] = Field(None, ge=0)
+    min_margin_percent: Optional[Decimal] = Field(None, ge=0, le=1000)
+    recommended_margin_percent: Optional[Decimal] = Field(None, ge=0, le=1000)
+    premium_margin_percent: Optional[Decimal] = Field(None, ge=0, le=1000)
 
 
 class CalculatorSettingsResponse(CalculatorSettingsBase):
