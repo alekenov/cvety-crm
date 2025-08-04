@@ -1,72 +1,44 @@
 {
-  "permissions": {
-    "allow": [
-      // Базовые операции с файлами
-      "Read(**)",
-      "Edit(**)",
-      "MultiEdit(**)",
-      "Write(**)",
-      "Create(**)",
-      "Glob(**)",
-      "Grep(**)",
-      "LS(**)",
-      
-      // Git операции только для чтения
-      "Bash(git status*)",
-      "Bash(git log*)",
-      "Bash(git diff*)",
-      "Bash(git show*)",
-      "Bash(git blame*)",
-      "Bash(git branch*)",
-      "Bash(git remote -v*)",
-      "Bash(git config --get*)",
-      
-      // Просмотр файлов
-      "Bash(ls*)",
-      "Bash(cat *)",
-      "Bash(less *)",
-      "Bash(head*)",
-      "Bash(tail*)",
-      "Bash(grep*)",
-      "Bash(find*)",
-      "Bash(tree*)",
-      "Bash(pwd*)",
-      "Bash(wc*)",
-      "Bash(diff *)",
-      
-      // Команды для shadcn и веб-разработки
-      "Bash(curl:*)",
-      "Bash(wget:*)",
-      "Bash(npx:*)",
-      "Bash(npx shadcn*)",
-      "Bash(npm:*)",
-      "Bash(pnpm:*)",
-      "Bash(bun:*)",
-      "Bash(node:*)",
-      "Bash(yarn:*)",
-      
-      // Сборка и тестирование
-      "Bash(npm run*)",
-      "Bash(npm test*)",
-      "Bash(npm build*)",
-      "Bash(npm start*)",
-      "Bash(npm install*)",
-      "Bash(npm ci*)",
-      
-      // Дополнительные инструменты
-      "Bash(echo *)",
-      "Bash(which *)",
-      "Bash(env)",
-      "Bash(printenv *)",
-      
-      // Web операции для документации
-      "WebSearch(**)",
-      "WebFetch(domain:ui.shadcn.com)",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:npmjs.com)",
-      "WebFetch(domain:tailwindcss.com)",
-      "WebFetch(domain:nextjs.org)"
-    ],
-    "deny": []
+  "allowedTools": [
+    "Bash(npm *)",
+    "Bash(yarn *)",
+    "Bash(pnpm *)",
+    "Bash(git *)",
+    "Bash(curl *)",
+    "Bash(ls *)",
+    "Bash(cat *)",
+    "Bash(grep *)",
+    "Bash(find *)",
+    "Bash(mkdir *)",
+    "Bash(cp *)",
+    "Bash(mv *)",
+    "Bash(rm *)",
+    "Bash(pwd)",
+    "Bash(cd *)",
+    "WebFetch(domain:cvety.kz)",
+    "WebFetch(domain:npmjs.com)",
+    "WebFetch(domain:github.com)",
+    "WebFetch(domain:ui.shadcn.com)",
+    "WebFetch(domain:tailwindcss.com)",
+    "WebFetch(domain:react.dev)",
+    "Read(**)",
+    "Edit(**)",
+    "Create(**)",
+    "Delete(**)"
+  ],
+  "deniedTools": [
+    "WebFetch(domain:*.workers.dev)",
+    "Bash(rm -rf /*)",
+    "Bash(sudo *)"
+  ],
+  "bashTimeout": 20,
+  "curlTimeout": 20,
+  "commandTimeout": 20,
+  "env": {
+    "CURL_TIMEOUT": "20",
+    "BASH_TIMEOUT": "20"
+  },
+  "bashDefaults": {
+    "timeout": "20s"
   }
 }

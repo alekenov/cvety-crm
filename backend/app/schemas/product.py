@@ -104,6 +104,7 @@ class ProductPublic(BaseModel):
     is_active: bool = True
     is_popular: bool = False
     is_new: bool = False
+    images: List[ProductImage] = []
     
     class Config:
         from_attributes = True

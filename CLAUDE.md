@@ -147,6 +147,13 @@ make deploy              # Запускает railway up -c
 - `делай деплой через railway up -c` - Recommended Railway deployment command
 - **После деплоя в Railway проверяй через MCP Playwright**, то что мы сделали
 
+### Test Account for Development
+**Тестовый аккаунт для входа в систему:**
+- **Телефон**: `+7 701 123 45 67`
+- **Код подтверждения**: Любой 6-значный код (например, `123456`)
+- **Важно**: Работает только при `DEBUG=True` (локальная разработка)
+- **На продакшене**: Используется реальная авторизация через Telegram бот @lekenbot
+
 ### Testing Railway Locally
 ```bash
 # Test Railway-like environment
@@ -194,5 +201,129 @@ railway up -c  # ВАЖНО: используйте флаг -c для CI mode
 3. **Health Check**: Built-in monitoring endpoint
 4. **Production Ready**: Non-root user, security headers
 5. **Railway Compatible**: Same Dockerfile for dev and prod
+
+## API Documentation
+
+### Accessing API Documentation
+- **Interactive Docs (Swagger UI)**: http://localhost:8000/docs
+- **ReDoc Documentation**: http://localhost:8000/redoc
+- **OpenAPI Schema**: http://localhost:8000/openapi.json
+- **API Reference Guide**: See `API_REFERENCE.md` for comprehensive documentation
+
+### For AI/Bot Integration
+All endpoints follow RESTful conventions and provide semantic descriptions for AI understanding:
+- **Authentication**: JWT Bearer token required (except /tracking and /auth endpoints)
+- **Response Format**: `{items: T[], total: number}` for all list endpoints
+- **Date Format**: ISO 8601 (e.g., `2024-12-26T14:30:00`)
+- **Phone Format**: Kazakhstan format `+7XXXXXXXXXX`
+- **Currency**: All amounts in KZT (no decimals)
+
+### Key Integration Points
+```typescript
+// Authentication Flow
+POST /api/auth/request-otp     // Get OTP via Telegram
+POST /api/auth/verify-otp      // Exchange OTP for JWT token
+
+// Core Operations
+POST /api/orders/              // Create order
+GET  /api/orders/              // List orders with filters
+PATCH /api/orders/{id}/status  // Update order status
+GET  /api/tracking/{token}     // Public order tracking (no auth)
+
+// Webhooks
+POST /api/orders/{id}/payment-webhook  // Payment confirmation
 ```
+
+### API Features for Integrations
+1. **Semantic Descriptions**: Each endpoint has detailed descriptions for AI understanding
+2. **Type Safety**: Full TypeScript/Pydantic schemas for request/response validation
+3. **Business Logic**: Status workflows and validation rules documented in OpenAPI
+4. **Examples**: Every endpoint includes example requests and responses
+5. **Error Handling**: Standardized error responses with detailed messages
+
+### Generating API Clients
+```bash
+# TypeScript client generation
+npx openapi-ts --input http://localhost:8000/openapi.json --output ./src/api-client
+
+# Python client generation
+openapi-generator generate -i http://localhost:8000/openapi.json -g python -o ./python-client
 ```
+
+### Testing API Endpoints
+```bash
+# Get auth token (test account in DEBUG mode)
+curl -X POST http://localhost:8000/api/auth/request-otp \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+77011234567"}'
+
+# Verify OTP (any 6-digit code in DEBUG mode)
+curl -X POST http://localhost:8000/api/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+77011234567", "otp_code": "123456"}'
+
+# Use token for API calls
+curl -X GET http://localhost:8000/api/orders/ \
+  -H "Authorization: Bearer <token>"
+```
+
+## Database Architecture & Standards
+
+### Database Access
+```bash
+# Local SQLite
+sqlite3 backend/flower_shop.db
+
+# Railway PostgreSQL  
+railway run python3 check_railway_db.py
+railway run python3 -c "your_sql_script"
+```
+
+### Data Type Standards
+- **Phone numbers**: Always store as `+7XXXXXXXXXX` (no spaces/brackets)
+- **Money**: Use DECIMAL(10,2), never FLOAT (Pydantic: `Decimal`, TypeScript: `number`)
+- **Dates**: TIMESTAMP WITH TIME ZONE for all timestamps
+- **IDs**: All tables must have `shop_id` for multi-tenancy
+- **Enums**: Store as VARCHAR(20) for cross-DB compatibility
+
+### Common Patterns
+```python
+# Phone validation
+phone: str = Field(regex=r'^\+7\d{10}$')
+
+# Money handling  
+total: Decimal = Field(max_digits=10, decimal_places=2)
+
+# Time windows
+delivery_window: dict = {
+    "from": "2024-01-26T14:00:00+06:00",  # Almaty timezone
+    "to": "2024-01-26T16:00:00+06:00"
+}
+```
+
+### Database Documentation
+- **DATABASE_GUIDE.md** - Full schema documentation with all 23 tables
+- **DATABASE_STANDARDS.md** - Data type standards and validation rules
+- **API_REFERENCE.md** - REST API endpoints documentation
+- **SCHEMA_CHANGES.md** - Safe migration procedures
+
+### Key Tables
+- `orders` - Core business entity (shop_id required)
+- `customers` - Phone is primary identifier
+- `products` - Multi-shop catalog
+- `users` - Staff with roles (manager, florist, courier)
+- `shops` - Multi-tenancy root (phone = separate shop)
+
+### Migration Commands
+```bash
+make db-revision msg="description"  # Create migration
+make db-migrate                     # Apply migrations
+make db-rollback                   # Rollback last migration
+make db-backup                     # Backup before changes
+```
+
+### Database Differences (Local vs Railway)
+- **Local**: SQLite (file: `backend/flower_shop.db`)
+- **Railway**: PostgreSQL (auto-provided via DATABASE_URL)
+- **Migrations**: Run automatically on Railway via `docker-entrypoint.sh`
+- **Type differences**: See DATABASE_STANDARDS.md for mapping table
