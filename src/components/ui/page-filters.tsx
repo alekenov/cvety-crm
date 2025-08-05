@@ -88,7 +88,7 @@ export function PageFilters({ config, className = "" }: PageFiltersProps) {
     <div className={`flex flex-col gap-4 ${className}`}>
       {/* Search Row */}
       {onSearchChange && (
-        <div className="relative w-full">
+        <div className="relative w-full md:max-w-md">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}

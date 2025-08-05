@@ -295,7 +295,7 @@ export function EditProductPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-4xl">
         {/* Photos */}
         <Card>
           <CardHeader>
@@ -321,6 +321,7 @@ export function EditProductPage() {
                 id="name"
                 placeholder="Например: Букет из 25 красных роз"
                 {...register("name")}
+                className="max-w-md"
               />
               {errors.name && (
                 <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -333,7 +334,7 @@ export function EditProductPage() {
                 value={watch("category")}
                 onValueChange={(value) => setValue("category", value as any)}
               >
-                <SelectTrigger id="category">
+                <SelectTrigger id="category" className="max-w-sm">
                   <SelectValue placeholder="Выберите категорию" />
                 </SelectTrigger>
                 <SelectContent>
@@ -352,6 +353,7 @@ export function EditProductPage() {
                 placeholder="Краткое описание товара"
                 rows={3}
                 {...register("description")}
+                className="max-w-2xl"
               />
             </div>
           </CardContent>
@@ -384,17 +386,17 @@ export function EditProductPage() {
                           <div className="text-sm text-muted-foreground">{comp.description}</div>
                         )}
                         <div className="text-xs text-muted-foreground mt-1">
-                          {comp.componentType === 'flower' && '🌹 Цветок'}
-                          {comp.componentType === 'material' && '🎀 Материал'}
-                          {comp.componentType === 'service' && '👨‍🎨 Услуга'}
+                          {comp.componentType === 'flower' && 'Цветок'}
+                          {comp.componentType === 'material' && 'Материал'}
+                          {comp.componentType === 'service' && 'Услуга'}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => updateComponentQuantity(comp.id, comp.quantity - 1)}>-</Button>
+                            <Button size="sm" variant="outline" onClick={() => updateComponentQuantity(comp.id, comp.quantity - 1)}>-</Button>
                             <span className="font-medium min-w-[60px] text-center">{comp.quantity} {comp.unit}</span>
-                            <Button size="sm" variant="ghost" onClick={() => updateComponentQuantity(comp.id, comp.quantity + 1)}>+</Button>
+                            <Button size="sm" variant="outline" onClick={() => updateComponentQuantity(comp.id, comp.quantity + 1)}>+</Button>
                           </div>
                           <div className="text-sm text-muted-foreground text-center">
                             {comp.unitPrice.toLocaleString()} ₸ / {comp.unit}
@@ -405,8 +407,8 @@ export function EditProductPage() {
                             </div>
                           )}
                         </div>
-                        <Button size="sm" variant="destructive" onClick={() => deleteComponent(comp.id)}>
-                          🗑️
+                        <Button size="sm" variant="ghost" onClick={() => deleteComponent(comp.id)}>
+                          Удалить
                         </Button>
                       </div>
                     </div>
@@ -430,7 +432,7 @@ export function EditProductPage() {
             <CardTitle>Цены</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3 sm:max-w-xl">
               <div className="space-y-2">
                 <Label htmlFor="costPrice">Себестоимость</Label>
                 <Input
@@ -439,6 +441,7 @@ export function EditProductPage() {
                   placeholder="0"
                   {...register("costPrice", { valueAsNumber: true })}
                   disabled={watch("category") === "bouquet" && calculatedCost > 0}
+                  className="max-w-[150px]"
                 />
                 {errors.costPrice && (
                   <p className="text-sm text-destructive">{errors.costPrice.message}</p>
@@ -452,6 +455,7 @@ export function EditProductPage() {
                   type="number"
                   placeholder="0"
                   {...register("retailPrice", { valueAsNumber: true })}
+                  className="max-w-[150px]"
                 />
                 {errors.retailPrice && (
                   <p className="text-sm text-destructive">{errors.retailPrice.message}</p>
@@ -468,6 +472,7 @@ export function EditProductPage() {
                     valueAsNumber: true,
                     setValueAs: v => v === "" ? undefined : Number(v)
                   })}
+                  className="max-w-[150px]"
                 />
               </div>
             </div>
@@ -590,9 +595,9 @@ export function EditProductPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="flower">🌹 Цветок</SelectItem>
-                  <SelectItem value="material">🎀 Материал</SelectItem>
-                  <SelectItem value="service">👨‍🎨 Услуга</SelectItem>
+                  <SelectItem value="flower">Цветок</SelectItem>
+                  <SelectItem value="material">Материал</SelectItem>
+                  <SelectItem value="service">Услуга</SelectItem>
                 </SelectContent>
               </Select>
             </div>

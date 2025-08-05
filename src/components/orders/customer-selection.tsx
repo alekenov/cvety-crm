@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Customer } from "@/lib/types"
+import { FORM_WIDTHS } from "@/lib/constants"
 
 interface CustomerSelectionProps {
   selectedCustomer: Customer | null
@@ -74,13 +75,13 @@ export function CustomerSelection({ selectedCustomer, onSelectCustomer }: Custom
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <div className="relative flex-1">
+        <div className="relative flex-1 md:flex-none">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Поиск по телефону или имени..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
+            className={`pl-8 ${FORM_WIDTHS.SEARCH}`}
           />
         </div>
         <Button onClick={() => setShowNewCustomerDialog(true)}>
@@ -133,7 +134,7 @@ export function CustomerSelection({ selectedCustomer, onSelectCustomer }: Custom
       )}
 
       <Dialog open={showNewCustomerDialog} onOpenChange={setShowNewCustomerDialog}>
-        <DialogContent>
+        <DialogContent className={FORM_WIDTHS.FORM_DIALOG}>
           <DialogHeader>
             <DialogTitle>Новый клиент</DialogTitle>
           </DialogHeader>
@@ -145,6 +146,7 @@ export function CustomerSelection({ selectedCustomer, onSelectCustomer }: Custom
                 value={newCustomerData.name}
                 onChange={(e) => setNewCustomerData({ ...newCustomerData, name: e.target.value })}
                 placeholder="Введите имя клиента"
+                className={FORM_WIDTHS.NAME}
               />
             </div>
             <div className="space-y-2">
@@ -154,6 +156,7 @@ export function CustomerSelection({ selectedCustomer, onSelectCustomer }: Custom
                 value={newCustomerData.phone}
                 onChange={(e) => setNewCustomerData({ ...newCustomerData, phone: e.target.value })}
                 placeholder="+7 (___) ___-__-__"
+                className={FORM_WIDTHS.PHONE}
               />
             </div>
           </div>

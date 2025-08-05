@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { FORM_WIDTHS } from "@/lib/constants"
 
 interface DeliveryDateEditorProps {
   deliveryWindow: {
@@ -66,7 +67,7 @@ export function DeliveryDateEditor({ deliveryWindow, onSave, onCancel }: Deliver
   }
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+    <div className="space-y-4 p-4 border rounded-lg bg-muted/50 max-w-2xl">
       {/* Stack vertically on mobile, side by side on desktop */}
       <div className="flex flex-col md:flex-row md:items-center gap-4">
         <div className="flex-1 space-y-2">
@@ -75,7 +76,7 @@ export function DeliveryDateEditor({ deliveryWindow, onSave, onCancel }: Deliver
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-start text-left font-normal"
+                className={`w-full justify-start text-left font-normal ${FORM_WIDTHS.DATE_PICKER}`}
               >
                 <Calendar className="mr-2 h-4 w-4" />
                 {format(selectedDate, "d MMMM yyyy", { locale: ru })}
@@ -97,7 +98,7 @@ export function DeliveryDateEditor({ deliveryWindow, onSave, onCancel }: Deliver
           <label className="text-sm font-medium">Время доставки</label>
           <div className="flex items-center gap-2">
             <Select value={fromTime} onValueChange={setFromTime}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className={`w-full ${FORM_WIDTHS.TIME_SELECT}`}>
                 <Clock className="mr-2 h-4 w-4" />
                 <SelectValue />
               </SelectTrigger>
@@ -111,7 +112,7 @@ export function DeliveryDateEditor({ deliveryWindow, onSave, onCancel }: Deliver
             </Select>
             <span className="text-muted-foreground px-1">–</span>
             <Select value={toTime} onValueChange={setToTime}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className={`w-full ${FORM_WIDTHS.TIME_SELECT}`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="max-h-[200px]">

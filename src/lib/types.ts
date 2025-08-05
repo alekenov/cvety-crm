@@ -415,3 +415,44 @@ export interface SupplyCreate {
     categoryId?: number
   }[]
 }
+
+// User management types
+export type UserRole = 'admin' | 'manager' | 'florist' | 'courier'
+
+export interface UserPermissions {
+  orders: boolean
+  warehouse: boolean
+  customers: boolean
+  production: boolean
+  settings: boolean
+  users: boolean
+}
+
+export interface User {
+  id: number
+  phone: string
+  name: string
+  email?: string
+  role: UserRole
+  isActive: boolean
+  telegramId?: string
+  permissions: UserPermissions
+  shopId: number
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface UserCreate {
+  phone: string
+  name: string
+  email?: string
+  role: UserRole
+  isActive?: boolean
+}
+
+export interface UserUpdate {
+  name?: string
+  email?: string
+  role?: UserRole
+  isActive?: boolean
+}

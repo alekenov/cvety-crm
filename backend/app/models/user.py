@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -23,6 +23,16 @@ class User(Base):
     role = Column(SQLEnum(UserRole), nullable=False)
     is_active = Column(Boolean, default=True)
     telegram_id = Column(String, nullable=True, index=True)  # Telegram user ID for notifications
+    
+    # Permissions stored as JSON
+    permissions = Column(JSON, default={
+        "orders": False,
+        "warehouse": False,
+        "customers": False,
+        "production": False,
+        "settings": False,
+        "users": False
+    })
     
     # Shop association
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=False, default=1)

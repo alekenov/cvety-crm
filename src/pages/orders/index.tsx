@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/select"
 
 import type { Order, OrderItem, User } from "@/lib/types"
-import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, DATETIME_FORMAT } from "@/lib/constants"
+import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, DATETIME_FORMAT, FORM_WIDTHS } from "@/lib/constants"
 import { ordersApi } from "@/lib/api"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { ErrorState } from "@/components/ui/error-alert"
@@ -301,14 +301,14 @@ export function OrdersPage() {
         
         {/* Search and date filter */}
         <div className="flex gap-2">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative flex-1 md:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Поиск"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className={`pl-10 ${FORM_WIDTHS.SEARCH}`}
             />
           </div>
           <Button
@@ -589,7 +589,7 @@ export function OrdersPage() {
 
       {/* Issue Dialog */}
       <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen}>
-        <DialogContent>
+        <DialogContent className={FORM_WIDTHS.FORM_DIALOG}>
           <DialogHeader>
             <DialogTitle>Отметить проблему</DialogTitle>
             <DialogDescription>
@@ -600,7 +600,7 @@ export function OrdersPage() {
             <div className="grid gap-2">
               <Label htmlFor="issue-type">Тип проблемы</Label>
               <Select value={issueType} onValueChange={(value) => setIssueType(value as Order['issueType'])}>
-                <SelectTrigger id="issue-type">
+                <SelectTrigger id="issue-type" className={FORM_WIDTHS.STATUS}>
                   <SelectValue placeholder="Выберите тип проблемы" />
                 </SelectTrigger>
                 <SelectContent>
@@ -620,6 +620,7 @@ export function OrdersPage() {
                 onChange={(e) => setIssueComment(e.target.value)}
                 placeholder="Опишите проблему подробнее..."
                 rows={3}
+                className={FORM_WIDTHS.COMMENT}
               />
             </div>
           </div>

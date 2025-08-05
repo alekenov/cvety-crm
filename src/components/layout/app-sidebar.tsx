@@ -2,7 +2,6 @@ import {
   Package,
   ShoppingCart,
   Store,
-  Truck,
   ChevronRight,
   Users,
   Flower,
@@ -50,7 +49,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
     {
       label: "Витрина",
       items: [
-        { title: "Витрина магазина", url: "/storefront", icon: ShoppingBag, external: true },
+        { title: "Витрина магазина", url: "/shop/1", icon: ShoppingBag },
       ]
     },
     {
@@ -66,12 +65,6 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
       items: [
         { title: "Общие настройки", url: "/settings", icon: Settings },
         { title: "Пользователи", url: "/settings/users", icon: UserCog },
-      ]
-    },
-    {
-      label: "Разработка",
-      items: [
-        { title: "Трекинг (тест)", url: "/tracking/test-token", icon: Truck },
       ]
     }
   ]

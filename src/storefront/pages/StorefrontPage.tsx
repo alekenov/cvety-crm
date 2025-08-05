@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, ShoppingCart, Search, Phone, MapPin, Clock, Instagram, MessageCircle } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
+import { MiniCart } from '../components/cart/MiniCart';
 import { shopApi, productsApi } from '../api/client';
 import { useCartContext } from '../context/CartContext';
 import { Button } from '@/components/ui/button';
@@ -183,20 +184,7 @@ function StorefrontContent() {
               >
                 {shop.phone}
               </a>
-              {getTotalItems() > 0 && (
-                <Button 
-                  className="relative"
-                  onClick={() => navigate(`/shop/${shopId}/checkout`)}
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {getTotalItems()}
-                  </span>
-                  <span className="ml-2 hidden sm:inline">
-                    {formatPrice(getTotalPrice())}
-                  </span>
-                </Button>
-              )}
+              <MiniCart />
             </div>
           </div>
         </div>

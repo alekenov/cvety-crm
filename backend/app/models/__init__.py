@@ -11,6 +11,7 @@ from app.models.user import User, UserRole
 from app.models.order_history import OrderHistory, OrderEventType
 from app.models.comment import Comment
 from app.models.decorative_material import DecorativeMaterial, CalculatorSettings
+from app.models.order_photo import OrderPhoto
 
 __all__ = [
     "Shop",
@@ -42,5 +43,6 @@ __all__ = [
     "OrderEventType",
     "Comment",
     "DecorativeMaterial",
-    "CalculatorSettings"
+    "CalculatorSettings",
+    "OrderPhoto"
 ]

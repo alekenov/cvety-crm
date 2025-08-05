@@ -199,9 +199,9 @@ export function ProductDetailPage() {
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground mt-1">
-                          {comp.componentType === 'flower' && '🌹 Цветок'}
-                          {comp.componentType === 'material' && '🎀 Материал'}
-                          {comp.componentType === 'service' && '👨‍🎨 Услуга'}
+                          {comp.componentType === 'flower' && 'Цветок'}
+                          {comp.componentType === 'material' && 'Материал'}
+                          {comp.componentType === 'service' && 'Услуга'}
                         </div>
                       </div>
                       <div className="text-right">

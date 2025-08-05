@@ -36,6 +36,16 @@ api.interceptors.response.use(
       localStorage.removeItem('authToken')
       window.location.href = '/login'
     }
+    
+    // Log detailed error information
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    })
+    
     return Promise.reject(error)
   }
 )
@@ -222,6 +232,11 @@ export const warehouseApi = {
 
   updateItem: async (id: string, updates: Partial<WarehouseItem>) => {
     const { data } = await api.patch<WarehouseItem>(`/warehouse/${id}`, updates)
+    return data
+  },
+  createSupply: async (supply: any) => {
+    // Используем endpoint supplies для создания поставки
+    const { data } = await api.post<any>('/supplies/import', convertKeysToSnakeCase(supply))
     return data
   },
 
@@ -1080,6 +1095,103 @@ export const suppliesApi = {
           updatedAt: new Date(item.category.updated_at)
         } : undefined
       }))
+    }
+  }
+}
+
+// Users API
+export const usersApi = {
+  getAll: async (params?: {
+    search?: string
+    role?: string
+    isActive?: boolean
+    skip?: number
+    limit?: number
+  }) => {
+    const apiParams: any = {}
+    if (params?.search) apiParams.search = params.search
+    if (params?.role) apiParams.role = params.role
+    if (params?.isActive !== undefined) apiParams.is_active = params.isActive
+    if (params?.skip !== undefined) apiParams.skip = params.skip
+    if (params?.limit !== undefined) apiParams.limit = params.limit
+
+    const { data } = await api.get<any>('/users/', { params: apiParams })
+    
+    // Handle both array and object response formats
+    if (Array.isArray(data)) {
+      return {
+        items: data.map(user => ({
+          ...convertKeysToCamelCase(user),
+          createdAt: new Date(user.created_at),
+          updatedAt: new Date(user.updated_at)
+        })),
+        total: data.length
+      }
+    }
+    
+    return {
+      items: data.items.map(user => ({
+        ...convertKeysToCamelCase(user),
+        createdAt: new Date(user.created_at),
+        updatedAt: new Date(user.updated_at)
+      })),
+      total: data.total
+    }
+  },
+
+  get: async (id: number) => {
+    const { data } = await api.get<any>(`/users/${id}`)
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    }
+  },
+
+  create: async (userData: {
+    phone: string
+    name: string
+    email?: string
+    role: string
+    isActive?: boolean
+  }) => {
+    const { data } = await api.post<any>('/users/', convertKeysToSnakeCase(userData))
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    }
+  },
+
+  update: async (id: number, updates: {
+    name?: string
+    email?: string
+    role?: string
+    isActive?: boolean
+  }) => {
+    const { data } = await api.patch<any>(`/users/${id}`, convertKeysToSnakeCase(updates))
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    }
+  },
+
+  updatePermissions: async (id: number, permissions: Record<string, boolean>) => {
+    const { data } = await api.patch<any>(`/users/${id}/permissions`, permissions)
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
+    }
+  },
+
+  delete: async (id: number) => {
+    const { data } = await api.delete<any>(`/users/${id}`)
+    return {
+      ...convertKeysToCamelCase(data),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at)
     }
   }
 }

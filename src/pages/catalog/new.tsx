@@ -139,7 +139,7 @@ export function NewProductPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-4xl">
         {/* Photos */}
         <Card>
           <CardHeader>
@@ -165,6 +165,7 @@ export function NewProductPage() {
                 id="name"
                 placeholder="Например: Букет из 25 красных роз"
                 {...register("name")}
+                className="max-w-md"
               />
               {errors.name && (
                 <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -177,7 +178,7 @@ export function NewProductPage() {
                 value={watch("category")}
                 onValueChange={(value) => setValue("category", value as any)}
               >
-                <SelectTrigger id="category">
+                <SelectTrigger id="category" className="max-w-sm">
                   <SelectValue placeholder="Выберите категорию" />
                 </SelectTrigger>
                 <SelectContent>
@@ -196,6 +197,7 @@ export function NewProductPage() {
                 placeholder="Краткое описание товара"
                 rows={3}
                 {...register("description")}
+                className="max-w-2xl"
               />
             </div>
           </CardContent>
@@ -226,7 +228,7 @@ export function NewProductPage() {
             <CardTitle>Цены</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3 sm:max-w-xl">
               <div className="space-y-2">
                 <Label htmlFor="costPrice">Себестоимость</Label>
                 <Input
@@ -235,6 +237,7 @@ export function NewProductPage() {
                   placeholder="0"
                   {...register("costPrice", { valueAsNumber: true })}
                   disabled={watch("category") === "bouquet" && calculatedCost > 0}
+                  className="max-w-[150px]"
                 />
                 {errors.costPrice && (
                   <p className="text-sm text-destructive">{errors.costPrice.message}</p>
@@ -248,6 +251,7 @@ export function NewProductPage() {
                   type="number"
                   placeholder="0"
                   {...register("retailPrice", { valueAsNumber: true })}
+                  className="max-w-[150px]"
                 />
                 {errors.retailPrice && (
                   <p className="text-sm text-destructive">{errors.retailPrice.message}</p>
@@ -264,6 +268,7 @@ export function NewProductPage() {
                     valueAsNumber: true,
                     setValueAs: v => v === "" ? undefined : Number(v)
                   })}
+                  className="max-w-[150px]"
                 />
               </div>
             </div>

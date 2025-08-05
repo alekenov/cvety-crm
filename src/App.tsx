@@ -10,7 +10,6 @@ import { OrderDetailPage } from "@/pages/orders/[id]"
 import { WarehousePage } from "@/pages/warehouse"
 import { WarehouseItemDetailPage } from "@/pages/warehouse/[id]"
 // import { DeliveryPage } from "@/pages/warehouse/delivery"
-import { TrackingPage } from "@/pages/tracking"
 import { CustomersPage } from "@/pages/customers"
 import { CustomerDetailPage } from "@/pages/customers/[id]"
 import { ProductionPage } from "@/pages/production"
@@ -26,9 +25,12 @@ import SuppliesPage from "@/pages/supplies/SuppliesPage"
 import { SupplyDetail } from "@/pages/supplies"
 import { StorefrontPage } from "@/storefront/pages/StorefrontPage"
 import { CheckoutPage } from "@/storefront/pages/CheckoutPage"
+import { CartPage } from "@/storefront/pages/CartPage"
 import { OrderSuccessPage } from "@/storefront/pages/OrderSuccessPage"
 import { TrackingPage as StorefrontTrackingPage } from "@/storefront/pages/TrackingPage"
 import { StorefrontLayout } from "@/storefront/components/StorefrontLayout"
+import { TestCartPage } from "@/storefront/pages/test/TestCartPage"
+import { TestCheckoutPage } from "@/storefront/pages/test/TestCheckoutPage"
 
 const queryClient = new QueryClient()
 
@@ -43,8 +45,11 @@ function App() {
             <Route path="/status/:token" element={<StorefrontTrackingPage />} />
             <Route path="/shop/:shopId" element={<StorefrontLayout />}>
               <Route index element={<StorefrontPage />} />
+              <Route path="cart" element={<CartPage />} />
               <Route path="checkout" element={<CheckoutPage />} />
               <Route path="order-success/:token" element={<OrderSuccessPage />} />
+              <Route path="testcart" element={<TestCartPage />} />
+              <Route path="testcheckout" element={<TestCheckoutPage />} />
             </Route>
             <Route path="*" element={
               <PrivateRoute>

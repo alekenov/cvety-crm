@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { FormShell } from "@/components/ui/form-shell"
+import { FORM_WIDTHS, BUTTON_CLASSES } from "@/lib/constants"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -218,7 +220,8 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <FormShell maxWidth="4xl">
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Общие настройки</h1>
@@ -249,7 +252,7 @@ export function SettingsPage() {
                   <FormItem>
                     <FormLabel>Название компании</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} className={FORM_WIDTHS.COMPANY_NAME} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -263,7 +266,7 @@ export function SettingsPage() {
                   <FormItem>
                     <FormLabel>Адрес</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} className={FORM_WIDTHS.ADDRESS} />
                     </FormControl>
                     <FormDescription>
                       Юридический адрес компании
@@ -280,7 +283,7 @@ export function SettingsPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" {...field} />
+                      <Input type="email" {...field} className={FORM_WIDTHS.EMAIL} />
                     </FormControl>
                     <FormDescription>
                       Контактный email для клиентов
@@ -316,6 +319,7 @@ export function SettingsPage() {
                           <Input 
                             {...field} 
                             placeholder="+7 (___) ___-__-__"
+                            className={FORM_WIDTHS.PHONE}
                           />
                         </FormControl>
                         {form.watch("phones").length > 1 && (
@@ -339,6 +343,7 @@ export function SettingsPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleAddPhone}
+                className={BUTTON_CLASSES.FULL_MOBILE}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Добавить телефон
@@ -358,7 +363,7 @@ export function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 sm:max-w-md">
                 <FormField
                   control={form.control}
                   name="workingHours.from"
@@ -366,7 +371,7 @@ export function SettingsPage() {
                     <FormItem>
                       <FormLabel>Время открытия</FormLabel>
                       <FormControl>
-                        <Input type="time" {...field} />
+                        <Input type="time" {...field} className={FORM_WIDTHS.TIME_SELECT} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -379,7 +384,7 @@ export function SettingsPage() {
                     <FormItem>
                       <FormLabel>Время закрытия</FormLabel>
                       <FormControl>
-                        <Input type="time" {...field} />
+                        <Input type="time" {...field} className={FORM_WIDTHS.TIME_SELECT} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -422,6 +427,7 @@ export function SettingsPage() {
                     setEditingZone(null)
                     setZoneForm({ name: "", price: 0 })
                   }}
+                  className={BUTTON_CLASSES.FULL_MOBILE}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Добавить зону
@@ -446,6 +452,7 @@ export function SettingsPage() {
                       value={zoneForm.name}
                       onChange={(e) => setZoneForm({ ...zoneForm, name: e.target.value })}
                       placeholder="Например: Центр города"
+                      className={FORM_WIDTHS.SHORT_TEXT}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -456,6 +463,7 @@ export function SettingsPage() {
                       value={zoneForm.price}
                       onChange={(e) => setZoneForm({ ...zoneForm, price: parseInt(e.target.value) || 0 })}
                       placeholder="2000"
+                      className={FORM_WIDTHS.CURRENCY}
                     />
                   </div>
                 </div>
@@ -520,6 +528,7 @@ export function SettingsPage() {
           Изменения в настройках применяются сразу после сохранения и влияют на все новые заказы.
         </AlertDescription>
       </Alert>
-    </div>
+      </div>
+    </FormShell>
   )
 }

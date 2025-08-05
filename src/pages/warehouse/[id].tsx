@@ -380,6 +380,7 @@ export function WarehouseItemDetailPage() {
                   value={priceValue}
                   onChange={(e) => setPriceValue(e.target.value)}
                   placeholder="1500"
+                  className="max-w-[150px]"
                 />
               </div>
               <Separator />
@@ -416,6 +417,7 @@ export function WarehouseItemDetailPage() {
                   value={adjustmentValue}
                   onChange={(e) => setAdjustmentValue(e.target.value)}
                   placeholder="-5 или +10"
+                  className="max-w-[150px]"
                 />
               </div>
               <div className="space-y-2">
@@ -425,6 +427,7 @@ export function WarehouseItemDetailPage() {
                   value={adjustmentReason}
                   onChange={(e) => setAdjustmentReason(e.target.value)}
                   placeholder="Повреждение при хранении"
+                  className="max-w-md"
                 />
               </div>
               <Separator />
@@ -533,6 +536,7 @@ export function WarehouseItemDetailPage() {
                   value={adjustmentValue}
                   onChange={(e) => setAdjustmentValue(e.target.value)}
                   placeholder="-5 или +10"
+                  className="max-w-[150px]"
                 />
               </div>
               <div className="space-y-2">
@@ -542,6 +546,7 @@ export function WarehouseItemDetailPage() {
                   value={adjustmentReason}
                   onChange={(e) => setAdjustmentReason(e.target.value)}
                   placeholder="Повреждение при хранении"
+                  className="max-w-md"
                 />
               </div>
               <Separator />
@@ -580,6 +585,7 @@ export function WarehouseItemDetailPage() {
                   value={priceValue}
                   onChange={(e) => setPriceValue(e.target.value)}
                   placeholder="1500"
+                  className="max-w-[150px]"
                 />
               </div>
               <Separator />
