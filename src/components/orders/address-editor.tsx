@@ -3,6 +3,7 @@ import { Check, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { FORM_WIDTHS } from "@/lib/constants"
 
 interface AddressEditorProps {
   address: string | null
@@ -25,7 +26,7 @@ export function AddressEditor({ address, onSave, onCancel }: AddressEditorProps)
         value={newAddress}
         onChange={(e) => setNewAddress(e.target.value)}
         placeholder="Введите адрес доставки"
-        className="min-h-[60px]"
+        className={`min-h-[60px] ${FORM_WIDTHS.ADDRESS}`}
         autoFocus
       />
       <div className="flex items-center gap-2">

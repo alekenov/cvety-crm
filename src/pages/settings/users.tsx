@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { format } from "date-fns"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { 
   UserPlus, 
   Shield, 
@@ -10,7 +11,9 @@ import {
   X,
   Key,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Loader2,
+  Search
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -50,501 +53,483 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
+import { FormShell } from "@/components/ui/form-shell"
+import { FORM_WIDTHS, BUTTON_CLASSES } from "@/lib/constants"
 
-import type { SystemUser, UserRole } from "@/lib/types"
+import type { User, UserRole, UserPermissions, UserCreate } from "@/lib/types"
+import { usersApi } from "@/lib/api"
 
-// Mock roles
-const mockRoles: UserRole[] = [
-  {
-    id: "admin",
-    name: "Администратор",
-    permissions: [
-      "orders.view", "orders.create", "orders.edit", "orders.delete",
-      "customers.view", "customers.create", "customers.edit", "customers.delete",
-      "warehouse.view", "warehouse.edit",
-      "production.view", "production.edit",
-      "settings.view", "settings.edit",
-      "users.view", "users.create", "users.edit", "users.delete"
-    ]
-  },
-  {
-    id: "manager",
-    name: "Менеджер",
-    permissions: [
-      "orders.view", "orders.create", "orders.edit",
-      "customers.view", "customers.create", "customers.edit",
-      "warehouse.view",
-      "production.view"
-    ]
-  },
-  {
-    id: "florist",
-    name: "Флорист",
-    permissions: [
-      "production.view", "production.edit",
-      "warehouse.view"
-    ]
-  }
-]
+// Role names mapping
+const roleNames: Record<UserRole, string> = {
+  admin: "Администратор",
+  manager: "Менеджер",
+  florist: "Флорист",
+  courier: "Курьер"
+}
 
-// Mock users
-const mockUsers: SystemUser[] = [
-  {
-    id: "1",
-    name: "Айгуль Администратор",
-    email: "admin@cvety.kz",
-    phone: "+7 (701) 111-11-11",
-    role: mockRoles[0],
-    isActive: true,
-    createdAt: new Date("2023-01-01"),
-    lastLoginAt: new Date("2024-01-26T08:00:00")
-  },
-  {
-    id: "2",
-    name: "Марина Флорист",
-    email: "marina@cvety.kz",
-    phone: "+7 (702) 222-22-22",
-    role: mockRoles[2],
-    isActive: true,
-    createdAt: new Date("2023-03-15"),
-    lastLoginAt: new Date("2024-01-26T09:00:00")
-  },
-  {
-    id: "3",
-    name: "Самат Менеджер",
-    email: "samat@cvety.kz",
-    phone: "+7 (703) 333-33-33",
-    role: mockRoles[1],
-    isActive: false,
-    createdAt: new Date("2023-06-01"),
-    lastLoginAt: new Date("2024-01-20T15:00:00")
-  }
-]
-
-// Available permissions
-const allPermissions = [
-  { group: "Заказы", permissions: [
-    { id: "orders.view", name: "Просмотр заказов" },
-    { id: "orders.create", name: "Создание заказов" },
-    { id: "orders.edit", name: "Редактирование заказов" },
-    { id: "orders.delete", name: "Удаление заказов" }
-  ]},
-  { group: "Клиенты", permissions: [
-    { id: "customers.view", name: "Просмотр клиентов" },
-    { id: "customers.create", name: "Добавление клиентов" },
-    { id: "customers.edit", name: "Редактирование клиентов" },
-    { id: "customers.delete", name: "Удаление клиентов" }
-  ]},
-  { group: "Склад", permissions: [
-    { id: "warehouse.view", name: "Просмотр склада" },
-    { id: "warehouse.edit", name: "Управление складом" }
-  ]},
-  { group: "Производство", permissions: [
-    { id: "production.view", name: "Просмотр заданий" },
-    { id: "production.edit", name: "Управление заданиями" }
-  ]},
-  { group: "Настройки", permissions: [
-    { id: "settings.view", name: "Просмотр настроек" },
-    { id: "settings.edit", name: "Изменение настроек" }
-  ]},
-  { group: "Пользователи", permissions: [
-    { id: "users.view", name: "Просмотр пользователей" },
-    { id: "users.create", name: "Добавление пользователей" },
-    { id: "users.edit", name: "Редактирование пользователей" },
-    { id: "users.delete", name: "Удаление пользователей" }
-  ]}
-]
+// Permission names mapping
+const permissionNames: Record<keyof UserPermissions, string> = {
+  orders: "Заказы",
+  warehouse: "Склад",
+  customers: "Клиенты",
+  production: "Производство",
+  settings: "Настройки",
+  users: "Пользователи"
+}
 
 export function UsersPage() {
-  const [users, setUsers] = useState<SystemUser[]>(mockUsers)
-  const [roles] = useState<UserRole[]>(mockRoles)
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedRole, setSelectedRole] = useState<UserRole | undefined>()
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
-  const [isEditRoleDialogOpen, setIsEditRoleDialogOpen] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
-  const [rolePermissions, setRolePermissions] = useState<string[]>([])
-  const [newUser, setNewUser] = useState({
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedPermissions, setSelectedPermissions] = useState<UserPermissions>({
+    orders: false,
+    warehouse: false,
+    customers: false,
+    production: false,
+    settings: false,
+    users: false
+  })
+  
+  const [newUser, setNewUser] = useState<UserCreate>({
     name: "",
     email: "",
     phone: "",
-    roleId: ""
+    role: "manager",
+    isActive: true
   })
 
-  // Filter users based on search query
-  const filteredUsers = users.filter(user => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      user.name.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query) ||
-      (user.phone && user.phone.toLowerCase().includes(query)) ||
-      user.role.name.toLowerCase().includes(query)
-    )
+  // Fetch users
+  const { data: usersData, isLoading } = useQuery({
+    queryKey: ['users', searchQuery, selectedRole],
+    queryFn: async () => {
+      const response = await usersApi.getAll({
+        search: searchQuery || undefined,
+        role: selectedRole || undefined
+      });
+      console.log('API Response:', response);
+      console.log('Users data:', response?.items);
+      return response;
+    }
+  })
+
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: usersApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast.success("Пользователь добавлен")
+      setIsAddUserDialogOpen(false)
+      setNewUser({
+        name: "",
+        email: "",
+        phone: "",
+        role: "manager",
+        isActive: true
+      })
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Ошибка при добавлении пользователя")
+    }
+  })
+
+  // Update user mutation
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates: any }) => 
+      usersApi.update(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast.success("Пользователь обновлен")
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Ошибка при обновлении пользователя")
+    }
+  })
+
+  // Update permissions mutation
+  const updatePermissionsMutation = useMutation({
+    mutationFn: ({ id, permissions }: { id: number; permissions: UserPermissions }) => 
+      usersApi.updatePermissions(id, permissions),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast.success("Права доступа обновлены")
+      setIsPermissionsDialogOpen(false)
+      setSelectedUser(null)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Ошибка при обновлении прав доступа")
+    }
+  })
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: usersApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast.success("Пользователь удален")
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || "Ошибка при удалении пользователя")
+    }
   })
 
   const handleAddUser = () => {
-    if (!newUser.name || !newUser.email || !newUser.roleId) {
-      toast.error("Заполните все обязательные поля")
-      return
+    // Format phone to +7XXXXXXXXXX
+    const formattedPhone = newUser.phone.replace(/\D/g, '')
+    const phoneFormatted = formattedPhone.startsWith('7') 
+      ? `+${formattedPhone}` 
+      : `+7${formattedPhone}`
+
+    createUserMutation.mutate({
+      ...newUser,
+      phone: phoneFormatted
+    })
+  }
+
+  const handleToggleUserStatus = (user: User) => {
+    updateUserMutation.mutate({
+      id: user.id,
+      updates: { isActive: !user.isActive }
+    })
+  }
+
+  const handleOpenPermissions = (user: User) => {
+    setSelectedUser(user)
+    // Use default permissions if user doesn't have permissions property
+    const defaultPermissions: UserPermissions = {
+      orders: false,
+      warehouse: false,
+      customers: false,
+      production: false,
+      settings: false,
+      users: false
     }
-
-    const role = roles.find(r => r.id === newUser.roleId)
-    if (!role) return
-
-    const user: SystemUser = {
-      id: Date.now().toString(),
-      name: newUser.name,
-      email: newUser.email,
-      phone: newUser.phone,
-      role: role,
-      isActive: true,
-      createdAt: new Date(),
-      lastLoginAt: undefined
-    }
-
-    setUsers([...users, user])
-    toast.success("Пользователь добавлен")
-    setIsAddUserDialogOpen(false)
-    setNewUser({ name: "", email: "", phone: "", roleId: "" })
+    setSelectedPermissions(user.permissions || defaultPermissions)
+    setIsPermissionsDialogOpen(true)
   }
 
-  const handleToggleUserStatus = (userId: string) => {
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, isActive: !user.isActive }
-        : user
-    ))
-    toast.success("Статус пользователя изменен")
+  const handleUpdatePermissions = () => {
+    if (!selectedUser) return
+    
+    updatePermissionsMutation.mutate({
+      id: selectedUser.id,
+      permissions: selectedPermissions
+    })
   }
 
-  const handleResetPassword = (user: SystemUser) => {
-    toast.success(`Ссылка для сброса пароля отправлена на ${user.email}`)
-  }
-
-  const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter(user => user.id !== userId))
-    toast.success("Пользователь удален")
-  }
-
-  const handleEditRole = (role: UserRole) => {
-    setSelectedRole(role)
-    setRolePermissions(role.permissions)
-    setIsEditRoleDialogOpen(true)
-  }
-
-  const handleTogglePermission = (permissionId: string) => {
-    if (rolePermissions.includes(permissionId)) {
-      setRolePermissions(rolePermissions.filter(p => p !== permissionId))
-    } else {
-      setRolePermissions([...rolePermissions, permissionId])
+  const handleDeleteUser = (userId: number) => {
+    if (confirm("Вы уверены, что хотите удалить пользователя?")) {
+      deleteUserMutation.mutate(userId)
     }
   }
 
-  const handleSaveRole = () => {
-    if (!selectedRole) return
-
-    // In real app, save to backend
-    toast.success("Права роли обновлены")
-    setIsEditRoleDialogOpen(false)
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 1) return numbers
+    if (numbers.length <= 4) return `+${numbers}`
+    if (numbers.length <= 7) return `+${numbers.slice(0, 1)} ${numbers.slice(1, 4)} ${numbers.slice(4)}`
+    if (numbers.length <= 10) return `+${numbers.slice(0, 1)} ${numbers.slice(1, 4)} ${numbers.slice(4, 7)} ${numbers.slice(7)}`
+    return `+${numbers.slice(0, 1)} ${numbers.slice(1, 4)} ${numbers.slice(4, 7)} ${numbers.slice(7, 9)} ${numbers.slice(9, 11)}`
   }
+
+  const filteredUsers = usersData?.items || []
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Управление пользователями</h1>
-          <p className="text-muted-foreground">
-            Управление доступом и правами пользователей
-          </p>
+    <FormShell maxWidth="6xl">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Управление пользователями</h1>
+            <p className="text-muted-foreground">
+              Управление доступом сотрудников к системе
+            </p>
+          </div>
+          <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className={BUTTON_CLASSES.FULL_MOBILE}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Добавить пользователя
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Новый пользователь</DialogTitle>
+                <DialogDescription>
+                  Добавьте нового сотрудника в систему
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">ФИО</Label>
+                  <Input
+                    id="name"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    placeholder="Иванов Иван Иванович"
+                    className={FORM_WIDTHS.NAME}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUser.email || ""}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="ivan@cvety.kz"
+                    className={FORM_WIDTHS.EMAIL}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Телефон</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formatPhone(newUser.phone)}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="+7 (700) 123-45-67"
+                    className={FORM_WIDTHS.PHONE}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="role">Роль</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value: UserRole) => setNewUser({ ...newUser, role: value })}
+                  >
+                    <SelectTrigger id="role" className={FORM_WIDTHS.SHORT_TEXT}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(roleNames).map(([value, name]) => (
+                        <SelectItem key={value} value={value}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddUserDialogOpen(false)}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  onClick={handleAddUser}
+                  disabled={!newUser.name || !newUser.phone || createUserMutation.isPending}
+                >
+                  {createUserMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Добавить
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
-        <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Добавить пользователя
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Поиск по имени, email или телефону..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select
+                value={selectedRole || "all"}
+                onValueChange={(value) => setSelectedRole(value === "all" ? undefined : value as UserRole)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Все роли" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все роли</SelectItem>
+                  {Object.entries(roleNames).map(([value, name]) => (
+                    <SelectItem key={value} value={value}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center h-64">
+              <UserCheck className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium">Пользователи не найдены</p>
+              <p className="text-sm text-muted-foreground">
+                Попробуйте изменить параметры поиска
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-0">
+              <div className="relative w-full overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="p-4 text-left font-medium">Пользователь</th>
+                      <th className="p-4 text-left font-medium">Контакты</th>
+                      <th className="p-4 text-left font-medium">Роль</th>
+                      <th className="p-4 text-left font-medium">Статус</th>
+                      <th className="p-4 text-left font-medium">Дата создания</th>
+                      <th className="p-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="border-b">
+                      <td className="p-4">
+                        <div className="font-medium">{user.name}</div>
+                      </td>
+                      <td className="p-4">
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            {user.phone}
+                          </div>
+                          {user.email && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              {user.email}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                          <Shield className="mr-1 h-3 w-3" />
+                          {roleNames[user.role]}
+                        </Badge>
+                      </td>
+                      <td className="p-4">
+                        <Switch
+                          checked={user.isActive}
+                          onCheckedChange={() => handleToggleUserStatus(user)}
+                          disabled={user.role === 'admin' || updateUserMutation.isPending}
+                        />
+                      </td>
+                      <td className="p-4 text-sm text-muted-foreground">
+                        {format(user.createdAt, "dd.MM.yyyy")}
+                      </td>
+                      <td className="p-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Действия</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleOpenPermissions(user)}
+                              disabled={user.role === 'admin'}
+                            >
+                              <Key className="mr-2 h-4 w-4" />
+                              Права доступа
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteUser(user.id)}
+                              disabled={user.role === 'admin'}
+                              className="text-destructive"
+                            >
+                              <X className="mr-2 h-4 w-4" />
+                              Удалить
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Permissions Dialog */}
+        <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Новый пользователь</DialogTitle>
+              <DialogTitle>Права доступа</DialogTitle>
               <DialogDescription>
-                Добавьте нового пользователя в систему
+                Настройте права доступа для {selectedUser?.name}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">ФИО *</Label>
-                <Input
-                  id="name"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                />
+            <ScrollArea className="max-h-[400px] pr-4">
+              <div className="space-y-6">
+                {Object.entries(permissionNames).map(([key, name]) => (
+                  <div key={key} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">{name}</h4>
+                      <Switch
+                        checked={selectedPermissions[key as keyof UserPermissions]}
+                        onCheckedChange={(checked) => 
+                          setSelectedPermissions(prev => ({
+                            ...prev,
+                            [key]: checked
+                          }))
+                        }
+                      />
+                    </div>
+                    <Separator />
+                  </div>
+                ))}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Телефон</Label>
-                <Input
-                  id="phone"
-                  value={newUser.phone}
-                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                  placeholder="+7 (___) ___-__-__"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="role">Роль *</Label>
-                <Select 
-                  value={newUser.roleId} 
-                  onValueChange={(value) => setNewUser({ ...newUser, roleId: value })}
-                >
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="Выберите роль" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map(role => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            </ScrollArea>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddUserDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsPermissionsDialogOpen(false)
+                  setSelectedUser(null)
+                }}
+              >
                 Отмена
               </Button>
-              <Button onClick={handleAddUser}>
-                Добавить
+              <Button
+                onClick={handleUpdatePermissions}
+                disabled={updatePermissionsMutation.isPending}
+              >
+                {updatePermissionsMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Сохранить
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Администраторы имеют полный доступ ко всем разделам системы. 
+            Права других пользователей настраиваются индивидуально.
+          </AlertDescription>
+        </Alert>
       </div>
-
-      {/* Filters */}
-      <PageFilters
-        config={{
-          searchPlaceholder: "Поиск пользователей по имени, email, телефону или роли",
-          searchValue: searchQuery,
-          onSearchChange: setSearchQuery
-        }}
-      />
-
-      {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Пользователи системы</CardTitle>
-          <CardDescription>
-            Все пользователи с доступом к CRM
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveTable
-            data={filteredUsers}
-            columns={[
-              {
-                key: 'name',
-                label: 'Пользователь',
-                render: (value, user) => (
-                  <div>
-                    <div className="font-medium">{value as string}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Добавлен {format(user.createdAt, "dd.MM.yyyy")}
-                    </div>
-                  </div>
-                ),
-                priority: 0
-              },
-              {
-                key: 'role',
-                label: 'Роль',
-                render: (value) => (
-                  <Badge variant="secondary">
-                    {(value as any).name}
-                  </Badge>
-                ),
-                priority: 1
-              },
-              {
-                key: 'isActive',
-                label: 'Статус',
-                render: (value) => (
-                  <Badge variant={value ? "default" : "secondary"}>
-                    {value ? (
-                      <><Check className="mr-1 h-3 w-3" /> Активен</>
-                    ) : (
-                      <><X className="mr-1 h-3 w-3" /> Заблокирован</>
-                    )}
-                  </Badge>
-                ),
-                priority: 2
-              },
-              {
-                key: 'lastLoginAt',
-                label: 'Последний вход',
-                render: (value) => (
-                  <div className="text-sm text-muted-foreground">
-                    {value 
-                      ? format(value as Date, "dd.MM.yyyy HH:mm")
-                      : "Не входил"
-                    }
-                  </div>
-                ),
-                hideOnMobile: true
-              },
-              {
-                key: 'email',
-                label: 'Контакты',
-                render: (value, user) => (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-sm">
-                      <Mail className="h-3 w-3" />
-                      {value as string}
-                    </div>
-                    {user.phone && (
-                      <div className="flex items-center gap-1 text-sm">
-                        <Phone className="h-3 w-3" />
-                        {user.phone}
-                      </div>
-                    )}
-                  </div>
-                ),
-                hideOnMobile: true
-              }
-            ]}
-            mobileCardTitle={(user) => user.name}
-            mobileCardSubtitle={(user) => (user.role as any).name}
-            mobileCardActions={(user) => (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Действия</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => handleToggleUserStatus(user.id)}
-                  >
-                    <UserCheck className="mr-2 h-4 w-4" />
-                    {user.isActive ? "Заблокировать" : "Разблокировать"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleResetPassword(user)}
-                  >
-                    <Key className="mr-2 h-4 w-4" />
-                    Сбросить пароль
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => handleDeleteUser(user.id)}
-                  >
-                    Удалить пользователя
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Roles Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Роли и права доступа
-          </CardTitle>
-          <CardDescription>
-            Настройка прав доступа для разных ролей
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {roles.map(role => (
-              <div key={role.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">{role.name}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {role.permissions.length} разрешений
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEditRole(role)}
-                >
-                  Настроить права
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          При добавлении нового пользователя на указанный email будет отправлена ссылка для установки пароля.
-        </AlertDescription>
-      </Alert>
-
-      {/* Edit Role Dialog */}
-      <Dialog open={isEditRoleDialogOpen} onOpenChange={setIsEditRoleDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Настройка прав: {selectedRole?.name}</DialogTitle>
-            <DialogDescription>
-              Выберите разрешения для этой роли
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-6">
-              {allPermissions.map(group => (
-                <div key={group.group}>
-                  <h4 className="font-medium mb-3">{group.group}</h4>
-                  <div className="space-y-2">
-                    {group.permissions.map(permission => (
-                      <div key={permission.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={permission.id}
-                          checked={rolePermissions.includes(permission.id)}
-                          onCheckedChange={() => handleTogglePermission(permission.id)}
-                        />
-                        <Label
-                          htmlFor={permission.id}
-                          className="text-sm font-normal cursor-pointer"
-                        >
-                          {permission.name}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                  <Separator className="mt-4" />
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditRoleDialogOpen(false)}>
-              Отмена
-            </Button>
-            <Button onClick={handleSaveRole}>
-              Сохранить права
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </FormShell>
   )
 }

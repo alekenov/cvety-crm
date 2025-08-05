@@ -183,6 +183,7 @@ function CreateProductDialog({ open, onOpenChange, calculationData }: CreateProd
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
                 placeholder="Введите название товара"
+                className="max-w-md"
               />
             </div>
             
@@ -194,7 +195,7 @@ function CreateProductDialog({ open, onOpenChange, calculationData }: CreateProd
                   value={productDescription}
                   onChange={(e) => setProductDescription(e.target.value)}
                   placeholder="Описание товара будет автоматически сгенерировано"
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-[80px] w-full max-w-xl rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   rows={3}
                 />
               </div>
@@ -648,7 +649,7 @@ export function BouquetCalculatorPage() {
                     type="number"
                     value={laborCost}
                     onChange={(e) => setLaborCost(parseInt(e.target.value) || 0)}
-                    className="w-32"
+                    className="max-w-[150px]"
                   />
                   <span className="text-sm text-muted-foreground">тенге</span>
                 </div>
@@ -773,7 +774,7 @@ export function BouquetCalculatorPage() {
                 placeholder="Поиск по названию или артикулу..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
+                className="pl-8 w-full md:max-w-md"
               />
             </div>
 
@@ -825,6 +826,7 @@ export function BouquetCalculatorPage() {
                     onChange={(e) => setItemQty(parseInt(e.target.value) || 1)}
                     min="1"
                     max={selectedWarehouseItem.qty - selectedWarehouseItem.reservedQty}
+                    className="max-w-[100px]"
                   />
                 </div>
                 <div>

@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { FormShell } from "@/components/ui/form-shell"
+import { FORM_WIDTHS, BUTTON_CLASSES } from "@/lib/constants"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
@@ -73,8 +75,9 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <FormShell maxWidth="md" className="w-full">
+        <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">🌸 Cvety.kz</CardTitle>
           <CardDescription>
@@ -95,6 +98,7 @@ export function LoginPage() {
                   required
                   disabled={loading}
                   autoComplete="tel"
+                  className={FORM_WIDTHS.PHONE}
                 />
                 <p className="text-sm text-muted-foreground">
                   Для получения кода подтверждения, сначала напишите боту{' '}
@@ -116,7 +120,7 @@ export function LoginPage() {
                 </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading || phone.length < 11}>
+              <Button type="submit" className={BUTTON_CLASSES.ACTION} disabled={loading || phone.length < 11}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -141,6 +145,7 @@ export function LoginPage() {
                   disabled={loading}
                   autoComplete="one-time-code"
                   maxLength={6}
+                  className={FORM_WIDTHS.SHORT_ID}
                 />
                 <p className="text-sm text-muted-foreground">
                   Код отправлен в Telegram на номер {phone}
@@ -154,7 +159,7 @@ export function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
+                <Button type="submit" className={BUTTON_CLASSES.ACTION} disabled={loading || otp.length !== 6}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -167,7 +172,7 @@ export function LoginPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="w-full"
+                  className={BUTTON_CLASSES.ACTION}
                   onClick={() => {
                     setStep('phone')
                     setOtp('')
@@ -181,7 +186,8 @@ export function LoginPage() {
             </form>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </FormShell>
     </div>
   )
 }

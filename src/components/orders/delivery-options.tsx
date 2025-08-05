@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { DeliveryMethod } from "@/lib/types"
+import { FORM_WIDTHS } from "@/lib/constants"
 
 interface DeliveryInfo {
   method: DeliveryMethod
@@ -104,7 +105,7 @@ export function DeliveryOptions({ deliveryInfo, onUpdateDelivery }: DeliveryOpti
         <Label>Дата доставки</Label>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-full justify-start text-left font-normal">
+            <Button variant="outline" className="w-full max-w-xs justify-start text-left font-normal">
               <CalendarIcon className="mr-2 h-4 w-4" />
               {selectedDate ? (
                 format(selectedDate, "d MMMM yyyy", { locale: ru })
@@ -129,7 +130,7 @@ export function DeliveryOptions({ deliveryInfo, onUpdateDelivery }: DeliveryOpti
       {selectedDate && (
         <div className="space-y-3">
           <Label>Время доставки</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 max-w-lg">
             {availableTimeSlots.map((slot) => (
               <Button
                 key={`${slot.from}-${slot.to}`}
@@ -162,12 +163,12 @@ export function DeliveryOptions({ deliveryInfo, onUpdateDelivery }: DeliveryOpti
                 placeholder="Улица, дом, квартира..."
                 value={deliveryInfo.address || ''}
                 onChange={(e) => onUpdateDelivery({ ...deliveryInfo, address: e.target.value })}
-                className="pl-8 min-h-[80px]"
+                className={`pl-8 min-h-[80px] ${FORM_WIDTHS.ADDRESS}`}
               />
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 md:max-w-2xl">
             <div className="space-y-2">
               <Label htmlFor="recipientName">Имя получателя</Label>
               <Input
@@ -175,6 +176,7 @@ export function DeliveryOptions({ deliveryInfo, onUpdateDelivery }: DeliveryOpti
                 placeholder="Как зовут получателя"
                 value={deliveryInfo.recipientName || ''}
                 onChange={(e) => onUpdateDelivery({ ...deliveryInfo, recipientName: e.target.value })}
+                className={FORM_WIDTHS.NAME}
               />
             </div>
             <div className="space-y-2">
@@ -184,6 +186,7 @@ export function DeliveryOptions({ deliveryInfo, onUpdateDelivery }: DeliveryOpti
                 placeholder="+7 (___) ___-__-__"
                 value={deliveryInfo.recipientPhone || ''}
                 onChange={(e) => onUpdateDelivery({ ...deliveryInfo, recipientPhone: e.target.value })}
+                className={FORM_WIDTHS.PHONE}
               />
             </div>
           </div>
@@ -198,7 +201,7 @@ export function DeliveryOptions({ deliveryInfo, onUpdateDelivery }: DeliveryOpti
           placeholder="Дополнительная информация..."
           value={deliveryInfo.comment || ''}
           onChange={(e) => onUpdateDelivery({ ...deliveryInfo, comment: e.target.value })}
-          className="min-h-[80px]"
+          className={`min-h-[80px] ${FORM_WIDTHS.COMMENT}`}
         />
       </div>
     </div>

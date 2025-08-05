@@ -42,7 +42,7 @@ from .supply import (
     SupplyListResponse
 )
 from .user import (
-    User, UserCreate, UserUpdate, UserInDB
+    User, UserCreate, UserUpdate, UserInDB, UserList, UserPermissionsUpdate
 )
 from .order_history import (
     OrderHistory, OrderHistoryCreate, OrderHistoryUpdate, OrderHistoryWithUser

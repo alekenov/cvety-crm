@@ -227,10 +227,23 @@ async def verify_otp(
     # Update last login
     shop = crud_shop.update_last_login(db, db_obj=shop)
     
+    # Get first admin user for this shop (temporary solution)
+    from app.crud import user as crud_user
+    from app.models.user import UserRole
+    
+    # For now, just use user_id 1 or find any user for this shop
+    from app.models.user import User
+    admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
+    if not admin_user:
+        # Try to find any user for this shop
+        admin_user = db.query(User).filter_by(shop_id=shop.id, is_active=True).first()
+    
+    user_id = str(admin_user.id) if admin_user else "1"
+    
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(shop.id), "phone": shop.phone},
+        data={"sub": str(shop.id), "phone": shop.phone, "user_id": user_id},
         expires_delta=access_token_expires
     )
     
@@ -346,3 +359,54 @@ async def create_test_shop(
             "otp": "Any 6-digit code works in DEBUG mode"
         }
     }
+
+
+@router.post("/test-token", response_model=AuthToken, status_code=200)
+async def get_test_token(
+    db: Session = Depends(deps.get_db)
+):
+    """Get test token for development (only works in DEBUG mode)"""
+    if not settings.DEBUG:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint is only available in DEBUG mode"
+        )
+    
+    # Get test shop
+    shop = crud_shop.get_by_phone(db, phone="+77011234567")
+    if not shop:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Test shop not found. Run /api/auth/create-test-shop first"
+        )
+    
+    # Get or create test admin user
+    from app.crud import user as crud_user
+    from app.models.user import UserRole, User
+    
+    admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
+    if not admin_user:
+        # Create a test admin user
+        from app.schemas.user import UserCreate
+        test_user = UserCreate(
+            phone="+77011234567",
+            name="Test Admin",
+            email="admin@test.com",
+            role=UserRole.admin,
+            is_active=True
+        )
+        admin_user = crud_user.create(db, obj_in=test_user, shop_id=shop.id)
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(shop.id), "phone": shop.phone, "user_id": str(admin_user.id)},
+        expires_delta=access_token_expires
+    )
+    
+    return AuthToken(
+        access_token=access_token,
+        token_type="bearer",
+        shop_id=shop.id,
+        shop_name=shop.name
+    )

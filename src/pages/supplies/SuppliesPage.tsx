@@ -228,6 +228,7 @@ export default function SuppliesPage() {
                     value={supplier}
                     onChange={(e) => setSupplier(e.target.value)}
                     required
+                    className="w-full md:max-w-md"
                   />
                 </div>
 
@@ -257,7 +258,7 @@ export default function SuppliesPage() {
                     placeholder="Фридом 60 250 450
 Ред Наоми 70 300 200
 Эксплорер 80 350 150"
-                    className="h-32 md:h-48 font-mono text-sm"
+                    className="h-32 md:h-48 font-mono text-sm w-full md:max-w-2xl"
                     value={importText}
                     onChange={(e) => setImportText(e.target.value)}
                   />
@@ -281,6 +282,7 @@ export default function SuppliesPage() {
                         placeholder="Например: Green Valley"
                         value={farm}
                         onChange={(e) => setFarm(e.target.value)}
+                        className="max-w-sm"
                       />
                     </div>
 
@@ -291,7 +293,7 @@ export default function SuppliesPage() {
                           <Button
                             variant="outline"
                             className={cn(
-                              "w-full justify-start text-left font-normal",
+                              "w-full max-w-xs justify-start text-left font-normal",
                               !deliveryDate && "text-muted-foreground"
                             )}
                           >
@@ -315,7 +317,7 @@ export default function SuppliesPage() {
                     <div>
                       <Label htmlFor="currency">Валюта</Label>
                       <Select value={currency} onValueChange={setCurrency}>
-                        <SelectTrigger id="currency">
+                        <SelectTrigger id="currency" className="max-w-[200px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -335,6 +337,7 @@ export default function SuppliesPage() {
                         value={rate}
                         onChange={(e) => setRate(parseFloat(e.target.value) || 1)}
                         disabled={currency === 'KZT'}
+                        className="max-w-[150px]"
                       />
                     </div>
                   </div>
@@ -346,7 +349,7 @@ export default function SuppliesPage() {
                       placeholder="Дополнительная информация о поставке"
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      className="h-20"
+                      className="h-20 w-full md:max-w-xl"
                     />
                   </div>
                 </CollapsibleContent>
@@ -355,7 +358,7 @@ export default function SuppliesPage() {
               <Button
                 onClick={handleParse}
                 disabled={!importText.trim() || !supplier.trim() || parseMutation.isPending}
-                className="w-full"
+                className="w-full md:max-w-sm"
               >
                 <Upload className="mr-2 h-4 w-4" />
                 {parseMutation.isPending ? 'Обработка...' : 'Показать превью'}
@@ -415,7 +418,7 @@ export default function SuppliesPage() {
                               value={item.categoryId?.toString() || ''}
                               onValueChange={(value) => handleCategoryChange(index, value)}
                             >
-                              <SelectTrigger className="w-32">
+                              <SelectTrigger className="max-w-[150px]">
                                 <SelectValue placeholder="Выберите" />
                               </SelectTrigger>
                               <SelectContent>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { WarehouseMobileCard } from "@/components/warehouse/mobile-card"
+import { QuickReceive } from "@/components/warehouse/QuickReceive"
 import { toast } from "sonner"
 import { Package } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
@@ -181,6 +182,9 @@ export function WarehousePage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Остатки склада</h1>
       </div>
+
+      {/* Quick Receive Form */}
+      <QuickReceive />
 
       {/* Filters */}
       <PageFilters
