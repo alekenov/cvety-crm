@@ -32,6 +32,9 @@ class OrderBase(BaseModel):
 
 class OrderCreate(OrderBase):
     delivery_window: Optional[DeliveryWindow] = None
+    comment: Optional[str] = None
+    payment_method: Optional[PaymentMethod] = PaymentMethod.cash
+    source: Optional[str] = "api"
     
     class Config:
         json_schema_extra = {
@@ -47,7 +50,10 @@ class OrderCreate(OrderBase):
                 },
                 "flower_sum": 25000.0,
                 "delivery_fee": 2000.0,
-                "total": 27000.0
+                "total": 27000.0,
+                "comment": "Позвонить за час до доставки",
+                "payment_method": "kaspi",
+                "source": "website"
             }
         }
 
