@@ -173,7 +173,14 @@ export function TrackingPage() {
   }, [token]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ru-RU');
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleString('ru-RU');
+    } catch {
+      return '';
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -432,11 +439,11 @@ export function TrackingPage() {
                     <span className="text-gray-600">Способ доставки:</span>
                     <span>{deliveryMethodNames[trackingInfo.delivery_method as keyof typeof deliveryMethodNames]}</span>
                   </div>
-                  {trackingInfo.delivery_window && (
+                  {trackingInfo.delivery_window && trackingInfo.delivery_window.from_time && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Время доставки:</span>
                       <span>
-                        {formatDate(trackingInfo.delivery_window.from_time || '')} - 
+                        {formatDate(trackingInfo.delivery_window.from_time)} - 
                         {formatDate(trackingInfo.delivery_window.to_time || '')}
                       </span>
                     </div>

@@ -29,8 +29,6 @@ import { CartPage } from "@/storefront/pages/CartPage"
 import { OrderSuccessPage } from "@/storefront/pages/OrderSuccessPage"
 import { TrackingPage as StorefrontTrackingPage } from "@/storefront/pages/TrackingPage"
 import { StorefrontLayout } from "@/storefront/components/StorefrontLayout"
-import { TestCartPage } from "@/storefront/pages/test/TestCartPage"
-import { TestCheckoutPage } from "@/storefront/pages/test/TestCheckoutPage"
 
 const queryClient = new QueryClient()
 
@@ -48,8 +46,6 @@ function App() {
               <Route path="cart" element={<CartPage />} />
               <Route path="checkout" element={<CheckoutPage />} />
               <Route path="order-success/:token" element={<OrderSuccessPage />} />
-              <Route path="testcart" element={<TestCartPage />} />
-              <Route path="testcheckout" element={<TestCheckoutPage />} />
             </Route>
             <Route path="*" element={
               <PrivateRoute>
