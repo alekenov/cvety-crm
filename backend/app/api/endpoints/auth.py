@@ -7,13 +7,19 @@ from jose import jwt
 from app.api import deps
 from app.core.config import get_settings
 from app.crud import shop as crud_shop
+from app.crud import user as crud_user
+from app.crud import product as crud_product
+from app.models.user import UserRole, User
+from app.schemas.user import UserCreate
 from app.schemas.shop import (
     PhoneAuthRequest,
     OTPVerifyRequest,
     CompleteRegistrationRequest,
     AuthToken,
-    Shop
+    Shop,
+    ShopCreate
 )
+from app.schemas.product import ProductCreate
 from app.services.otp_service import otp_service
 from app.services.telegram_service import telegram_service
 from app.services.redis_service import redis_service
@@ -240,11 +246,6 @@ async def verify_otp(
         # Update last login
         shop = crud_shop.update_last_login(db, db_obj=shop)
         
-        # Get first admin user for this shop
-        from app.crud import user as crud_user
-        from app.models.user import UserRole, User
-        from app.schemas.user import UserCreate
-        
         # Find admin user for this shop
         admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
         if not admin_user:
@@ -341,10 +342,6 @@ async def complete_registration(
         )
     
     # Create new shop
-    from app.schemas.shop import ShopCreate
-    from app.schemas.product import ProductCreate
-    from app.crud import product as crud_product
-    
     shop_data = ShopCreate(
         name=request.name,
         phone=phone,
@@ -393,10 +390,6 @@ async def complete_registration(
         db.add(db_product)
     
     # Create admin user for the new shop
-    from app.crud import user as crud_user
-    from app.schemas.user import UserCreate
-    from app.models.user import UserRole
-    
     admin_user_data = UserCreate(
         phone=phone,  # Use the same phone as the shop
         name=request.name,
