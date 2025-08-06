@@ -461,6 +461,51 @@ async def get_otp_status(
     return status
 
 
+@router.get("/redis-test")
+async def test_redis():
+    """Test Redis connection (DEBUG only)"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Check if Redis is configured
+        from app.core.config import get_settings
+        settings = get_settings()
+        redis_url = getattr(settings, 'REDIS_URL', None)
+        
+        result = {
+            "redis_configured": bool(redis_url),
+            "redis_url_prefix": redis_url[:30] if redis_url else None,
+            "redis_client_type": type(redis_service.client).__name__
+        }
+        
+        # Test basic operations
+        test_key = f"test:{datetime.utcnow().isoformat()}"
+        test_data = {"test": "data", "timestamp": datetime.utcnow().isoformat()}
+        
+        # Test set
+        set_result = redis_service.set_with_ttl(test_key, test_data, 60)
+        result["set_operation"] = set_result
+        
+        # Test get
+        get_result = redis_service.get(test_key)
+        result["get_operation"] = get_result == test_data
+        result["retrieved_data"] = get_result
+        
+        # Test delete
+        delete_result = redis_service.delete(test_key)
+        result["delete_operation"] = delete_result
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Redis test failed: {str(e)}", exc_info=True)
+        return {
+            "error": str(e),
+            "type": type(e).__name__
+        }
+
+
 @router.post("/create-test-shop", status_code=201)
 async def create_test_shop(
     db: Session = Depends(deps.get_db)
