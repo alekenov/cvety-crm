@@ -10,6 +10,7 @@ from app.crud import shop as crud_shop
 from app.schemas.shop import (
     PhoneAuthRequest,
     OTPVerifyRequest,
+    CompleteRegistrationRequest,
     AuthToken,
     Shop
 )
@@ -201,18 +202,29 @@ async def verify_otp(
             detail=result["message"]
         )
     
-    # Get or create shop
+    # Check if shop exists
     shop = crud_shop.get_by_phone(db, phone=request.phone)
     
     if not shop:
-        # Create new shop
-        from app.schemas.shop import ShopCreate
-        
-        shop_data = ShopCreate(
-            name=f"Цветочный магазин {request.phone[-4:]}",
-            phone=request.phone
+        # New user - save phone in session for registration
+        redis_service.set_with_ttl(
+            f"registration:{request.phone}",
+            {"phone": request.phone, "verified": True},
+            ttl_seconds=3600  # 1 hour to complete registration
         )
-        shop = crud_shop.create(db, obj_in=shop_data)
+        
+        # Create temporary token for registration flow
+        access_token_expires = timedelta(minutes=60)
+        access_token = create_access_token(
+            data={"sub": "pending", "phone": request.phone},
+            expires_delta=access_token_expires
+        )
+        
+        return AuthToken(
+            access_token=access_token,
+            token_type="bearer",
+            is_new_user=True
+        )
     
     # Update telegram_id if available
     telegram_data = redis_service.get(f"telegram:{request.phone}")
@@ -251,7 +263,125 @@ async def verify_otp(
         access_token=access_token,
         token_type="bearer",
         shop_id=shop.id,
-        shop_name=shop.name
+        shop_name=shop.name,
+        is_new_user=False
+    )
+
+
+@router.post("/complete-registration", response_model=AuthToken, status_code=201,
+    summary="Complete registration for new shop",
+    description="""
+    Complete the registration process for a new flower shop.
+    
+    ## Requirements:
+    - Must have a valid temporary token from verify-otp
+    - Phone must be verified in Redis session
+    
+    ## Process:
+    1. Validates the registration session
+    2. Creates new shop with provided name and city
+    3. Creates initial seed products
+    4. Returns full authentication token
+    """)
+async def complete_registration(
+    request: CompleteRegistrationRequest,
+    db: Session = Depends(deps.get_db),
+    token_data: dict = Depends(deps.get_current_token_data)
+):
+    """Complete registration for new shop"""
+    phone = token_data.get("phone")
+    
+    if not phone or token_data.get("sub") != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid registration token"
+        )
+    
+    # Verify registration session exists
+    registration_data = redis_service.get(f"registration:{phone}")
+    if not registration_data or not registration_data.get("verified"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration session expired or invalid"
+        )
+    
+    # Check if shop already exists (double check)
+    existing_shop = crud_shop.get_by_phone(db, phone=phone)
+    if existing_shop:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Shop already exists for this phone number"
+        )
+    
+    # Create new shop
+    from app.schemas.shop import ShopCreate
+    from app.schemas.product import ProductCreate
+    from app.crud import product as crud_product
+    
+    shop_data = ShopCreate(
+        name=request.name,
+        phone=phone,
+        city=request.city
+    )
+    shop = crud_shop.create(db, obj_in=shop_data)
+    
+    # Create seed products for new shop
+    seed_products = [
+        ProductCreate(
+            name="Букет роз \"Классика\"",
+            category="bouquet",
+            description="Классический букет из 15 красных роз",
+            cost_price=10000,
+            retail_price=25000,
+            sale_price=22000,
+            is_active=True,
+            is_popular=True
+        ),
+        ProductCreate(
+            name="Букет тюльпанов \"Весна\"",
+            category="bouquet",
+            description="Нежный букет из 25 тюльпанов",
+            cost_price=8000,
+            retail_price=18000,
+            sale_price=16000,
+            is_active=True,
+            is_new=True
+        ),
+        ProductCreate(
+            name="Композиция \"Праздничная\"",
+            category="composition",
+            description="Праздничная композиция в корзине",
+            cost_price=15000,
+            retail_price=35000,
+            sale_price=32000,
+            is_active=True,
+            is_popular=True
+        )
+    ]
+    
+    for product_data in seed_products:
+        product_dict = product_data.dict()
+        product_dict['shop_id'] = shop.id
+        db_product = crud_product.model(**product_dict)
+        db.add(db_product)
+    db.commit()
+    
+    # Clear registration session
+    redis_service.client.delete(f"registration:{phone}")
+    
+    # Create full authentication token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(shop.id), "phone": shop.phone, "user_id": "1"},
+        expires_delta=access_token_expires
+    )
+    
+    return AuthToken(
+        access_token=access_token,
+        token_type="bearer",
+        shop_id=shop.id,
+        shop_name=shop.name,
+        is_new_user=False
     )
 
 
