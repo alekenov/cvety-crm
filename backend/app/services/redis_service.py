@@ -106,11 +106,21 @@ class MockRedisClient:
         self._store = {}
     
     def setex(self, key: str, seconds: int, value: Any) -> bool:
+        # Store value as string to match real Redis behavior
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value)
         self._store[key] = value
         return True
     
     def get(self, key: str) -> Optional[Any]:
-        return self._store.get(key)
+        value = self._store.get(key)
+        # Try to parse JSON to match RedisService.get() behavior
+        if value:
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return value
+        return value
     
     def delete(self, key: str) -> int:
         if key in self._store:
@@ -121,7 +131,7 @@ class MockRedisClient:
     def incrby(self, key: str, amount: int) -> int:
         current = int(self._store.get(key, 0))
         new_value = current + amount
-        self._store[key] = new_value
+        self._store[key] = str(new_value)  # Store as string
         return new_value
     
     def ttl(self, key: str) -> int:
