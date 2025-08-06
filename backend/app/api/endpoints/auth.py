@@ -253,7 +253,7 @@ async def verify_otp(
     if not admin_user:
         # Create admin user if none exists (shouldn't happen with new fix, but for safety)
         admin_user_data = UserCreate(
-            phone=f"{shop.phone}_admin",  # Use modified phone to avoid conflicts
+            phone=shop.phone,  # Use same phone as shop
             name=shop.name,
             email=f"admin@shop{shop.id}.com",
             role=UserRole.admin,
@@ -383,9 +383,9 @@ async def complete_registration(
     from app.models.user import UserRole
     
     admin_user_data = UserCreate(
-        phone=phone,
+        phone=phone,  # Use the same phone as the shop
         name=request.name,
-        email=f"admin@{phone[1:]}.com",  # Generate email from phone
+        email=f"admin@shop{shop.id}.com",  # Use shop ID for unique email
         role=UserRole.admin,
         is_active=True
     )
