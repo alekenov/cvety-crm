@@ -364,6 +364,21 @@ async def complete_registration(
         product_dict['shop_id'] = shop.id
         db_product = crud_product.model(**product_dict)
         db.add(db_product)
+    
+    # Create admin user for the new shop
+    from app.crud import user as crud_user
+    from app.schemas.user import UserCreate
+    from app.models.user import UserRole
+    
+    admin_user_data = UserCreate(
+        phone=phone,
+        name=request.name,
+        email=f"admin@{phone[1:]}.com",  # Generate email from phone
+        role=UserRole.admin,
+        is_active=True
+    )
+    admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
+    
     db.commit()
     
     # Clear registration session
@@ -372,7 +387,7 @@ async def complete_registration(
     # Create full authentication token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": str(shop.id), "phone": shop.phone, "user_id": "1"},
+        data={"sub": str(shop.id), "phone": shop.phone, "user_id": str(admin_user.id)},
         expires_delta=access_token_expires
     )
     
