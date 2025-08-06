@@ -193,91 +193,106 @@ async def verify_otp(
     db: Session = Depends(deps.get_db)
 ):
     """Verify OTP and return access token"""
-    # Verify OTP
-    result = otp_service.verify_otp(request.phone, request.otp_code)
-    
-    if not result["valid"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result["message"]
-        )
-    
-    # Check if shop exists
-    shop = crud_shop.get_by_phone(db, phone=request.phone)
-    
-    if not shop:
-        # New user - save phone in session for registration
-        redis_service.set_with_ttl(
-            f"registration:{request.phone}",
-            {"phone": request.phone, "verified": True},
-            ttl_seconds=3600  # 1 hour to complete registration
-        )
+    try:
+        # Verify OTP
+        result = otp_service.verify_otp(request.phone, request.otp_code)
         
-        # Create temporary token for registration flow
-        access_token_expires = timedelta(minutes=60)
+        if not result["valid"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["message"]
+            )
+        
+        # Check if shop exists
+        shop = crud_shop.get_by_phone(db, phone=request.phone)
+        
+        if not shop:
+            # New user - save phone in session for registration
+            redis_service.set_with_ttl(
+                f"registration:{request.phone}",
+                {"phone": request.phone, "verified": True},
+                ttl_seconds=3600  # 1 hour to complete registration
+            )
+            
+            # Create temporary token for registration flow
+            access_token_expires = timedelta(minutes=60)
+            access_token = create_access_token(
+                data={"sub": "pending", "phone": request.phone},
+                expires_delta=access_token_expires
+            )
+            
+            return AuthToken(
+                access_token=access_token,
+                token_type="bearer",
+                is_new_user=True
+            )
+        
+        # Update telegram_id if available
+        telegram_data = redis_service.get(f"telegram:{request.phone}")
+        if telegram_data and telegram_data.get("telegram_id"):
+            shop = crud_shop.update_telegram(
+                db,
+                db_obj=shop,
+                telegram_id=str(telegram_data["telegram_id"]),
+                telegram_username=telegram_data.get("telegram_username")
+            )
+        
+        # Update last login
+        shop = crud_shop.update_last_login(db, db_obj=shop)
+        
+        # Get first admin user for this shop
+        from app.crud import user as crud_user
+        from app.models.user import UserRole, User
+        from app.schemas.user import UserCreate
+        
+        # Find admin user for this shop
+        admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
+        if not admin_user:
+            # Try to find any active user for this shop
+            admin_user = db.query(User).filter_by(shop_id=shop.id, is_active=True).first()
+        
+        if not admin_user:
+            # Create admin user if none exists (shouldn't happen with new fix, but for safety)
+            admin_user_data = UserCreate(
+                phone=shop.phone,  # Use same phone as shop
+                name=shop.name,
+                email=f"admin@shop{shop.id}.com",
+                role=UserRole.admin,
+                is_active=True
+            )
+            admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
+            db.commit()
+        
+        user_id = str(admin_user.id)
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            data={"sub": "pending", "phone": request.phone},
+            data={"sub": str(shop.id), "phone": shop.phone, "user_id": user_id},
             expires_delta=access_token_expires
         )
         
         return AuthToken(
             access_token=access_token,
             token_type="bearer",
-            is_new_user=True
+            shop_id=shop.id,
+            shop_name=shop.name,
+            is_new_user=False
         )
-    
-    # Update telegram_id if available
-    telegram_data = redis_service.get(f"telegram:{request.phone}")
-    if telegram_data and telegram_data.get("telegram_id"):
-        shop = crud_shop.update_telegram(
-            db,
-            db_obj=shop,
-            telegram_id=str(telegram_data["telegram_id"]),
-            telegram_username=telegram_data.get("telegram_username")
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log the error for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in verify_otp for phone {request.phone}: {str(e)}", exc_info=True)
+        
+        # Return a generic error to the client
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred during authentication. Please try again."
         )
-    
-    # Update last login
-    shop = crud_shop.update_last_login(db, db_obj=shop)
-    
-    # Get first admin user for this shop
-    from app.crud import user as crud_user
-    from app.models.user import UserRole, User
-    from app.schemas.user import UserCreate
-    
-    # Find admin user for this shop
-    admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
-    if not admin_user:
-        # Try to find any active user for this shop
-        admin_user = db.query(User).filter_by(shop_id=shop.id, is_active=True).first()
-    
-    if not admin_user:
-        # Create admin user if none exists (shouldn't happen with new fix, but for safety)
-        admin_user_data = UserCreate(
-            phone=shop.phone,  # Use same phone as shop
-            name=shop.name,
-            email=f"admin@shop{shop.id}.com",
-            role=UserRole.admin,
-            is_active=True
-        )
-        admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
-        db.commit()
-    
-    user_id = str(admin_user.id)
-    
-    # Create access token
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(shop.id), "phone": shop.phone, "user_id": user_id},
-        expires_delta=access_token_expires
-    )
-    
-    return AuthToken(
-        access_token=access_token,
-        token_type="bearer",
-        shop_id=shop.id,
-        shop_name=shop.name,
-        is_new_user=False
-    )
 
 
 @router.post("/complete-registration", response_model=AuthToken, status_code=201,
