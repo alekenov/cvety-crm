@@ -29,6 +29,7 @@ import { CartPage } from "@/storefront/pages/CartPage"
 import { OrderSuccessPage } from "@/storefront/pages/OrderSuccessPage"
 import { TrackingPage as StorefrontTrackingPage } from "@/storefront/pages/TrackingPage"
 import { StorefrontLayout } from "@/storefront/components/StorefrontLayout"
+import LandingPage from "@/pages/landing/LandingPage"
 
 const queryClient = new QueryClient()
 
@@ -39,6 +40,7 @@ function App() {
       <ThemeProvider defaultTheme="light" storageKey="cvety-theme">
         <BrowserRouter>
           <Routes>
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/status/:token" element={<StorefrontTrackingPage />} />
             <Route path="/shop/:shopId" element={<StorefrontLayout />}>
