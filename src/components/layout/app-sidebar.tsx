@@ -30,6 +30,9 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
   const location = useLocation()
+  
+  // Get shop_id from localStorage for dynamic shop URL
+  const shopId = localStorage.getItem('shopId') || '1'
 
   const menuGroups = [
     {
@@ -49,7 +52,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
     {
       label: "Витрина",
       items: [
-        { title: "Витрина магазина", url: "/shop/1", icon: ShoppingBag },
+        { title: "Витрина магазина", url: `/shop/${shopId}`, icon: ShoppingBag },
       ]
     },
     {

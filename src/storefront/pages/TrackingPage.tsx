@@ -205,7 +205,8 @@ export function TrackingPage() {
 
   const handleReturnToShop = () => {
     // Extract shop ID from URL or use default
-    navigate('/shop/1');
+    const shopId = localStorage.getItem('shopId') || '1';
+    navigate(`/shop/${shopId}`);
   };
 
   // Address editing functions
