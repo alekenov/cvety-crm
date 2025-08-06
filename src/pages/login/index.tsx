@@ -15,9 +15,11 @@ export function LoginPage() {
   const [searchParams] = useSearchParams()
   const returnUrl = searchParams.get('returnUrl') || '/'
   
-  const [step, setStep] = useState<'phone' | 'otp'>('phone')
+  const [step, setStep] = useState<'phone' | 'otp' | 'profile'>('phone')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
+  const [shopName, setShopName] = useState('')
+  const [shopCity, setShopCity] = useState('Алматы')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -56,6 +58,27 @@ export function LoginPage() {
     }
   }
 
+  const handleCompleteRegistration = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await authApi.completeRegistration(shopName, shopCity)
+      
+      localStorage.setItem('authToken', response.access_token)
+      if (response.shop_id) {
+        localStorage.setItem('shopId', response.shop_id.toString())
+      }
+      localStorage.setItem('shopPhone', phone.replace(/\s/g, ''))
+      navigate(returnUrl)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Ошибка при создании магазина')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -65,8 +88,19 @@ export function LoginPage() {
       const cleanPhone = phone.replace(/\s/g, '')
       const response = await authApi.verifyOtp(cleanPhone, otp)
       
-      localStorage.setItem('authToken', response.access_token)
-      navigate(returnUrl)
+      if (response.is_new_user) {
+        // New user - need to complete registration
+        localStorage.setItem('authToken', response.access_token)
+        setStep('profile')
+      } else {
+        // Existing user - login complete
+        localStorage.setItem('authToken', response.access_token)
+        if (response.shop_id) {
+          localStorage.setItem('shopId', response.shop_id.toString())
+        }
+        localStorage.setItem('shopPhone', cleanPhone)
+        navigate(returnUrl)
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Неверный код')
     } finally {
@@ -81,11 +115,13 @@ export function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">🌸 Cvety.kz</CardTitle>
           <CardDescription>
-            {step === 'phone' ? 'Войдите в систему управления' : 'Введите код из Telegram'}
+            {step === 'phone' && 'Войдите в систему управления'}
+            {step === 'otp' && 'Введите код из Telegram'}
+            {step === 'profile' && 'Расскажите о вашем магазине'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 'phone' ? (
+          {step === 'phone' && (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Номер телефона</Label>
@@ -131,7 +167,8 @@ export function LoginPage() {
                 )}
               </Button>
             </form>
-          ) : (
+          )}
+          {step === 'otp' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="otp">Код подтверждения</Label>
@@ -183,6 +220,61 @@ export function LoginPage() {
                   Изменить номер
                 </Button>
               </div>
+            </form>
+          )}
+          {step === 'profile' && (
+            <form onSubmit={handleCompleteRegistration} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="shopName">Название магазина</Label>
+                <Input
+                  id="shopName"
+                  type="text"
+                  placeholder="Цветочный рай"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  required
+                  disabled={loading}
+                  minLength={2}
+                  maxLength={100}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Как называется ваш цветочный магазин
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="shopCity">Город</Label>
+                <select
+                  id="shopCity"
+                  value={shopCity}
+                  onChange={(e) => setShopCity(e.target.value)}
+                  disabled={loading}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="Алматы">Алматы</option>
+                  <option value="Астана">Астана</option>
+                  <option value="Шымкент">Шымкент</option>
+                  <option value="Караганда">Караганда</option>
+                  <option value="Другой">Другой</option>
+                </select>
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button type="submit" className={BUTTON_CLASSES.ACTION} disabled={loading || shopName.length < 2}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Создание магазина...
+                  </>
+                ) : (
+                  'Создать магазин'
+                )}
+              </Button>
             </form>
           )}
         </CardContent>

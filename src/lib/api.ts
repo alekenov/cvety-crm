@@ -19,8 +19,9 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     // Add shop phone header (required for multi-tenancy)
-    // In test mode, use a fixed phone number
-    config.headers['X-Shop-Phone'] = '+77007893838'
+    // Use saved shop phone from login, fallback to test phone
+    const shopPhone = localStorage.getItem('shopPhone')
+    config.headers['X-Shop-Phone'] = shopPhone || '+77771234567'
     return config
   },
   (error) => {
@@ -705,10 +706,26 @@ export const authApi = {
   },
 
   verifyOtp: async (phone: string, otpCode: string) => {
-    const { data } = await api.post<{ access_token: string; token_type: string }>('/auth/verify-otp', { 
+    const { data } = await api.post<{ 
+      access_token: string
+      token_type: string
+      shop_id?: number
+      shop_name?: string
+      is_new_user: boolean
+    }>('/auth/verify-otp', { 
       phone, 
       otp_code: otpCode 
     })
+    return data
+  },
+  completeRegistration: async (name: string, city: string = 'Алматы') => {
+    const { data } = await api.post<{
+      access_token: string
+      token_type: string
+      shop_id: number
+      shop_name: string
+      is_new_user: boolean
+    }>('/auth/complete-registration', { name, city })
     return data
   },
 
