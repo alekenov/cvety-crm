@@ -34,7 +34,32 @@ class PaymentWebhookData(BaseModel):
 router = APIRouter()
 
 
-@router.get("/", response_model=OrderList, summary="Get all orders", 
+@router.get("/", 
+    response_model=OrderList, 
+    summary="Get all orders", 
+    tags=["orders"],
+    responses={
+        200: {
+            "description": "List of orders retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "items": [{
+                            "id": 1234,
+                            "status": "paid",
+                            "customer_phone": "+77011234567",
+                            "recipient_name": "Айгуль",
+                            "total": 27000,
+                            "tracking_token": "123456789"
+                        }],
+                        "total": 150
+                    }
+                }
+            }
+        },
+        401: {"description": "Not authenticated"},
+        403: {"description": "Not authorized"}
+    },
     description="""
     Retrieve a paginated list of orders for the current shop.
     
@@ -53,6 +78,11 @@ router = APIRouter()
     - Only returns orders for the authenticated shop
     - Orders sorted by creation date (newest first)
     - Includes related data in single query for performance
+    
+    ## Example Request:
+    ```
+    GET /api/orders/?status=paid&page=1&limit=20
+    ```
     """)
 def get_orders(
     db: Session = Depends(deps.get_db),
