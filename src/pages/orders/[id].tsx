@@ -851,7 +851,7 @@ export function OrderDetailPage() {
             size="lg" 
             onClick={handleStatusProgression}
             disabled={isUpdatingStatus}
-            className="w-full max-w-lg shadow-lg mb-16"
+            className="w-full max-w-lg shadow-lg mb-20"
           >
             {isUpdatingStatus ? 'Обновление...' : nextStatus.label}
           </Button>
