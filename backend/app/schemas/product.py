@@ -40,9 +40,9 @@ class ProductBase(BaseModel):
     cost_price: float = Field(gt=0)
     retail_price: float = Field(gt=0)
     sale_price: Optional[float] = Field(default=None, gt=0)
-    is_active: bool = True
-    is_popular: bool = False
-    is_new: bool = False
+    is_active: Optional[bool] = True
+    is_popular: Optional[bool] = False
+    is_new: Optional[bool] = False
 
 
 class ProductCreate(ProductBase):
@@ -103,9 +103,9 @@ class ProductPublic(BaseModel):
     image_url: Optional[str] = None
     retail_price: float
     sale_price: Optional[float] = None
-    is_active: bool = True
-    is_popular: bool = False
-    is_new: bool = False
+    is_active: Optional[bool] = True
+    is_popular: Optional[bool] = False
+    is_new: Optional[bool] = False
     images: List[ProductImage] = []
     
     class Config:

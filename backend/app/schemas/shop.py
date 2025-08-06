@@ -82,11 +82,17 @@ class OTPVerifyRequest(BaseModel):
     otp_code: str = Field(..., pattern=r"^\d{6}$", description="6-digit OTP code")
 
 
+class CompleteRegistrationRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100, description="Shop name")
+    city: str = Field(default="Алматы", description="City")
+
+
 class AuthToken(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    shop_id: int
-    shop_name: str
+    shop_id: Optional[int] = None
+    shop_name: Optional[str] = None
+    is_new_user: bool = False
 
 
 class TelegramAuthStart(BaseModel):
