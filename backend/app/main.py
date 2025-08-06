@@ -9,6 +9,7 @@ import logging
 import os
 from pathlib import Path
 import asyncio
+from datetime import datetime
 
 from app.core.config import get_settings
 from app.api.api import api_router
@@ -196,6 +197,22 @@ def db_health_check(db: Session = Depends(get_db)):
             "database": "disconnected",
             "error": str(e)
         }
+
+# Health check endpoint - must be before API router for proper routing
+@app.get("/health")
+async def health_check(db: Session = Depends(get_db)):
+    """Health check endpoint for Docker and monitoring"""
+    try:
+        # Check database connection
+        db.execute(text("SELECT 1"))
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "database": "connected"
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service unhealthy")
 
 # Include API router - MUST be before static files
 app.include_router(api_router, prefix=settings.API_PREFIX)
