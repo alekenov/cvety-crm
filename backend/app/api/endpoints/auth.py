@@ -239,18 +239,30 @@ async def verify_otp(
     # Update last login
     shop = crud_shop.update_last_login(db, db_obj=shop)
     
-    # Get first admin user for this shop (temporary solution)
+    # Get first admin user for this shop
     from app.crud import user as crud_user
-    from app.models.user import UserRole
+    from app.models.user import UserRole, User
+    from app.schemas.user import UserCreate
     
-    # For now, just use user_id 1 or find any user for this shop
-    from app.models.user import User
+    # Find admin user for this shop
     admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
     if not admin_user:
-        # Try to find any user for this shop
+        # Try to find any active user for this shop
         admin_user = db.query(User).filter_by(shop_id=shop.id, is_active=True).first()
     
-    user_id = str(admin_user.id) if admin_user else "1"
+    if not admin_user:
+        # Create admin user if none exists (shouldn't happen with new fix, but for safety)
+        admin_user_data = UserCreate(
+            phone=f"{shop.phone}_admin",  # Use modified phone to avoid conflicts
+            name=shop.name,
+            email=f"admin@shop{shop.id}.com",
+            role=UserRole.admin,
+            is_active=True
+        )
+        admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
+        db.commit()
+    
+    user_id = str(admin_user.id)
     
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
