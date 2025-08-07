@@ -1,0 +1,159 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Test environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - local
+          - staging
+          - production
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        browser: [chromium]
+        test-suite: [smoke, critical, full]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      
+      - name: Install frontend dependencies
+        run: npm ci
+      
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      
+      - name: Install Playwright browsers
+        run: |
+          playwright install --with-deps ${{ matrix.browser }}
+      
+      - name: Setup test environment
+        run: |
+          cp .env.example .env
+          echo "DEBUG=True" >> .env
+          echo "SECRET_KEY=test-secret-key-for-ci" >> .env
+          echo "DATABASE_URL=sqlite:///./test.db" >> .env
+      
+      - name: Start application servers
+        if: github.event.inputs.environment != 'production'
+        run: |
+          # Start backend
+          cd backend
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          cd ..
+          
+          # Start frontend
+          npm run dev &
+          
+          # Wait for servers to be ready
+          npx wait-on http://localhost:8000/docs http://localhost:5173 -t 30000
+      
+      - name: Run E2E tests - ${{ matrix.test-suite }}
+        env:
+          E2E_HEADLESS: true
+          E2E_BASE_URL: ${{ github.event.inputs.environment == 'production' && secrets.PRODUCTION_URL || 'http://localhost:5173' }}
+          E2E_API_URL: ${{ github.event.inputs.environment == 'production' && secrets.PRODUCTION_API_URL || 'http://localhost:8000' }}
+        run: |
+          if [ "${{ matrix.test-suite }}" = "smoke" ]; then
+            python backend/tests/e2e/run_tests.py --smoke --headless
+          elif [ "${{ matrix.test-suite }}" = "critical" ]; then
+            python backend/tests/e2e/run_tests.py --critical --headless
+          else
+            python backend/tests/e2e/run_tests.py --headless
+          fi
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.browser }}-${{ matrix.test-suite }}
+          path: |
+            test-report.html
+            screenshots/
+            videos/
+      
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: failure-screenshots-${{ matrix.browser }}-${{ matrix.test-suite }}
+          path: screenshots/
+      
+      - name: Notify on failure
+        if: failure() && github.ref == 'refs/heads/main'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              title: `E2E Tests Failed on main branch - ${new Date().toISOString().split('T')[0]}`,
+              body: `E2E tests failed on main branch.\n\nTest Suite: ${{ matrix.test-suite }}\nBrowser: ${{ matrix.browser }}\n\n[View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.name}/actions/runs/${context.runId})`,
+              labels: ['bug', 'e2e-tests']
+            })
+
+  e2e-railway:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: e2e-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+      
+      - name: Run E2E tests against Railway
+        env:
+          E2E_USE_RAILWAY: true
+          E2E_HEADLESS: true
+          RAILWAY_URL: ${{ secrets.RAILWAY_URL }}
+        run: |
+          python backend/tests/e2e/run_tests.py --railway --smoke --headless
+      
+      - name: Upload Railway test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: railway-test-results
+          path: test-report.html
