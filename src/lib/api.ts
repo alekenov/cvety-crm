@@ -38,14 +38,8 @@ api.interceptors.response.use(
       window.location.href = '/login'
     }
     
-    // Log detailed error information
-    console.error('API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    })
+    // Error logging removed for production
+    // In production, errors should be sent to monitoring service instead
     
     return Promise.reject(error)
   }
@@ -161,7 +155,7 @@ export const ordersApi = {
       }))
     }
     
-    console.log('Sending order data to API:', apiData)
+    // Debug logging removed for production
     
     const { data } = await api.post<Order>('/orders/with-items', apiData)
     return data

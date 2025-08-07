@@ -1,0 +1,78 @@
+# E2E Testing Makefile
+.PHONY: help install test test-local test-railway test-smoke test-critical clean
+
+help: ## Show this help message
+	@echo "E2E Testing Commands:"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+install: ## Install Playwright and dependencies
+	pip install -r backend/requirements.txt
+	playwright install chromium
+	playwright install-deps
+
+test: test-local ## Run all E2E tests (alias for test-local)
+
+test-local: ## Run E2E tests against local environment
+	python backend/tests/e2e/run_tests.py --local
+
+test-railway: ## Run E2E tests against Railway deployment
+	python backend/tests/e2e/run_tests.py --railway
+
+test-smoke: ## Run smoke tests only
+	python backend/tests/e2e/run_tests.py --smoke
+
+test-critical: ## Run critical path tests only
+	python backend/tests/e2e/run_tests.py --critical
+
+test-headless: ## Run tests in headless mode
+	python backend/tests/e2e/run_tests.py --headless
+
+test-debug: ## Run tests in debug mode (slow, with browser)
+	python backend/tests/e2e/run_tests.py --slow -v
+
+test-parallel: ## Run tests in parallel
+	python backend/tests/e2e/run_tests.py -n 4
+
+test-auth: ## Run authentication tests
+	pytest backend/tests/e2e/test_auth_flow.py -v
+
+test-orders: ## Run order management tests
+	pytest backend/tests/e2e/test_order_flow.py -v
+
+test-critical-paths: ## Run critical business path tests
+	pytest backend/tests/e2e/test_critical_paths.py -v
+
+test-failed: ## Re-run failed tests
+	python backend/tests/e2e/run_tests.py --lf
+
+test-report: ## Generate HTML test report
+	python backend/tests/e2e/run_tests.py --report
+	@echo "Report generated: test-report.html"
+
+clean: ## Clean test artifacts
+	rm -rf .pytest_cache
+	rm -rf backend/tests/e2e/__pycache__
+	rm -rf test-report.html
+	rm -rf .coverage
+	rm -rf htmlcov
+	rm -rf ~/Library/Caches/ms-playwright/mcp-chrome-profile/*
+
+# Development helpers
+dev-setup: ## Setup development environment for E2E testing
+	@echo "Setting up E2E test environment..."
+	make install
+	@echo "Creating .env.test file..."
+	@echo "E2E_BASE_URL=http://localhost:5173" > .env.test
+	@echo "E2E_API_URL=http://localhost:8000" >> .env.test
+	@echo "E2E_HEADLESS=false" >> .env.test
+	@echo "E2E_SLOW_MO=0" >> .env.test
+	@echo "E2E_TIMEOUT=30000" >> .env.test
+	@echo "Setup complete!"
+
+ci-test: ## Run tests for CI environment
+	python backend/tests/e2e/run_tests.py --headless --parallel 2 --exitfirst
+
+validate: ## Validate test files
+	python -m py_compile backend/tests/e2e/*.py
+	@echo "All test files are valid!"

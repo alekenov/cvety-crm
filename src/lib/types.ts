@@ -324,18 +324,12 @@ export interface CompanySettings {
   updatedAt?: string | null
 }
 
-export interface UserRole {
-  id: string
-  name: string
-  permissions: string[]
-}
-
 export interface SystemUser {
   id: string
   name: string
   email: string
   phone: string
-  role: UserRole
+  role: UserRole  // Using the type alias defined below
   isActive: boolean
   createdAt: Date
   lastLoginAt?: Date

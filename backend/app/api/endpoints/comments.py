@@ -6,6 +6,7 @@ from app.api import deps
 from app.crud.comment import comment as crud_comment
 from app.schemas.comment import CommentCreate, CommentUpdate, CommentResponse, CommentList
 from app.models.shop import Shop
+from app.models.user import User
 
 router = APIRouter()
 
@@ -49,7 +50,8 @@ def create_comment(
     order_id: int,
     comment_in: CommentCreate,
     db: Session = Depends(deps.get_db),
-    current_shop = Depends(deps.get_current_shop)
+    current_shop = Depends(deps.get_current_shop),
+    current_user: User = Depends(deps.get_current_user)
 ):
     """Create a new comment for an order"""
     # Check if order exists
@@ -61,7 +63,7 @@ def create_comment(
     db_comment = crud_comment.create_for_order(
         db,
         order_id=order_id,
-        user_id=1,  # TODO: Replace with actual user when user auth is implemented
+        user_id=current_user.id,  # Now using actual authenticated user
         obj_in=comment_in
     )
     
@@ -73,8 +75,8 @@ def create_comment(
         'created_at': db_comment.created_at,
         'updated_at': db_comment.updated_at,
         'user': {
-            'id': 1,
-            'name': "Менеджер"  # TODO: Replace with actual user when user auth is implemented
+            'id': current_user.id,
+            'name': current_user.name or current_user.phone
         }
     }
 
@@ -106,8 +108,8 @@ def update_comment(
         'created_at': db_comment.created_at,
         'updated_at': db_comment.updated_at,
         'user': {
-            'id': 1,
-            'name': "Менеджер"  # TODO: Replace with actual user when user auth is implemented
+            'id': current_user.id,
+            'name': current_user.name or current_user.phone
         }
     }
 

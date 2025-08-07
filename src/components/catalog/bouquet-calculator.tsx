@@ -8,14 +8,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+// Table components removed - not used in this file
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { warehouseApi } from "@/lib/api"
@@ -71,7 +64,7 @@ export function BouquetCalculator({ ingredients, onChange, onCostChange }: Bouqu
       setWarehouseItems(response.items)
     } catch (err) {
       toast.error('Ошибка при загрузке товаров со склада')
-      console.error('Error loading warehouse items:', err)
+      // Error is handled by toast notification
     } finally {
       setLoading(false)
     }

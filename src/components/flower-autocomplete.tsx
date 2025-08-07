@@ -83,7 +83,9 @@ export function FlowerAutocomplete({
       const recent = JSON.parse(stored)
       const updated = [selectedValue, ...recent.filter((v: string) => v !== selectedValue)].slice(0, 5)
       localStorage.setItem('recentFlowers', JSON.stringify(updated))
-    } catch {}
+    } catch {
+      // Ignore localStorage errors (e.g., in private browsing mode)
+    }
   }
 
   const handleAddNew = () => {

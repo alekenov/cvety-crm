@@ -91,14 +91,25 @@ def read_products(
 def create_product(
     *,
     db: Session = Depends(deps.get_db),
-    _: Shop = Depends(deps.get_current_shop),  # Require auth,
+    shop: Shop = Depends(deps.get_current_shop),  # Require auth,
     product_in: schemas.ProductCreate
 ) -> schemas.Product:
     """
     Create new product.
     """
-    product = crud.product.create(db=db, obj_in=product_in)
-    return product
+    from app.models.product import Product
+    
+    # Convert Pydantic model to dict and add shop_id
+    product_data = product_in.dict()
+    product_data["shop_id"] = shop.id
+    
+    # Create product directly with shop_id
+    db_product = Product(**product_data)
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+    
+    return db_product
 
 
 @router.get("/{id}", response_model=schemas.ProductWithStats)
