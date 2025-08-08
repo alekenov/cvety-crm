@@ -60,7 +60,8 @@ def get_warehouse_items(
 
 @router.get("/stats", response_model=WarehouseStats)
 def get_warehouse_stats(
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """Get warehouse statistics"""
     return warehouse.get_stats(db)
@@ -69,7 +70,8 @@ def get_warehouse_stats(
 @router.post("/deliveries", response_model=DeliveryResponse, status_code=201)
 def create_delivery(
     delivery: DeliveryCreate,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """Create new delivery with positions and update warehouse items"""
     try:
@@ -82,6 +84,7 @@ def create_delivery(
 @router.get("/deliveries", response_model=DeliveryList)
 def get_deliveries(
     db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
     skip: int = Query(0, ge=0),
     limit: int = Query(20, le=100)
 ):
@@ -98,7 +101,7 @@ def get_deliveries(
 def get_warehouse_item(
     item_id: int,
     db: Session = Depends(deps.get_db),
-    # _: Shop = Depends(deps.get_current_shop)  # Temporary: disable auth for testing
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """Get single warehouse item by ID (with auth)"""
     item = warehouse.get_item(db, item_id=item_id)
@@ -110,7 +113,8 @@ def get_warehouse_item(
 @router.post("/", response_model=WarehouseItemResponse, status_code=201)
 def create_warehouse_item(
     item: WarehouseItemCreate,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """Create new warehouse item (usually done through deliveries)"""
     db_item = warehouse.create_item(db, item=item)
@@ -121,7 +125,8 @@ def create_warehouse_item(
 def update_warehouse_item(
     item_id: int,
     item_update: WarehouseItemUpdate,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """Update warehouse item (price, quantity, flags)"""
     # Add user tracking if auth is implemented
@@ -140,7 +145,7 @@ def update_warehouse_item(
 def get_warehouse_item_movements(
     item_id: int,
     db: Session = Depends(deps.get_db),
-    # _: Shop = Depends(deps.get_current_shop),  # Temporary: disable auth for testing
+    _: Shop = Depends(deps.get_current_shop),  # Require auth
     skip: int = Query(0, ge=0),
     limit: int = Query(50, le=100)
 ):
@@ -158,7 +163,7 @@ def adjust_warehouse_item_stock(
     item_id: int,
     adjustment: StockAdjustmentRequest,
     db: Session = Depends(deps.get_db),
-    # _: Shop = Depends(deps.get_current_shop)  # Temporary: disable auth for testing
+    _: Shop = Depends(deps.get_current_shop)  # Require auth
 ):
     """Adjust stock quantity and create movement record"""
     try:
