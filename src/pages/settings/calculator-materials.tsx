@@ -91,7 +91,7 @@ export function CalculatorMaterialsPage() {
         setSettings(settingsResponse)
       }
     } catch (error) {
-      console.error("Failed to load data:", error)
+      // Error is handled by toast notification
       toast.error("Не удалось загрузить данные")
     } finally {
       setIsLoading(false)
@@ -106,7 +106,7 @@ export function CalculatorMaterialsPage() {
       setShowAddDialog(false)
       resetForm()
     } catch (error) {
-      console.error("Failed to add material:", error)
+      // Error is handled by toast notification
       toast.error("Не удалось добавить материал")
     }
   }
@@ -121,7 +121,7 @@ export function CalculatorMaterialsPage() {
       setEditingMaterial(null)
       resetForm()
     } catch (error) {
-      console.error("Failed to update material:", error)
+      // Error is handled by toast notification
       toast.error("Не удалось обновить материал")
     }
   }
@@ -134,7 +134,7 @@ export function CalculatorMaterialsPage() {
       setMaterials(materials.filter(m => m.id !== id))
       toast.success("Материал удален")
     } catch (error) {
-      console.error("Failed to delete material:", error)
+      // Error is handled by toast notification
       toast.error("Не удалось удалить материал")
     }
   }
@@ -145,7 +145,7 @@ export function CalculatorMaterialsPage() {
       setSettings(updated)
       toast.success("Настройки сохранены")
     } catch (error) {
-      console.error("Failed to update settings:", error)
+      // Error is handled by toast notification
       toast.error("Не удалось сохранить настройки")
     }
   }

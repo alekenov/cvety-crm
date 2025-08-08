@@ -1,5 +1,4 @@
 import {
-  Package,
   ShoppingCart,
   Store,
   ChevronRight,

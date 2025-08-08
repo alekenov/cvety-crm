@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { format, addDays, setHours, setMinutes } from "date-fns"
+import { format, addDays } from "date-fns"
 import { ru } from "date-fns/locale"
 import { CalendarIcon, Clock, MapPin, Truck, Store } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// Select components removed - not used in this file
 import type { DeliveryMethod } from "@/lib/types"
 import { FORM_WIDTHS } from "@/lib/constants"
 

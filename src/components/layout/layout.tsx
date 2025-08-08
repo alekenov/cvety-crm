@@ -16,7 +16,7 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{id: string; name: string; phone: string; role: string} | null>(null)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -28,7 +28,7 @@ export function Layout({ children }: LayoutProps) {
           role: "admin"
         })
       } catch (error) {
-        console.error('Failed to load user', error)
+        // Failed to load user - error should be handled by auth interceptor
       }
     }
     loadUser()
