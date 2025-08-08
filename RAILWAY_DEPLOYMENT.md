@@ -1,4 +1,18 @@
-# Railway Deployment Guide for Cvety.kz
+# Railway Deployment Guide for Cvety.kz - Complete Setup
+
+## Quick Start
+
+```bash
+# 1. Install Railway CLI
+npm install -g @railway/cli
+
+# 2. Login and link project
+railway login
+railway link
+
+# 3. Deploy with CI mode
+railway up -c
+```
 
 ## Deployment Configuration Summary
 
@@ -146,3 +160,45 @@ make down
    # 3. Deploy to Railway
    make deploy
    ```
+
+## Required Services Setup
+
+### PostgreSQL Database
+1. Add PostgreSQL service in Railway dashboard
+2. Railway auto-provides DATABASE_URL
+3. Migrations run automatically on deploy
+
+### Redis Cache (for OTP)
+1. Add Redis service in Railway dashboard
+2. Copy REDIS_URL from service variables
+3. Add to your app's environment variables
+
+### Environment Variables (Required)
+```env
+# Auto-provided by Railway
+DATABASE_URL=postgresql://...
+PORT=...
+
+# Must set manually
+SECRET_KEY=your-32-char-hex-key
+REDIS_URL=redis://...
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_WEBHOOK_URL=https://your-app.railway.app
+DEBUG=False
+```
+
+## Deployment Commands
+
+```bash
+# Deploy
+railway up -c
+
+# Check logs
+railway logs -f
+
+# Run migrations manually
+railway run alembic upgrade head
+
+# Test database connection
+railway run python -c "from app.db.session import engine; print(engine)"
+```
