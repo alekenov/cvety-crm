@@ -117,10 +117,10 @@ def get_orders(
 - ✅ Orders API (CRUD, status updates, issue tracking)
 - ✅ Tracking API (public access with data masking)
 - ✅ Frontend routing and layouts
-- ⏳ Warehouse API (partial)
-- ❌ Customers API
-- ❌ Production API
-- ❌ Authentication (JWT prepared but not implemented)
+- ✅ Warehouse API (fully implemented with auth)
+- ✅ Customers API (fully implemented with CRM features)
+- ✅ Production API (kanban board for florists)
+- ✅ Authentication (OTP via Telegram, JWT tokens)
 - ❌ Real-time updates (WebSocket)
 
 ## Railway Deployment
