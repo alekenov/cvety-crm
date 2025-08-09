@@ -9,7 +9,7 @@ import sys
 
 # Токен бота
 BOT_TOKEN = "7820558956:AAGQiNqe-AZjG69mo4KR5l6gJwZBrPUy_-w"
-MINI_APP_URL = "https://telegram-miniapp-production-5ad1.up.railway.app"
+MINI_APP_URL = "https://telegram-miniapp-production-bb16.up.railway.app"
 
 def setup_webapp_button():
     """Настройка кнопки Web App в меню бота"""

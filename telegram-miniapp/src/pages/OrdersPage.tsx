@@ -4,6 +4,7 @@ import axios from 'axios'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { useTelegram } from '../providers/TelegramProvider'
+import { useAuth } from '../providers/AuthProvider'
 
 // Utility function
 const cn = (...inputs: (string | undefined)[]) => {
@@ -20,18 +21,20 @@ type OrderStatus =
   | 'issue'
 
 interface Order {
-  id: string
+  id: number
   status: OrderStatus
-  customerPhone: string
+  customer_phone: string
   total: number
-  createdAt: string
+  created_at: string
+  recipient_name?: string
+  address?: string
 }
 
 // Icons
 import { RefreshCw, Package, AlertCircle, CheckCircle2, Truck } from 'lucide-react'
 
 interface OrdersResponse {
-  orders: Order[]
+  items: Order[]
   total: number
 }
 
@@ -199,19 +202,27 @@ const OrderCard = ({
     <Card className="p-4">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="font-medium">#{order.id.slice(-6)}</span>
+          <span className="font-medium">#{order.id}</span>
           <Badge variant={order.status === 'new' ? 'default' : 'secondary'}>
             {statusConfig[order.status]?.label || order.status}
           </Badge>
         </div>
       </div>
-      <div className="text-sm text-gray-600 mb-2">
-        {order.customerPhone}
+      <div className="text-sm text-gray-600 mb-1">
+        {order.recipient_name || 'Клиент'}
       </div>
+      <div className="text-sm text-gray-500 mb-2">
+        {order.customer_phone}
+      </div>
+      {order.address && (
+        <div className="text-xs text-gray-500 mb-2">
+          📍 {order.address}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <span className="font-medium">{order.total.toLocaleString()} ₸</span>
         <span className="text-xs text-gray-500">
-          {new Date(order.createdAt).toLocaleDateString()}
+          {new Date(order.created_at).toLocaleDateString()}
         </span>
       </div>
     </Card>
@@ -223,10 +234,14 @@ export const OrdersPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'all'>('all')
   
   const { haptic } = useTelegram()
+  const { accessToken } = useAuth()
 
   // API client setup
   const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'https://cvety-kz-production.up.railway.app'
+    baseURL: import.meta.env.VITE_API_URL || 'https://cvety-kz-production.up.railway.app',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
   })
 
   // Fetch orders
@@ -288,7 +303,7 @@ export const OrdersPage: React.FC = () => {
       issue: []
     }
 
-    if (!data?.orders) return groups
+    if (!data?.items) return groups
 
     // Reset status counts
     Object.keys(statusConfig).forEach(status => {
@@ -298,7 +313,7 @@ export const OrdersPage: React.FC = () => {
       }
     })
 
-    data.orders.forEach(order => {
+    data.items.forEach(order => {
       if (groups[order.status]) {
         groups[order.status].push(order)
         if (statusConfig[order.status]) {
@@ -308,18 +323,18 @@ export const OrdersPage: React.FC = () => {
     })
 
     return groups
-  }, [data?.orders])
+  }, [data?.items])
 
   // Filter orders based on selected status
   const filteredOrders = React.useMemo(() => {
-    if (!data?.orders) return []
+    if (!data?.items) return []
     
     if (selectedStatus === 'all') {
-      return data.orders
+      return data.items
     }
     
     return groupedOrders[selectedStatus] || []
-  }, [data?.orders, selectedStatus, groupedOrders])
+  }, [data?.items, selectedStatus, groupedOrders])
 
   // Pull-to-refresh gesture setup
   useEffect(() => {
@@ -407,7 +422,7 @@ export const OrdersPage: React.FC = () => {
             onClick={() => handleStatusFilter('all')}
             className="flex-shrink-0"
           >
-            Все ({data?.orders?.length || 0})
+            Все ({data?.items?.length || 0})
           </Button>
           {Object.entries(statusConfig).map(([status, config]) => {
             const IconComponent = config.icon

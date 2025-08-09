@@ -4,7 +4,9 @@ import { OrdersPage } from './pages/OrdersPage'
 import { ProductsPage } from './pages/ProductsPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { TelegramProvider } from './providers/TelegramProvider'
+import { AuthProvider, useAuth } from './providers/AuthProvider'
 import { Navigation } from './components/Navigation'
+import TelegramAuth from './components/TelegramAuth'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +18,26 @@ const queryClient = new QueryClient({
 })
 
 function AppContent() {
+  const { isAuthenticated, login } = useAuth()
+
+  const handleAuthSuccess = (token: string) => {
+    login(token)
+  }
+
+  const handleAuthError = (error: string) => {
+    console.error('Auth error:', error)
+    // Можно добавить показ уведомления об ошибке
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <TelegramAuth 
+        onSuccess={handleAuthSuccess}
+        onError={handleAuthError}
+      />
+    )
+  }
+
   return (
     <TelegramProvider>
       <div className="min-h-screen bg-gray-50">
@@ -36,7 +58,9 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppContent />
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )
