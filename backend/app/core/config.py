@@ -34,10 +34,10 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[str] = Field(
         default=[
             "http://localhost:5173", 
+            "http://localhost:5174",
             "http://localhost:3000",
             "https://cvety-kz-production.up.railway.app",
-            "https://*.railway.app",
-            "https://*.up.railway.app"
+            "https://telegram-miniapp-production-5ad1.up.railway.app"
         ]
     )
     
