@@ -152,6 +152,7 @@ export function ProductSelection({ orderItems, onUpdateItems }: ProductSelection
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-8"
+          data-testid="product-search-input"
         />
       </div>
 
@@ -172,6 +173,7 @@ export function ProductSelection({ orderItems, onUpdateItems }: ProductSelection
                   key={product.id} 
                   className="cursor-pointer hover:shadow-md transition-shadow"
                   onClick={() => addProduct(product)}
+                  data-testid={`product-card-${product.id}`}
                 >
                   <CardContent className="p-3">
                     <div className="flex gap-3">

@@ -226,7 +226,7 @@ export const OrdersPage: React.FC = () => {
 
   // API client setup
   const apiClient = axios.create({
-    baseURL: 'http://localhost:8001'
+    baseURL: import.meta.env.VITE_API_URL || 'https://cvety-kz-production.up.railway.app'
   })
 
   // Fetch orders
@@ -238,7 +238,7 @@ export const OrdersPage: React.FC = () => {
   } = useQuery<OrdersResponse>({
     queryKey: ['orders'],
     queryFn: async () => {
-      const response = await apiClient.get('/api/orders')
+      const response = await apiClient.get('/api/orders/')
       return response.data
     },
     staleTime: 2 * 60 * 1000, // 2 minutes

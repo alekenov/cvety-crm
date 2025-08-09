@@ -131,13 +131,13 @@ export function NewOrderPage() {
           </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Новый заказ</h1>
-            <p className="text-sm text-muted-foreground">Шаг {step} из 4</p>
+            <p className="text-sm text-muted-foreground" data-testid="step-indicator">Шаг {step} из 4</p>
           </div>
         </div>
         
         {/* Progress bar */}
         <div className="space-y-2">
-          <Progress value={(step / 4) * 100} className="h-2" />
+          <Progress value={(step / 4) * 100} className="h-2" data-testid="progress-bar" />
           <div className="flex justify-between text-xs text-muted-foreground">
             {steps.map((s) => (
               <span 
@@ -162,6 +162,7 @@ export function NewOrderPage() {
                 <CustomerSelection
                   selectedCustomer={selectedCustomer}
                   onSelectCustomer={setSelectedCustomer}
+                  data-testid="customer-selection"
                 />
               </CardContent>
             </Card>
@@ -176,6 +177,7 @@ export function NewOrderPage() {
                 <ProductSelection
                   orderItems={orderItems}
                   onUpdateItems={setOrderItems}
+                  data-testid="product-selection"
                 />
               </CardContent>
             </Card>
@@ -190,6 +192,7 @@ export function NewOrderPage() {
                 <DeliveryOptions
                   deliveryInfo={deliveryInfo}
                   onUpdateDelivery={setDeliveryInfo}
+                  data-testid="delivery-options"
                 />
               </CardContent>
             </Card>
@@ -204,6 +207,7 @@ export function NewOrderPage() {
                 <PaymentOptions
                   paymentInfo={paymentInfo}
                   onUpdatePayment={setPaymentInfo}
+                  data-testid="payment-options"
                 />
               </CardContent>
             </Card>
@@ -214,6 +218,7 @@ export function NewOrderPage() {
               variant="outline"
               onClick={() => setStep(Math.max(1, step - 1))}
               disabled={step === 1}
+              data-testid="prev-step-button"
             >
               Назад
             </Button>
@@ -221,6 +226,7 @@ export function NewOrderPage() {
               <Button 
                 onClick={() => setStep(step + 1)}
                 disabled={!canProceedToNextStep()}
+                data-testid="next-step-button"
               >
                 Далее
               </Button>
@@ -228,6 +234,7 @@ export function NewOrderPage() {
               <Button 
                 onClick={handleCreateOrder}
                 disabled={!canProceedToNextStep()}
+                data-testid="create-order-button"
               >
                 Создать заказ
               </Button>

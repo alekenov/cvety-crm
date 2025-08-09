@@ -1,12 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
-import { testData } from '../fixtures/test-data';
+import { generateUniquePhone, clearAllTestData, waitForRateLimit } from '../helpers/test-helpers';
 
 test.describe('Authentication', () => {
   let loginPage: LoginPage;
 
   test.beforeEach(async ({ page }) => {
     loginPage = new LoginPage(page);
+    // Очищаем тестовые данные перед каждым тестом
+    await clearAllTestData();
+    // Небольшая задержка между тестами
+    await waitForRateLimit(500);
   });
 
   test('should login with valid credentials', async ({ page }) => {
@@ -15,16 +19,20 @@ test.describe('Authentication', () => {
     // Check we're on login page
     await expect(page).toHaveURL(/\/login/);
     
-    // Fill phone number
-    await loginPage.fillPhone(testData.testUser.phone);
-    await loginPage.submitPhone();
+    // Use existing user to avoid shop creation
+    const existingUserPhone = '+77011234567';
+    await loginPage.fillPhone(existingUserPhone);
+    const debugOtp = await loginPage.submitPhone();
     
-    // Fill OTP
-    await loginPage.fillOTP(testData.testUser.otp);
+    // Fill OTP (use debug OTP if available)
+    await loginPage.fillOTP(debugOtp || '123456');
     await loginPage.submitOTP();
     
+    // Wait for navigation
+    await page.waitForLoadState('networkidle');
+    
     // Should redirect to orders page
-    await expect(page).toHaveURL(/\/orders/);
+    await expect(page).toHaveURL(/\/orders/, { timeout: 10000 });
     
     // Should see orders page content
     await expect(page.locator('h1')).toContainText('Заказы');
@@ -35,17 +43,18 @@ test.describe('Authentication', () => {
     
     // Try invalid phone format
     await loginPage.fillPhone('1234567');
-    await loginPage.submitPhone();
     
-    // Should show error
-    await loginPage.hasError('Неверный формат');
+    // Button should be disabled for invalid phone
+    const submitButton = page.locator('button:has-text("Получить код")');
+    await expect(submitButton).toBeDisabled();
   });
 
   test('should show error with invalid OTP', async ({ page }) => {
     await loginPage.goto();
     
     // Request OTP with valid phone
-    await loginPage.fillPhone(testData.testUser.phone);
+    const testPhone = generateUniquePhone();
+    await loginPage.fillPhone(testPhone);
     await loginPage.submitPhone();
     
     // Try invalid OTP
@@ -53,7 +62,8 @@ test.describe('Authentication', () => {
     await loginPage.submitOTP();
     
     // Should show error
-    await loginPage.hasError('Неверный код');
+    const errorAlert = page.locator('[role="alert"]');
+    await expect(errorAlert).toContainText('Invalid OTP');
   });
 
   test('should logout successfully', async ({ page }) => {

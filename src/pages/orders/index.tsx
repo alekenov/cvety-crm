@@ -264,7 +264,7 @@ export function OrdersPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Заказы</h1>
-        <Button onClick={() => navigate('/orders/new')}>
+        <Button onClick={() => navigate('/orders/new')} data-testid="new-order-button">
           <Plus className="mr-2 h-4 w-4" />
           Новый заказ
         </Button>
@@ -281,6 +281,7 @@ export function OrdersPage() {
               setStatusFilter('all')
               setCurrentPage(1)
             }}
+            data-testid="filter-all"
           >
             Все
           </Button>
@@ -293,6 +294,7 @@ export function OrdersPage() {
                 setStatusFilter(value)
                 setCurrentPage(1)
               }}
+              data-testid={`filter-${value}`}
             >
               {label}
             </Button>
@@ -309,6 +311,7 @@ export function OrdersPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`pl-10 ${FORM_WIDTHS.SEARCH}`}
+              data-testid="search-input"
             />
           </div>
           <Button
@@ -339,6 +342,7 @@ export function OrdersPage() {
         <ResponsiveTable
           data={orders}
           onRowClick={(order) => navigate(`/orders/${order.id}`)}
+          data-testid="orders-table"
           columns={[
           {
             key: 'id',
@@ -463,7 +467,7 @@ export function OrdersPage() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`order-menu-${order.id}`}>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -490,6 +494,7 @@ export function OrdersPage() {
                 <DropdownMenuItem
                   onClick={() => handleMarkIssue(order.id)}
                   className="text-destructive"
+                  data-testid="mark-issue"
                 >
                   <AlertTriangle className="mr-2 h-4 w-4" />
                   Пометить проблему
@@ -588,7 +593,7 @@ export function OrdersPage() {
       )}
 
       {/* Issue Dialog */}
-      <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen}>
+      <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen} data-testid="issue-dialog">
         <DialogContent className={FORM_WIDTHS.FORM_DIALOG}>
           <DialogHeader>
             <DialogTitle>Отметить проблему</DialogTitle>
@@ -600,7 +605,7 @@ export function OrdersPage() {
             <div className="grid gap-2">
               <Label htmlFor="issue-type">Тип проблемы</Label>
               <Select value={issueType} onValueChange={(value) => setIssueType(value as Order['issueType'])}>
-                <SelectTrigger id="issue-type" className={FORM_WIDTHS.STATUS}>
+                <SelectTrigger id="issue-type" className={FORM_WIDTHS.STATUS} data-testid="issue-type-select">
                   <SelectValue placeholder="Выберите тип проблемы" />
                 </SelectTrigger>
                 <SelectContent>
@@ -631,6 +636,7 @@ export function OrdersPage() {
             <Button 
               onClick={handleSubmitIssue} 
               disabled={!issueType || issueMutation.isPending}
+              data-testid="save-issue-button"
             >
               {issueMutation.isPending ? 'Сохранение...' : 'Сохранить'}
             </Button>

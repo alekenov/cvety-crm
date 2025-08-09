@@ -14,12 +14,13 @@ export default defineConfig({
     port: 5177,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       }
     }
   },
   build: {
+    target: 'es2020', // Поддержка современных браузеров
     rollupOptions: {
       output: {
         manualChunks: (id) => {

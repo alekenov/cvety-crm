@@ -1,8 +1,10 @@
+import { generateUniquePhone } from '../helpers/test-helpers';
+
 export const testData = {
   // Test user for authentication (works in DEBUG mode)
   testUser: {
-    phone: '+77011234567',
-    otp: '123456',
+    phone: generateUniquePhone(), // Динамически генерируем уникальный номер
+    otp: '123456', // В DEBUG режиме OTP возвращается в ответе
     name: 'Тестовый менеджер'
   },
 

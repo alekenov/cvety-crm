@@ -350,7 +350,7 @@ export const ProductsPage: React.FC = () => {
 
   // API client setup
   const apiClient = axios.create({
-    baseURL: 'http://localhost:8001'
+    baseURL: import.meta.env.VITE_API_URL || 'https://cvety-kz-production.up.railway.app'
   })
 
   // Fetch products
@@ -362,7 +362,7 @@ export const ProductsPage: React.FC = () => {
   } = useQuery<ProductsResponse>({
     queryKey: ['products'],
     queryFn: async () => {
-      const response = await apiClient.get('/api/products')
+      const response = await apiClient.get('/api/products/')
       return response.data
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

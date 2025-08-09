@@ -9,7 +9,7 @@ import sys
 
 # Токен бота
 BOT_TOKEN = "7820558956:AAGQiNqe-AZjG69mo4KR5l6gJwZBrPUy_-w"
-MINI_APP_URL = "https://cvety-kz-production.up.railway.app"
+MINI_APP_URL = "https://telegram-miniapp-production-5ad1.up.railway.app"
 
 def setup_webapp_button():
     """Настройка кнопки Web App в меню бота"""
@@ -93,7 +93,6 @@ def main():
         print(f"2. Найдите бота @{bot_info.get('username')}")
         print(f"3. Нажмите кнопку меню слева от поля ввода")
         print(f"4. Выберите '🎮 Открыть приложение'")
-        print(f"\n⚠️ Важно: ngrok туннель должен быть запущен!")
         print(f"📍 Текущий URL: {MINI_APP_URL}")
     else:
         print("\n❌ Настройка не удалась")

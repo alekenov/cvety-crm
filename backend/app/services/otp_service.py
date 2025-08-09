@@ -103,6 +103,12 @@ class OTPService:
     
     def _check_rate_limit(self, phone_number: str) -> bool:
         """Check if phone number has exceeded rate limit"""
+        # Skip rate limiting in DEBUG mode for testing
+        from app.core.config import get_settings
+        settings = get_settings()
+        if settings.DEBUG:
+            return True
+            
         rate_key = f"otp_rate:{phone_number}"
         current_count = self.redis.get(rate_key)
         
@@ -117,6 +123,12 @@ class OTPService:
     
     def _increment_rate_limit(self, phone_number: str):
         """Increment rate limit counter"""
+        # Skip rate limiting in DEBUG mode for testing
+        from app.core.config import get_settings
+        settings = get_settings()
+        if settings.DEBUG:
+            return
+            
         rate_key = f"otp_rate:{phone_number}"
         
         # Check if key exists

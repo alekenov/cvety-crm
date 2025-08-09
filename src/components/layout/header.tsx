@@ -110,7 +110,7 @@ export function Header({ user, isMobile, onMenuClick }: HeaderProps) {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" data-testid="user-menu">
                 <User className="h-4 w-4" />
                 <span className="sr-only">User menu</span>
               </Button>

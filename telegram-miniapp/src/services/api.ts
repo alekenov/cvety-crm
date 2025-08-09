@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'  // В production будет URL backend сервиса
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://cvety-kz-production.up.railway.app'  // В production будет URL backend сервиса
 
 // Types for API responses
 export interface Order {

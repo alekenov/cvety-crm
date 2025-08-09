@@ -82,9 +82,10 @@ export function CustomerSelection({ selectedCustomer, onSelectCustomer }: Custom
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={`pl-8 ${FORM_WIDTHS.SEARCH}`}
+            data-testid="customer-search-input"
           />
         </div>
-        <Button onClick={() => setShowNewCustomerDialog(true)}>
+        <Button onClick={() => setShowNewCustomerDialog(true)} data-testid="new-customer-button">
           <Plus className="mr-2 h-4 w-4" />
           Новый клиент
         </Button>

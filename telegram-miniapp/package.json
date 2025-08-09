@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "npx serve dist -s -l $PORT"
+    "start": "npx serve dist -s -p ${PORT:-3000}"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.83.0",
