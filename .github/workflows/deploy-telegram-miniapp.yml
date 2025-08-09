@@ -1,0 +1,54 @@
+name: Deploy Telegram Mini App to Railway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'telegram-miniapp/**'
+  workflow_dispatch:
+
+env:
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+jobs:
+  deploy-miniapp:
+    name: Deploy Telegram Mini App
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'telegram-miniapp/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: telegram-miniapp
+        run: npm ci
+      
+      - name: Build application
+        working-directory: telegram-miniapp
+        run: npm run build
+        env:
+          VITE_API_URL: https://cvety-kz-production.up.railway.app
+          VITE_TELEGRAM_BOT_USERNAME: HHFlorBot
+      
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      
+      - name: Deploy to Railway
+        working-directory: telegram-miniapp
+        run: |
+          railway up --service telegram-miniapp --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      
+      - name: Check deployment health
+        working-directory: telegram-miniapp
+        run: |
+          sleep 30
+          railway logs --service telegram-miniapp --tail 20
+        continue-on-error: true

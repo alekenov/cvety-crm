@@ -32,6 +32,7 @@ function AppContent() {
 }
 
 export function App() {
+  // Updated with new Railway deployment workflow
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
