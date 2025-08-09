@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Mini App Tester</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 420px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: #54a3db;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .controls {
+            padding: 15px;
+            background: #f8f8f8;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            background: #54a3db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #4590c5;
+        }
+        .iframe-container {
+            position: relative;
+            height: 600px;
+            background: white;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .status {
+            padding: 10px 15px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-size: 12px;
+        }
+        .mobile-frame {
+            display: none;
+        }
+        
+        @media (min-width: 768px) {
+            .mobile-frame {
+                display: block;
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                pointer-events: none;
+                background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 600"><rect x="0" y="0" width="420" height="30" fill="%23000" opacity="0.1" rx="10"/></svg>') no-repeat top center;
+                background-size: 100% auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            🤖 Telegram Mini App Tester
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Тема:</label>
+                <select id="theme">
+                    <option value="light">Светлая</option>
+                    <option value="dark">Темная</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Пользователь:</label>
+                <input type="text" id="username" value="test_user" placeholder="Username">
+            </div>
+            
+            <div class="control-group">
+                <label>User ID:</label>
+                <input type="number" id="userId" value="123456789" placeholder="User ID">
+            </div>
+            
+            <button onclick="initMiniApp()">Запустить Mini App</button>
+        </div>
+        
+        <div class="status" id="status">
+            Готов к запуску. Нажмите кнопку выше.
+        </div>
+        
+        <div class="iframe-container">
+            <iframe id="miniAppFrame" src="about:blank"></iframe>
+            <div class="mobile-frame"></div>
+        </div>
+    </div>
+
+    <script>
+        // Эмуляция Telegram WebApp API
+        const TelegramWebApp = {
+            initData: '',
+            initDataUnsafe: {},
+            version: '6.9',
+            platform: 'tdesktop',
+            colorScheme: 'light',
+            themeParams: {
+                bg_color: '#ffffff',
+                text_color: '#000000',
+                hint_color: '#999999',
+                link_color: '#2481cc',
+                button_color: '#5288c1',
+                button_text_color: '#ffffff',
+                secondary_bg_color: '#f1f1f1'
+            },
+            isExpanded: false,
+            viewportHeight: 600,
+            viewportStableHeight: 600,
+            headerColor: '#ffffff',
+            backgroundColor: '#ffffff',
+            isClosingConfirmationEnabled: false,
+            
+            ready: function() {
+                console.log('📱 Telegram WebApp is ready');
+                updateStatus('Mini App готов к работе');
+            },
+            
+            expand: function() {
+                this.isExpanded = true;
+                console.log('📏 WebApp expanded');
+            },
+            
+            close: function() {
+                console.log('❌ WebApp closed');
+                alert('Mini App закрыт');
+            },
+            
+            setHeaderColor: function(color) {
+                this.headerColor = color;
+                console.log('🎨 Header color set to:', color);
+            },
+            
+            setBackgroundColor: function(color) {
+                this.backgroundColor = color;
+                console.log('🎨 Background color set to:', color);
+            },
+            
+            enableClosingConfirmation: function() {
+                this.isClosingConfirmationEnabled = true;
+            },
+            
+            disableClosingConfirmation: function() {
+                this.isClosingConfirmationEnabled = false;
+            },
+            
+            MainButton: {
+                text: 'CONTINUE',
+                color: '#5288c1',
+                textColor: '#ffffff',
+                isVisible: false,
+                isActive: true,
+                isProgressVisible: false,
+                
+                show: function() {
+                    this.isVisible = true;
+                    console.log('🔘 Main button shown');
+                },
+                
+                hide: function() {
+                    this.isVisible = false;
+                    console.log('🔘 Main button hidden');
+                },
+                
+                enable: function() {
+                    this.isActive = true;
+                },
+                
+                disable: function() {
+                    this.isActive = false;
+                },
+                
+                showProgress: function(leaveActive) {
+                    this.isProgressVisible = true;
+                },
+                
+                hideProgress: function() {
+                    this.isProgressVisible = false;
+                },
+                
+                setText: function(text) {
+                    this.text = text;
+                    console.log('📝 Main button text:', text);
+                },
+                
+                onClick: function(callback) {
+                    console.log('🔘 Main button click handler registered');
+                },
+                
+                offClick: function(callback) {
+                    console.log('🔘 Main button click handler removed');
+                }
+            },
+            
+            BackButton: {
+                isVisible: false,
+                
+                show: function() {
+                    this.isVisible = true;
+                    console.log('⬅️ Back button shown');
+                },
+                
+                hide: function() {
+                    this.isVisible = false;
+                    console.log('⬅️ Back button hidden');
+                },
+                
+                onClick: function(callback) {
+                    console.log('⬅️ Back button click handler registered');
+                },
+                
+                offClick: function(callback) {
+                    console.log('⬅️ Back button click handler removed');
+                }
+            },
+            
+            HapticFeedback: {
+                impactOccurred: function(style) {
+                    console.log(`📳 Haptic feedback: ${style}`);
+                    // Можно добавить визуальный эффект
+                    document.body.style.backgroundColor = '#f0f0f0';
+                    setTimeout(() => {
+                        document.body.style.backgroundColor = '';
+                    }, 100);
+                },
+                
+                notificationOccurred: function(type) {
+                    console.log(`📳 Haptic notification: ${type}`);
+                },
+                
+                selectionChanged: function() {
+                    console.log('📳 Haptic selection changed');
+                }
+            },
+            
+            CloudStorage: {
+                setItem: function(key, value, callback) {
+                    localStorage.setItem(`tg_${key}`, value);
+                    console.log(`💾 Saved to CloudStorage: ${key}`);
+                    if (callback) callback();
+                },
+                
+                getItem: function(key, callback) {
+                    const value = localStorage.getItem(`tg_${key}`);
+                    console.log(`💾 Read from CloudStorage: ${key} = ${value}`);
+                    if (callback) callback(null, value);
+                },
+                
+                removeItem: function(key, callback) {
+                    localStorage.removeItem(`tg_${key}`);
+                    console.log(`💾 Removed from CloudStorage: ${key}`);
+                    if (callback) callback();
+                },
+                
+                getKeys: function(callback) {
+                    const keys = Object.keys(localStorage)
+                        .filter(k => k.startsWith('tg_'))
+                        .map(k => k.substring(3));
+                    if (callback) callback(null, keys);
+                }
+            },
+            
+            showAlert: function(message, callback) {
+                alert(message);
+                if (callback) callback();
+            },
+            
+            showConfirm: function(message, callback) {
+                const result = confirm(message);
+                if (callback) callback(result);
+            },
+            
+            showPopup: function(params, callback) {
+                const message = params.message || '';
+                const result = confirm(message);
+                if (callback) callback(result ? 'ok' : 'cancel');
+            },
+            
+            openLink: function(url, options) {
+                console.log(`🔗 Opening link: ${url}`);
+                window.open(url, '_blank');
+            },
+            
+            openTelegramLink: function(url) {
+                console.log(`🔗 Opening Telegram link: ${url}`);
+                window.open(url, '_blank');
+            },
+            
+            sendData: function(data) {
+                console.log('📤 Sending data to bot:', data);
+                alert(`Data sent to bot: ${data}`);
+            }
+        };
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = `✅ ${message}`;
+        }
+        
+        function initMiniApp() {
+            const theme = document.getElementById('theme').value;
+            const username = document.getElementById('username').value;
+            const userId = document.getElementById('userId').value;
+            
+            // Обновляем тему
+            if (theme === 'dark') {
+                TelegramWebApp.colorScheme = 'dark';
+                TelegramWebApp.themeParams = {
+                    bg_color: '#212121',
+                    text_color: '#ffffff',
+                    hint_color: '#aaaaaa',
+                    link_color: '#5ca8f4',
+                    button_color: '#5288c1',
+                    button_text_color: '#ffffff',
+                    secondary_bg_color: '#181818'
+                };
+            }
+            
+            // Устанавливаем данные пользователя
+            TelegramWebApp.initDataUnsafe = {
+                user: {
+                    id: parseInt(userId),
+                    first_name: username,
+                    username: username,
+                    language_code: 'ru'
+                },
+                auth_date: Math.floor(Date.now() / 1000),
+                hash: 'test_hash'
+            };
+            
+            // Загружаем Mini App в iframe
+            const iframe = document.getElementById('miniAppFrame');
+            iframe.onload = function() {
+                // Инжектим Telegram объект в iframe
+                iframe.contentWindow.Telegram = {
+                    WebApp: TelegramWebApp
+                };
+                console.log('✅ Telegram WebApp API injected');
+                updateStatus('Mini App загружен и готов к тестированию');
+            };
+            
+            iframe.src = 'http://localhost:5174';
+            updateStatus('Загрузка Mini App...');
+        }
+        
+        // Автоматический запуск при загрузке
+        window.addEventListener('load', () => {
+            setTimeout(initMiniApp, 500);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+@import 'tailwindcss';
+
+/* Import main project styles for consistency */
+@import url('../src/index.css');
+
+/* Telegram Mini App specific overrides */
+:root {
+  --tg-theme-bg-color: var(--background);
+  --tg-theme-text-color: var(--foreground);
+  --tg-theme-hint-color: var(--muted-foreground);
+  --tg-theme-link-color: var(--primary);
+  --tg-theme-button-color: var(--primary);
+  --tg-theme-button-text-color: var(--primary-foreground);
+}
+
+/* Telegram viewport adjustments */
+body {
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Safe area for iOS devices */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Telegram-specific scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tg-theme-hint-color);
+  border-radius: 2px;
+}
