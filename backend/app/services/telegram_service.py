@@ -399,12 +399,6 @@ class TelegramService:
             
             logger.info(f"Webhook set to: {webhook_url}{webhook_path}")
             
-            # Create webhook handler
-            self.webhook_handler = SimpleRequestHandler(
-                dispatcher=self.dp,
-                bot=self.bot
-            )
-            
         except Exception as e:
             logger.error(f"Failed to setup webhook: {e}")
             raise

@@ -14,18 +14,18 @@ async def telegram_webhook(request: Request):
     try:
         # Get update data
         data = await request.json()
-        update = Update(**data)
         
-        # Process update
-        if telegram_service.webhook_handler:
-            await telegram_service.webhook_handler.handle(update)
+        # Process update directly through dispatcher
+        if telegram_service.dp and telegram_service.bot:
+            update = Update(**data)
+            await telegram_service.dp.feed_update(telegram_service.bot, update)
             return Response(status_code=200)
         else:
-            logger.error("Webhook handler not initialized")
+            logger.error("Bot or dispatcher not initialized")
             return Response(status_code=500)
     
     except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
+        logger.error(f"Webhook processing error: {e}", exc_info=True)
         return Response(status_code=500)
 
 

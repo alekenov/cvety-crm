@@ -70,3 +70,5 @@
 12:28:39 AM [vite] (client) page reload backend/app/services/telegram_service.py
 12:28:53 AM [vite] (client) page reload backend/app/services/telegram_service.py
 12:29:10 AM [vite] (client) page reload backend/app/core/config.py
+12:35:51 AM [vite] (client) page reload backend/app/api/endpoints/telegram.py
+12:36:03 AM [vite] (client) page reload backend/app/services/telegram_service.py
