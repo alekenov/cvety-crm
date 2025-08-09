@@ -19,6 +19,7 @@ from app.schemas.shop import (
     Shop,
     ShopCreate
 )
+from pydantic import BaseModel
 from app.schemas.product import ProductCreate
 from app.services.otp_service import otp_service
 from app.services.telegram_service import telegram_service
@@ -569,6 +570,202 @@ async def create_test_shop(
             "otp": "Any 6-digit code works in DEBUG mode"
         }
     }
+
+
+class TelegramLoginRequest(BaseModel):
+    initData: str
+    phoneNumber: Optional[str] = None
+
+@router.post("/telegram-login", response_model=AuthToken, status_code=200,
+    summary="Telegram Mini App Login", 
+    description="""
+    Authenticate user via Telegram Mini App initData.
+    
+    ## Process:
+    1. Validates initData signature using bot token
+    2. Extracts user information (id, name, username)
+    3. Creates or updates shop/user based on phone number
+    4. Returns JWT access token
+    
+    ## Parameters:
+    - **initData**: Raw initData string from Telegram.WebApp.initData
+    - **phoneNumber**: Optional phone number from requestContact()
+    
+    ## Response:
+    - **access_token**: JWT token for API access
+    - **shop_id**: Shop identifier if phone provided
+    - **needs_phone**: True if phone number required
+    """)
+async def telegram_login(
+    request: TelegramLoginRequest,
+    db: Session = Depends(deps.get_db)
+):
+    """Authenticate user via Telegram Mini App initData"""
+    import hmac
+    import hashlib
+    import urllib.parse
+    from urllib.parse import unquote
+    import json
+    
+    try:
+        # Validate initData signature
+        if not request.initData:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="initData is required"
+            )
+        
+        # Parse initData
+        parsed_data = dict(urllib.parse.parse_qsl(request.initData))
+        
+        if 'hash' not in parsed_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid initData: missing hash"
+            )
+        
+        # Extract hash and create data check string
+        received_hash = parsed_data.pop('hash')
+        
+        # Create data-check-string (sorted alphabetically)
+        data_check_string = '\n'.join([f"{key}={value}" for key, value in sorted(parsed_data.items())])
+        
+        # Create secret key from bot token
+        bot_token = settings.TELEGRAM_BOT_TOKEN
+        if not bot_token:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Telegram bot token not configured"
+            )
+            
+        secret_key = hmac.new(
+            "WebAppData".encode(),
+            bot_token.encode(),
+            hashlib.sha256
+        ).digest()
+        
+        # Calculate expected hash
+        expected_hash = hmac.new(
+            secret_key,
+            data_check_string.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        # Verify signature
+        if not hmac.compare_digest(received_hash, expected_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid initData signature"
+            )
+        
+        # Parse user data
+        if 'user' not in parsed_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User data not found in initData"
+            )
+        
+        user_data = json.loads(unquote(parsed_data['user']))
+        telegram_id = str(user_data.get('id'))
+        first_name = user_data.get('first_name', '')
+        last_name = user_data.get('last_name', '')
+        username = user_data.get('username', '')
+        
+        # If no phone number provided, return token indicating phone needed
+        if not request.phoneNumber:
+            access_token_expires = timedelta(minutes=60)
+            access_token = create_access_token(
+                data={
+                    "sub": "telegram_user",
+                    "telegram_id": telegram_id,
+                    "first_name": first_name,
+                    "username": username,
+                    "needs_phone": True
+                },
+                expires_delta=access_token_expires
+            )
+            
+            return AuthToken(
+                access_token=access_token,
+                token_type="bearer",
+                needs_phone=True
+            )
+        
+        # Find or create shop by phone number
+        shop = crud_shop.get_by_phone(db, phone=request.phoneNumber)
+        
+        if not shop:
+            # Create new shop
+            shop_name = f"{first_name} {last_name}".strip() or f"@{username}" or "Цветочный магазин"
+            shop_data = ShopCreate(
+                name=shop_name,
+                phone=request.phoneNumber,
+                telegram_id=telegram_id,
+                telegram_username=username,
+                city="Алматы"
+            )
+            shop = crud_shop.create(db, obj_in=shop_data)
+            
+            # Create admin user
+            admin_user_data = UserCreate(
+                phone=request.phoneNumber,
+                name=shop_name,
+                email=f"telegram{telegram_id}@cvety.kz",
+                role=UserRole.admin,
+                is_active=True
+            )
+            admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
+            db.commit()
+        else:
+            # Update existing shop with Telegram data
+            shop = crud_shop.update_telegram(
+                db,
+                db_obj=shop,
+                telegram_id=telegram_id,
+                telegram_username=username
+            )
+            # Find admin user
+            admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
+            if not admin_user:
+                admin_user = db.query(User).filter_by(shop_id=shop.id, is_active=True).first()
+        
+        if not admin_user:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Could not find or create admin user"
+            )
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={
+                "sub": str(shop.id),
+                "phone": shop.phone,
+                "user_id": str(admin_user.id),
+                "telegram_id": telegram_id
+            },
+            expires_delta=access_token_expires
+        )
+        
+        return AuthToken(
+            access_token=access_token,
+            token_type="bearer",
+            shop_id=shop.id,
+            shop_name=shop.name,
+            is_new_user=False
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in telegram_login: {str(e)}", exc_info=True)
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication failed"
+        )
 
 
 @router.post("/test-token", response_model=AuthToken, status_code=200)

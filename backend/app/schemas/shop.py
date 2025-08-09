@@ -93,6 +93,7 @@ class AuthToken(BaseModel):
     shop_id: Optional[int] = None
     shop_name: Optional[str] = None
     is_new_user: bool = False
+    needs_phone: bool = False
 
 
 class TelegramAuthStart(BaseModel):
