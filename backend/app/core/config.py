@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     # Telegram Bot
     TELEGRAM_BOT_TOKEN: Optional[str] = Field(default=None, env="TELEGRAM_BOT_TOKEN")
     TELEGRAM_WEBHOOK_URL: Optional[str] = Field(default=None, env="TELEGRAM_WEBHOOK_URL")
+    TELEGRAM_MINIAPP_URL: str = Field(
+        default="https://telegram-miniapp-production-bb16.up.railway.app",
+        env="TELEGRAM_MINIAPP_URL"
+    )
     
     # Use SettingsConfigDict instead of Config class (Pydantic v2 style)
     model_config = SettingsConfigDict(

@@ -583,18 +583,18 @@ class TelegramLoginRequest(BaseModel):
     
     ## Process:
     1. Validates initData signature using bot token
-    2. Extracts user information (id, name, username)
-    3. Creates or updates shop/user based on phone number
+    2. Extracts user information and phone from initData
+    3. Verifies shop exists (should be created by bot)
     4. Returns JWT access token
     
     ## Parameters:
     - **initData**: Raw initData string from Telegram.WebApp.initData
-    - **phoneNumber**: Optional phone number from requestContact()
+    - **phoneNumber**: Optional phone number (usually from URL params)
     
     ## Response:
     - **access_token**: JWT token for API access
-    - **shop_id**: Shop identifier if phone provided
-    - **needs_phone**: True if phone number required
+    - **shop_id**: Shop identifier
+    - **shop_name**: Shop name
     """)
 async def telegram_login(
     request: TelegramLoginRequest,
@@ -671,63 +671,53 @@ async def telegram_login(
         last_name = user_data.get('last_name', '')
         username = user_data.get('username', '')
         
-        # If no phone number provided, return token indicating phone needed
-        if not request.phoneNumber:
-            access_token_expires = timedelta(minutes=60)
-            access_token = create_access_token(
-                data={
-                    "sub": "telegram_user",
-                    "telegram_id": telegram_id,
-                    "first_name": first_name,
-                    "username": username,
-                    "needs_phone": True
-                },
-                expires_delta=access_token_expires
-            )
-            
-            return AuthToken(
-                access_token=access_token,
-                token_type="bearer",
-                needs_phone=True
-            )
+        # Check if contact data is in initData
+        phone_number = request.phoneNumber
+        if not phone_number and 'contact' in parsed_data:
+            try:
+                contact_data = json.loads(unquote(parsed_data['contact']))
+                phone_number = contact_data.get('phone_number')
+                # Format phone number if needed (add + if missing)
+                if phone_number and not phone_number.startswith('+'):
+                    phone_number = '+' + phone_number
+            except Exception:
+                pass
         
-        # Find or create shop by phone number
-        shop = crud_shop.get_by_phone(db, phone=request.phoneNumber)
+        # Phone number is required (should come from bot or URL params)
+        if not phone_number:
+            # Try to find shop by telegram_id
+            from app.models.shop import Shop
+            shop = db.query(Shop).filter_by(telegram_id=telegram_id).first()
+            if shop:
+                phone_number = shop.phone
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Phone number required. Please open the app from Telegram bot."
+                )
+        
+        # Find shop by phone number (should be created by bot)
+        shop = crud_shop.get_by_phone(db, phone=phone_number)
         
         if not shop:
-            # Create new shop
-            shop_name = f"{first_name} {last_name}".strip() or f"@{username}" or "Цветочный магазин"
-            shop_data = ShopCreate(
-                name=shop_name,
-                phone=request.phoneNumber,
-                telegram_id=telegram_id,
-                telegram_username=username,
-                city="Алматы"
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Shop not found. Please register through Telegram bot first."
             )
-            shop = crud_shop.create(db, obj_in=shop_data)
-            
-            # Create admin user
-            admin_user_data = UserCreate(
-                phone=request.phoneNumber,
-                name=shop_name,
-                email=f"telegram{telegram_id}@cvety.kz",
-                role=UserRole.admin,
-                is_active=True
-            )
-            admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
-            db.commit()
-        else:
-            # Update existing shop with Telegram data
+        
+        # Update telegram data if needed
+        if shop.telegram_id != telegram_id:
             shop = crud_shop.update_telegram(
                 db,
                 db_obj=shop,
                 telegram_id=telegram_id,
                 telegram_username=username
             )
-            # Find admin user
-            admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
-            if not admin_user:
-                admin_user = db.query(User).filter_by(shop_id=shop.id, is_active=True).first()
+        
+        # Find admin user
+        admin_user = db.query(User).filter_by(shop_id=shop.id, role=UserRole.admin, is_active=True).first()
+        if not admin_user:
+            admin_user = db.query(User).filter_by(shop_id=shop.id, is_active=True).first()
         
         if not admin_user:
             raise HTTPException(
@@ -816,4 +806,95 @@ async def get_test_token(
         token_type="bearer",
         shop_id=shop.id,
         shop_name=shop.name
+    )
+
+
+class TelegramRegisterRequest(BaseModel):
+    telegram_id: str
+    phone: str = Field(..., pattern=r"^\+7\d{10}$")
+    shop_name: str = Field(..., min_length=2, max_length=100)
+    city: str = Field(default="Алматы")
+    telegram_username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+
+@router.post("/telegram-register", response_model=AuthToken, status_code=201,
+    summary="Register new shop from Telegram",
+    description="""
+    Register a new shop from Telegram bot.
+    Should only be called after phone verification in bot.
+    
+    ## Process:
+    1. Creates new shop with provided data
+    2. Creates admin user for the shop
+    3. Returns JWT access token
+    
+    ## Parameters:
+    - **telegram_id**: Telegram user ID
+    - **phone**: Verified phone number
+    - **shop_name**: Name of the shop
+    - **city**: City where shop is located
+    
+    ## Response:
+    - **access_token**: JWT token for API access
+    - **shop_id**: New shop identifier
+    - **shop_name**: Shop name
+    - **is_new_user**: Always true for registration
+    """)
+async def telegram_register(
+    request: TelegramRegisterRequest,
+    db: Session = Depends(deps.get_db)
+):
+    """Register new shop from Telegram"""
+    
+    # Check if shop already exists
+    existing_shop = crud_shop.get_by_phone(db, phone=request.phone)
+    if existing_shop:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Shop with this phone number already exists"
+        )
+    
+    # Create new shop
+    shop_data = ShopCreate(
+        name=request.shop_name,
+        phone=request.phone,
+        city=request.city,
+        telegram_id=request.telegram_id,
+        telegram_username=request.telegram_username
+    )
+    shop = crud_shop.create(db, obj_in=shop_data)
+    
+    # Create admin user
+    full_name = f"{request.first_name or ''} {request.last_name or ''}".strip()
+    admin_user_data = UserCreate(
+        phone=request.phone,
+        name=full_name or request.shop_name,
+        email=f"telegram{request.telegram_id}@cvety.kz",
+        role=UserRole.admin,
+        is_active=True
+    )
+    admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
+    
+    db.commit()
+    
+    # Create access token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={
+            "sub": str(shop.id),
+            "phone": shop.phone,
+            "user_id": str(admin_user.id),
+            "telegram_id": request.telegram_id
+        },
+        expires_delta=access_token_expires
+    )
+    
+    return AuthToken(
+        access_token=access_token,
+        token_type="bearer",
+        shop_id=shop.id,
+        shop_name=shop.name,
+        is_new_user=True
     )

@@ -73,6 +73,12 @@ declare global {
             is_premium?: boolean
             photo_url?: string
           }
+          contact?: {
+            phone_number: string
+            first_name: string
+            last_name?: string
+            user_id?: number
+          }
           chat?: {
             id: number
             type: string

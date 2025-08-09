@@ -1,5 +1,7 @@
-/* Import main project styles for consistency */
-@import url('../src/index.css');
+/* Telegram Mini App specific styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Telegram Mini App specific overrides */
 :root {

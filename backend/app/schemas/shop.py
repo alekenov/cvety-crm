@@ -17,7 +17,8 @@ class ShopBase(BaseModel):
 
 
 class ShopCreate(ShopBase):
-    pass
+    telegram_id: Optional[str] = None
+    telegram_username: Optional[str] = None
 
 
 class ShopUpdate(BaseModel):
