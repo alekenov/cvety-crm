@@ -7,8 +7,9 @@ WORKDIR /app
 # Copy package files for dependency installation
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with better caching
+RUN npm ci --only=production && \
+    npm ci --only=development
 
 # Stage 2: Build frontend
 FROM node:20-alpine AS frontend-builder
@@ -29,12 +30,14 @@ COPY components.json ./
 ARG VITE_API_URL
 ARG VITE_TELEGRAM_BOT_USERNAME
 
-# Build frontend with production settings
+# Build frontend with production optimizations
 ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=512"
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_TELEGRAM_BOT_USERNAME=${VITE_TELEGRAM_BOT_USERNAME}
-RUN npm run build
+
+# Build with better error handling
+RUN npm run build || (echo "Build failed, checking logs..." && ls -la && exit 1)
 
 # Stage 3: Python dependencies builder
 FROM python:3.9-slim AS python-builder
