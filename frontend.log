@@ -83,3 +83,22 @@
 2:36:30 PM [vite] (client) page reload telegram-miniapp/dist/index.html
 2:36:30 PM [vite] (client) page reload telegram-miniapp/dist/index.html
 3:05:23 PM [vite] (client) page reload backend/app/api/endpoints/telegram.py
+3:19:16 PM [vite] (client) page reload Dockerfile
+3:19:38 PM [vite] (client) page reload Dockerfile
+3:20:10 PM [vite] (client) page reload .dockerignore
+3:20:49 PM [vite] (client) page reload railway.json
+3:30:29 PM [vite] (client) page reload Dockerfile
+3:34:24 PM [vite] (client) page reload railway.json
+3:46:57 PM [vite] (client) page reload telegram-miniapp/dist/index.html
+3:46:57 PM [vite] (client) page reload telegram-miniapp/dist/index.html
+3:52:15 PM [vite] (client) page reload backend/app/main.py
+3:52:26 PM [vite] (client) page reload backend/app/main.py
+3:52:31 PM [vite] (client) page reload backend/app/main.py
+3:54:31 PM [vite] (client) page reload backend/app/main.py
+4:02:33 PM [vite] (client) page reload backend/app/main.py
+4:03:09 PM [vite] (client) page reload backend/app/main.py
+4:03:17 PM [vite] (client) page reload backend/app/main.py
+4:22:29 PM [vite] vite.config.ts changed, restarting server...
+4:22:30 PM [vite] server restarted.
+4:22:44 PM [vite] vite.config.ts changed, restarting server...
+4:22:44 PM [vite] server restarted.

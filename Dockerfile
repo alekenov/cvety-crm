@@ -1,64 +1,91 @@
 # Multi-stage optimized Dockerfile for Railway
-# Stage 1: Build frontend
-FROM node:18-slim AS frontend-builder
+# Stage 1: Dependencies installation (cached separately)
+FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# OPTIMIZATION: Copy only package files first for better caching
-# This allows npm install to be cached when only source code changes
+# Copy package files for dependency installation
 COPY package*.json ./
 
-# Install dependencies (this layer will be cached)
-RUN npm ci
+# Install dependencies with Railway cache mount
+# Railway requires specific cache mount format with id parameter
+RUN --mount=type=cache,id=s/frontend-npm,target=/root/.npm \
+    npm ci --cache /root/.npm --prefer-offline
 
-# Now copy the rest of the source code
-# Any changes here won't invalidate the npm install cache
+# Stage 2: Build frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy package files and source code
+COPY package*.json ./
 COPY index.html vite.config.ts tsconfig*.json ./
 COPY src ./src
 COPY public ./public
 COPY components.json ./
 
-# Build frontend with memory optimization
+# Build frontend with memory optimization and production settings
+ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=512"
-# Production build removes source maps and development code
 RUN npm run build
 
-# Stage 2: Python runtime
-FROM python:3.9-slim
+# Stage 3: Python dependencies builder
+FROM python:3.9-slim AS python-builder
 
-# Set Python environment variables for production
-ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONOPTIMIZE=1
-
-WORKDIR /app
-
-# Install system dependencies for Python packages
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# OPTIMIZATION: Copy only requirements first for better caching
-# This allows pip install to be cached when only source code changes
+WORKDIR /app
+
+# Copy requirements and install with cache mount
 COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN --mount=type=cache,id=s/main-pip,target=/root/.cache/pip \
+    pip install --user -r backend/requirements.txt
 
-# Now copy backend code (changes here won't invalidate pip install cache)
-COPY backend ./backend
+# Stage 4: Final production image
+FROM python:3.9-slim
 
-# Copy frontend build from previous stage
-COPY --from=frontend-builder /app/dist ./dist
+# Set Python environment variables for production
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONOPTIMIZE=1 \
+    PATH="/home/appuser/.local/bin:${PATH}"
 
-# Copy startup script
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 1000 appuser
+
+WORKDIR /app
+
+# Copy Python dependencies from builder
+COPY --from=python-builder --chown=appuser:appuser /root/.local /home/appuser/.local
+
+# Copy backend code
+COPY --chown=appuser:appuser backend ./backend
+
+# Copy frontend build from previous stage
+COPY --from=frontend-builder --chown=appuser:appuser /app/dist ./dist
+
+# Copy startup script
+COPY --chown=appuser:appuser docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+# Switch to non-root user
 USER appuser
+
+# Create necessary directories
+RUN mkdir -p /app/backend/uploads
 
 # Railway will provide PORT environment variable
 ENV PORT=8000

@@ -2,16 +2,13 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "./Dockerfile",
-    "buildArgs": {
-      "VITE_API_URL": "https://cvety-kz-production.up.railway.app",
-      "VITE_TELEGRAM_BOT_USERNAME": "lekenbot"
-    }
+    "dockerfilePath": "./Dockerfile.railway"
   },
   "deploy": {
-    "healthcheckPath": "/",
+    "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3
+    "restartPolicyMaxRetries": 3,
+    "initialDelaySeconds": 10
   }
 }

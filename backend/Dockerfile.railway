@@ -1,0 +1,60 @@
+# Optimized Dockerfile for Railway (without cache mounts)
+# Stage 1: Builder with dependencies
+FROM python:3.9-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy only requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --user -r requirements.txt
+
+# Stage 2: Production image
+FROM python:3.9-slim
+
+# Set Python environment variables for production
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONOPTIMIZE=1 \
+    PATH="/home/appuser/.local/bin:${PATH}"
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+
+WORKDIR /app
+
+# Copy Python dependencies from builder
+COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Switch to non-root user
+USER appuser
+
+# Create uploads directory
+RUN mkdir -p /app/uploads
+
+# Railway provides PORT environment variable
+ENV PORT=8001
+EXPOSE ${PORT}
+
+# Health check for Railway monitoring
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Run migrations and start server
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]

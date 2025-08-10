@@ -131,6 +131,33 @@ app.redoc_url = "/redoc"
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dist")
 docker_static_dir = "/app/dist"
 
+# Debug logging for static files
+logger.info(f"=== STATIC FILE DEBUG ===")
+logger.info(f"Current working directory: {os.getcwd()}")
+logger.info(f"Static dir path: {static_dir}")
+logger.info(f"Docker static dir path: {docker_static_dir}")
+logger.info(f"Static dir exists: {os.path.exists(static_dir)}")
+logger.info(f"Docker static dir exists: {os.path.exists(docker_static_dir)}")
+
+# List directory contents for debugging
+if os.path.exists(docker_static_dir):
+    try:
+        files = os.listdir(docker_static_dir)
+        logger.info(f"Docker static dir contents: {files}")
+        assets_path = os.path.join(docker_static_dir, "assets")
+        if os.path.exists(assets_path):
+            assets_files = os.listdir(assets_path)[:10]  # Limit to first 10 files
+            logger.info(f"Assets dir contents (first 10): {assets_files}")
+    except Exception as e:
+        logger.error(f"Error listing docker static dir: {e}")
+        
+if os.path.exists(static_dir):
+    try:
+        files = os.listdir(static_dir)
+        logger.info(f"Local static dir contents: {files}")
+    except Exception as e:
+        logger.error(f"Error listing local static dir: {e}")
+
 # Set up CORS
 app.add_middleware(
     CORSMiddleware,
@@ -219,41 +246,64 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 # Mount static files directory if it exists
 # This needs to be after API routes but before catch-all
-assets_dir = os.path.join(static_dir, "assets") if os.path.exists(static_dir) else os.path.join(docker_static_dir, "assets")
-if os.path.exists(assets_dir):
+# Check Docker location first in production
+if os.path.exists(docker_static_dir):
+    assets_dir = os.path.join(docker_static_dir, "assets")
+elif os.path.exists(static_dir):
+    assets_dir = os.path.join(static_dir, "assets")
+else:
+    assets_dir = None
+
+if assets_dir and os.path.exists(assets_dir):
     app.mount("/assets", StaticFiles(directory=assets_dir), name="static_assets")
+    logger.info(f"Static assets mounted from: {assets_dir}")
+else:
+    logger.error(f"Static assets directory not found. Checked: docker={docker_static_dir} (exists: {os.path.exists(docker_static_dir)}), local={static_dir} (exists: {os.path.exists(static_dir)})")
+    if assets_dir:
+        logger.error(f"Assets dir path: {assets_dir} (exists: {os.path.exists(assets_dir)})")
 
 # Add a catch-all route for SPA to handle client-side routing
 # This should only handle non-API routes
 @app.get("/{path:path}")
 async def catch_all(path: str):
     """Catch-all route to serve index.html for client-side routing"""
+    logger.info(f"=== CATCH-ALL ROUTE DEBUG === path: '{path}'")
+    
     # Skip catch-all for API routes, docs, and health endpoints
     if path.startswith("api/") or path == "api" or path in ["docs", "redoc", "openapi.json", "health"]:
         # Raise 404 for unknown API routes
+        logger.info(f"Skipping API route: {path}")
         raise HTTPException(status_code=404, detail="API endpoint not found")
     
     # Check if static file exists
+    # Check Docker location first in production
     static_file = None
-    if os.path.exists(static_dir):
-        static_file = Path(static_dir) / path
-    elif os.path.exists(docker_static_dir):
+    if os.path.exists(docker_static_dir):
         static_file = Path(docker_static_dir) / path
+    elif os.path.exists(static_dir):
+        static_file = Path(static_dir) / path
     
     if static_file and static_file.exists() and static_file.is_file():
         return FileResponse(static_file)
     
     # For all other routes, return index.html for client-side routing
+    # Check Docker location first in production
     index_file = None
-    if os.path.exists(static_dir):
-        index_file = Path(static_dir) / "index.html"
-    elif os.path.exists(docker_static_dir):
+    if os.path.exists(docker_static_dir):
         index_file = Path(docker_static_dir) / "index.html"
+        logger.info(f"Trying docker index.html: {index_file}")
+    elif os.path.exists(static_dir):
+        index_file = Path(static_dir) / "index.html"
+        logger.info(f"Trying local index.html: {index_file}")
+    else:
+        logger.error(f"Neither docker nor local static dir exists!")
     
     if index_file and index_file.exists():
+        logger.info(f"Serving index.html from: {index_file}")
         return FileResponse(index_file)
     
     # If no index.html found, return 404
+    logger.error(f"index.html not found. Checked: {index_file}")
     raise HTTPException(status_code=404, detail="Not Found")
 
 # Set up CORS and routes will be configured in startup event

@@ -1,0 +1,106 @@
+# Optimized Multi-stage Dockerfile for Railway (Main App)
+# Stage 1: Frontend dependencies
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# Copy package files for dependency installation
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Stage 2: Build frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy package files and source code
+COPY package*.json ./
+COPY index.html vite.config.ts tsconfig*.json ./
+COPY src ./src
+COPY public ./public
+COPY components.json ./
+
+# Build arguments for environment variables
+ARG VITE_API_URL
+ARG VITE_TELEGRAM_BOT_USERNAME
+
+# Build frontend with production settings
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=512"
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_TELEGRAM_BOT_USERNAME=${VITE_TELEGRAM_BOT_USERNAME}
+RUN npm run build
+
+# Stage 3: Python dependencies builder
+FROM python:3.9-slim AS python-builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements and install
+COPY backend/requirements.txt ./backend/
+RUN pip install --user -r backend/requirements.txt
+
+# Stage 4: Final production image
+FROM python:3.9-slim
+
+# Set Python environment variables for production
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONOPTIMIZE=1 \
+    PATH="/home/appuser/.local/bin:${PATH}"
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+
+WORKDIR /app
+
+# Copy Python dependencies from builder
+COPY --from=python-builder --chown=appuser:appuser /root/.local /home/appuser/.local
+
+# Copy backend code
+COPY --chown=appuser:appuser backend ./backend
+
+# Copy frontend build from previous stage
+COPY --from=frontend-builder --chown=appuser:appuser /app/dist ./dist
+
+# Debug: Check what was copied
+RUN echo "=== DEBUG: Contents of /app/dist ===" && ls -la /app/dist/ || echo "ERROR: /app/dist does not exist"
+RUN echo "=== DEBUG: Contents of /app/dist/assets ===" && ls -la /app/dist/assets/ || echo "ERROR: /app/dist/assets does not exist"
+
+# Copy startup script
+COPY --chown=appuser:appuser docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+# Switch to non-root user
+USER appuser
+
+# Create necessary directories
+RUN mkdir -p /app/backend/uploads
+
+# Railway will provide PORT environment variable
+ENV PORT=8000
+EXPOSE ${PORT}
+
+# Add health check for Railway
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Use shell form to ensure PORT variable is expanded
+CMD ["sh", "-c", "./docker-entrypoint.sh"]

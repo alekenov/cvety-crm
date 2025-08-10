@@ -10,6 +10,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    // Pre-bundle React and common dependencies to avoid compatibility issues
+    include: [
+      'react',
+      'react-dom',
+      'react/jsx-runtime',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-popover'
+    ],
+    exclude: []
+  },
   server: {
     port: 5177,
     proxy: {
@@ -21,13 +33,20 @@ export default defineConfig({
   },
   build: {
     target: 'es2020', // Поддержка современных браузеров
+    sourcemap: false, // Отключить sourcemaps в production для меньшего размера
     rollupOptions: {
+      external: [],
       output: {
+        // Simplify chunk splitting to avoid React 19 compatibility issues
         manualChunks: (id) => {
-          // Vendor libraries
+          // Keep React separate and stable
           if (id.includes('node_modules')) {
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-vendor'
+            }
+            // Group all Radix UI components together for better compatibility
+            if (id.includes('@radix-ui/')) {
+              return 'radix-vendor'
             }
             if (id.includes('@tanstack/react-query')) {
               return 'query-vendor'
@@ -38,7 +57,7 @@ export default defineConfig({
             if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
               return 'form-vendor'
             }
-            if (id.includes('date-fns')) {
+            if (id.includes('date-fns') || id.includes('react-day-picker')) {
               return 'date-vendor'
             }
             return 'vendor'
