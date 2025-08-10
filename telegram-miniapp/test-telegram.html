@@ -333,6 +333,36 @@
             sendData: function(data) {
                 console.log('📤 Sending data to bot:', data);
                 alert(`Data sent to bot: ${data}`);
+            },
+            
+            requestContact: function(callback) {
+                console.log('📱 Requesting contact...');
+                // Симулируем запрос контакта
+                setTimeout(() => {
+                    const shareContact = confirm('Поделиться номером телефона +77051234567 (тестовый флорист)?');
+                    if (shareContact) {
+                        // Обновляем initDataUnsafe с контактом
+                        this.initDataUnsafe.contact = {
+                            phone_number: '+77051234567',
+                            first_name: 'Тестовый',
+                            last_name: 'Флорист',
+                            user_id: 123456789
+                        };
+                        console.log('✅ Contact shared:', this.initDataUnsafe.contact);
+                        if (callback) callback(true);
+                    } else {
+                        console.log('❌ Contact sharing cancelled');
+                        if (callback) callback(false);
+                    }
+                }, 500);
+            },
+            
+            onEvent: function(eventType, callback) {
+                console.log(`📌 Event listener registered: ${eventType}`);
+            },
+            
+            offEvent: function(eventType, callback) {
+                console.log(`📌 Event listener removed: ${eventType}`);
             }
         };
         

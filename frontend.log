@@ -72,3 +72,11 @@
 12:29:10 AM [vite] (client) page reload backend/app/core/config.py
 12:35:51 AM [vite] (client) page reload backend/app/api/endpoints/telegram.py
 12:36:03 AM [vite] (client) page reload backend/app/services/telegram_service.py
+1:40:41 PM [vite] (client) page reload backend/app/api/endpoints/auth.py
+1:40:58 PM [vite] (client) page reload backend/app/schemas/shop.py
+1:48:08 PM [vite] (client) page reload backend/app/models/product.py
+1:48:37 PM [vite] (client) page reload backend/app/models/__init__.py
+1:48:42 PM [vite] (client) page reload backend/app/models/__init__.py
+1:48:48 PM [vite] (client) page reload backend/app/models/product.py
+1:50:24 PM [vite] (client) page reload backend/app/api/endpoints/auth.py
+2:02:02 PM [vite] (client) page reload telegram-miniapp/test-telegram.html

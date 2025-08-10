@@ -330,6 +330,33 @@ class ApiService {
     }
   }
 
+  async floristLogin(data: { initData: string; phoneNumber: string }): Promise<{
+    accessToken: string
+    userRole: string
+    userName: string
+    shopId: number
+    shopName: string
+  }> {
+    const response = await this.api.post('/auth/florist-login', data)
+    
+    const { access_token, user_role, user_name, shop_id, shop_name } = response.data
+    
+    // Store tokens and user info
+    localStorage.setItem('authToken', access_token)
+    localStorage.setItem('userRole', user_role)
+    localStorage.setItem('userName', user_name)
+    localStorage.setItem('shopId', shop_id.toString())
+    localStorage.setItem('shopName', shop_name)
+    
+    return {
+      accessToken: access_token,
+      userRole: user_role,
+      userName: user_name,
+      shopId: shop_id,
+      shopName: shop_name,
+    }
+  }
+
   async requestOtp(phone: string): Promise<{ message: string }> {
     const response = await this.api.post('/auth/request-otp', { phone })
     return response.data

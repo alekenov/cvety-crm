@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, useContext, ReactNode, useEffect } from 'react'
 
 // Расширяем Window для типов Telegram WebApp
 declare global {
@@ -134,7 +134,9 @@ declare global {
         closeScanQrPopup: () => void
         readTextFromClipboard: (callback?: (text: string) => void) => void
         requestWriteAccess: (callback?: (granted: boolean) => void) => void
-        requestContact: (callback?: (sent: boolean) => void) => void
+        requestContact: (callback?: (shared: boolean) => void) => void
+        onEvent: (eventType: string, callback: () => void) => void
+        offEvent: (eventType: string, callback: () => void) => void
         invokeCustomMethod: (method: string, params?: any, callback?: (result: any) => void) => void
         isVersionAtLeast: (version: string) => boolean
         platform: string
@@ -152,6 +154,12 @@ interface TelegramContextValue {
     username?: string
     languageCode?: string
   } | null
+  contact: {
+    phoneNumber?: string
+    firstName?: string
+    lastName?: string
+    userId?: number
+  } | null
   haptic: {
     impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void
     notificationOccurred: (type: 'error' | 'success' | 'warning') => void
@@ -162,6 +170,7 @@ interface TelegramContextValue {
     get: (key: string) => Promise<string | null>
     remove: (key: string) => Promise<void>
   }
+  requestPhone: () => Promise<string | null>
   webApp: any | null
 }
 
@@ -170,6 +179,66 @@ const TelegramContext = createContext<TelegramContextValue | null>(null)
 export function TelegramProvider({ children }: { children: ReactNode }) {
   const tg = window.Telegram?.WebApp || null
   
+  // Инициализация WebApp при монтировании компонента
+  useEffect(() => {
+    if (tg) {
+      // Сообщаем Telegram, что приложение готово
+      tg.ready()
+      
+      // Разворачиваем приложение на весь экран
+      tg.expand()
+      
+      // Настраиваем цвета в соответствии с темой Telegram
+      if (tg.themeParams.bg_color) {
+        tg.setBackgroundColor(tg.themeParams.bg_color)
+      }
+      if (tg.themeParams.header_bg_color) {
+        tg.setHeaderColor(tg.themeParams.header_bg_color)
+      }
+      
+      // Обработка событий WebApp
+      const handleThemeChanged = () => {
+        console.log('Theme changed:', tg.colorScheme)
+        // Можно добавить логику обновления темы
+        if (tg.themeParams.bg_color) {
+          tg.setBackgroundColor(tg.themeParams.bg_color)
+        }
+      }
+      
+      const handleViewportChanged = () => {
+        console.log('Viewport changed:', {
+          height: tg.viewportHeight,
+          stableHeight: tg.viewportStableHeight,
+          isExpanded: tg.isExpanded
+        })
+      }
+      
+      // Подписываемся на события
+      tg.onEvent('themeChanged', handleThemeChanged)
+      tg.onEvent('viewportChanged', handleViewportChanged)
+      
+      // Логируем информацию для отладки
+      console.log('Telegram WebApp initialized:', {
+        version: tg.version,
+        platform: tg.platform,
+        colorScheme: tg.colorScheme,
+        viewportHeight: tg.viewportHeight,
+        isExpanded: tg.isExpanded,
+        initData: tg.initData ? 'present' : 'missing',
+        user: tg.initDataUnsafe?.user,
+        startParam: tg.initDataUnsafe?.start_param
+      })
+      
+      // Очищаем обработчики при размонтировании
+      return () => {
+        tg.offEvent('themeChanged', handleThemeChanged)
+        tg.offEvent('viewportChanged', handleViewportChanged)
+      }
+    } else {
+      console.warn('Telegram WebApp not available')
+    }
+  }, [])
+  
   const value: TelegramContextValue = {
     user: tg?.initDataUnsafe?.user ? {
       id: tg.initDataUnsafe.user.id,
@@ -177,6 +246,12 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
       lastName: tg.initDataUnsafe.user.last_name,
       username: tg.initDataUnsafe.user.username,
       languageCode: tg.initDataUnsafe.user.language_code,
+    } : null,
+    contact: tg?.initDataUnsafe?.contact ? {
+      phoneNumber: tg.initDataUnsafe.contact.phone_number,
+      firstName: tg.initDataUnsafe.contact.first_name,
+      lastName: tg.initDataUnsafe.contact.last_name,
+      userId: tg.initDataUnsafe.contact.user_id,
     } : null,
     haptic: {
       impactOccurred: (style) => {
@@ -221,6 +296,33 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
           }
         })
       },
+    },
+    requestPhone: async () => {
+      return new Promise((resolve) => {
+        if (tg?.requestContact) {
+          tg.requestContact((shared: boolean) => {
+            if (shared) {
+              // После успешного получения контакта, он будет доступен в initDataUnsafe.contact
+              // Но нам нужно будет получить его через событие
+              const handleContactReceived = () => {
+                const contact = tg.initDataUnsafe?.contact
+                if (contact?.phone_number) {
+                  resolve(contact.phone_number)
+                } else {
+                  resolve(null)
+                }
+              }
+              
+              // Добавляем небольшую задержку чтобы данные обновились
+              setTimeout(handleContactReceived, 100)
+            } else {
+              resolve(null)
+            }
+          })
+        } else {
+          resolve(null)
+        }
+      })
     },
     webApp: tg,
   }

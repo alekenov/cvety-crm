@@ -7,6 +7,8 @@ import { TelegramProvider } from './providers/TelegramProvider'
 import { AuthProvider, useAuth } from './providers/AuthProvider'
 import { Navigation } from './components/Navigation'
 import TelegramAuth from './components/TelegramAuth'
+import ProtectedRoute from './components/ProtectedRoute'
+import UserHeader from './components/UserHeader'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,10 +20,14 @@ const queryClient = new QueryClient({
 })
 
 function AppContent() {
-  const { isAuthenticated, login } = useAuth()
+  const { isAuthenticated, login, userRole } = useAuth()
 
-  const handleAuthSuccess = (token: string) => {
-    login(token)
+  const handleAuthSuccess = (token: string, authData?: any) => {
+    if (authData) {
+      login(token, authData.role, authData.userName, authData.shopId, authData.shopName)
+    } else {
+      login(token)
+    }
   }
 
   const handleAuthError = (error: string) => {
@@ -54,18 +60,42 @@ function AppContent() {
     )
   }
 
+  // Для флористов показываем только заказы и товары
+  const isFlorist = userRole === 'florist'
+  
   return (
-    <TelegramProvider>
-      <div className="min-h-screen bg-gray-50">
-        <Routes>
-          <Route path="/" element={<Navigate to="/orders" replace />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-        </Routes>
-        <Navigation />
-      </div>
-    </TelegramProvider>
+    <div className="min-h-screen bg-gray-50">
+      <UserHeader />
+      <Routes>
+        <Route path="/" element={<Navigate to="/orders" replace />} />
+        <Route 
+          path="/orders" 
+          element={
+            <ProtectedRoute>
+              <OrdersPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/products" 
+          element={
+            <ProtectedRoute>
+              <ProductsPage />
+            </ProtectedRoute>
+          } 
+        />
+        {/* Уведомления доступны только админам и менеджерам */}
+        <Route 
+          path="/notifications" 
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager']} redirectTo="/orders">
+              <NotificationsPage />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+      <Navigation />
+    </div>
   )
 }
 
@@ -73,11 +103,13 @@ export function App() {
   // Updated with new Railway deployment workflow
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </BrowserRouter>
+      <TelegramProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </BrowserRouter>
+      </TelegramProvider>
     </QueryClientProvider>
   )
 }

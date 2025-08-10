@@ -3,22 +3,27 @@ import { Package, ShoppingBag, Bell } from 'lucide-react'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { useTelegram } from '../providers/TelegramProvider'
+import { useAuth } from '../providers/AuthProvider'
 
 // Utility function
 const cn = (...inputs: (string | undefined)[]) => {
   return twMerge(clsx(inputs))
 }
 
-const navItems = [
-  { path: '/orders', label: 'Заказы', icon: ShoppingBag },
-  { path: '/products', label: 'Товары', icon: Package },
-  { path: '/notifications', label: 'Уведомления', icon: Bell },
-]
-
 export function Navigation() {
   const navigate = useNavigate()
   const location = useLocation()
   const { haptic } = useTelegram()
+  const { userRole } = useAuth()
+  
+  // Определяем доступные элементы навигации в зависимости от роли
+  const navItems = [
+    { path: '/orders', label: 'Заказы', icon: ShoppingBag },
+    { path: '/products', label: 'Товары', icon: Package },
+    ...(userRole !== 'florist' ? [
+      { path: '/notifications', label: 'Уведомления', icon: Bell }
+    ] : [])
+  ]
 
   const handleNavigate = (path: string) => {
     haptic.impactOccurred('light')

@@ -5,7 +5,7 @@
     "dockerfilePath": "./Dockerfile",
     "buildArgs": {
       "VITE_API_URL": "https://cvety-kz-production.up.railway.app",
-      "VITE_TELEGRAM_BOT_USERNAME": "HHFlorBot"
+      "VITE_TELEGRAM_BOT_USERNAME": "lekenbot"
     }
   },
   "deploy": {

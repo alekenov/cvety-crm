@@ -19,7 +19,7 @@ from app.schemas.shop import (
     Shop,
     ShopCreate
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.schemas.product import ProductCreate
 from app.services.otp_service import otp_service
 from app.services.telegram_service import telegram_service
@@ -817,6 +817,181 @@ class TelegramRegisterRequest(BaseModel):
     telegram_username: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+
+
+@router.post("/florist-login", response_model=AuthToken, status_code=200,
+    summary="Florist login via Telegram Mini App",
+    description="""
+    Authenticate florist via Telegram Mini App with phone number.
+    
+    ## Process:
+    1. Validates initData signature using bot token
+    2. Verifies phone number is provided
+    3. Checks if user with this phone and florist role exists
+    4. Returns JWT token with florist permissions
+    
+    ## Parameters:
+    - **initData**: Raw initData string from Telegram.WebApp.initData
+    - **phoneNumber**: Phone number from requestContact()
+    
+    ## Response:
+    - **access_token**: JWT token with florist permissions
+    - **user_role**: "florist"
+    - **shop_id**: Shop identifier
+    - **shop_name**: Shop name
+    
+    ## Error codes:
+    - 404: Florist not found with this phone number
+    - 401: Invalid initData signature
+    """)
+async def florist_login(
+    request: TelegramLoginRequest,
+    db: Session = Depends(deps.get_db)
+):
+    """Authenticate florist via Telegram Mini App"""
+    import hmac
+    import hashlib
+    import urllib.parse
+    from urllib.parse import unquote
+    import json
+    
+    try:
+        # Validate initData signature
+        if not request.initData:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="initData is required"
+            )
+        
+        # Parse initData
+        parsed_data = dict(urllib.parse.parse_qsl(request.initData))
+        
+        if 'hash' not in parsed_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid initData: missing hash"
+            )
+        
+        # Extract hash and create data check string
+        received_hash = parsed_data.pop('hash')
+        
+        # Create data-check-string (sorted alphabetically)
+        data_check_string = '\n'.join([f"{key}={value}" for key, value in sorted(parsed_data.items())])
+        
+        # Create secret key from bot token
+        bot_token = settings.TELEGRAM_BOT_TOKEN
+        if not bot_token:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Telegram bot token not configured"
+            )
+            
+        secret_key = hmac.new(
+            "WebAppData".encode(),
+            bot_token.encode(),
+            hashlib.sha256
+        ).digest()
+        
+        # Calculate expected hash
+        expected_hash = hmac.new(
+            secret_key,
+            data_check_string.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        # Verify signature
+        if not hmac.compare_digest(received_hash, expected_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid initData signature"
+            )
+        
+        # Parse user data
+        if 'user' not in parsed_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User data not found in initData"
+            )
+        
+        user_data = json.loads(unquote(parsed_data['user']))
+        telegram_id = str(user_data.get('id'))
+        first_name = user_data.get('first_name', '')
+        username = user_data.get('username', '')
+        
+        # Phone number is required from requestContact
+        phone_number = request.phoneNumber
+        if not phone_number:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Phone number is required"
+            )
+        
+        # Format phone number if needed
+        if not phone_number.startswith('+'):
+            phone_number = '+' + phone_number
+        
+        # Find florist user by phone number
+        florist_user = db.query(User).filter(
+            User.phone == phone_number,
+            User.role == UserRole.florist,
+            User.is_active == True
+        ).first()
+        
+        if not florist_user:
+            # Not a florist or doesn't exist
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Флорист с таким номером телефона не найден. Обратитесь к администратору для регистрации."
+            )
+        
+        # Update telegram_id if needed
+        if florist_user.telegram_id != telegram_id:
+            florist_user.telegram_id = telegram_id
+            db.commit()
+        
+        # Get shop info
+        shop = crud_shop.get(db, id=florist_user.shop_id)
+        if not shop:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Shop not found for user"
+            )
+        
+        # Create access token with florist role
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={
+                "sub": str(shop.id),
+                "phone": florist_user.phone,
+                "user_id": str(florist_user.id),
+                "user_role": "florist",
+                "telegram_id": telegram_id,
+                "permissions": florist_user.permissions or {}
+            },
+            expires_delta=access_token_expires
+        )
+        
+        return AuthToken(
+            access_token=access_token,
+            token_type="bearer",
+            shop_id=shop.id,
+            shop_name=shop.name,
+            user_role="florist",
+            user_name=florist_user.name,
+            is_new_user=False
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in florist_login: {str(e)}", exc_info=True)
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication failed"
+        )
 
 
 @router.post("/telegram-register", response_model=AuthToken, status_code=201,

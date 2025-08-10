@@ -2,6 +2,7 @@ from app.models.shop import Shop
 from app.models.order import Order, OrderItem, OrderStatus, DeliveryMethod, IssueType, PaymentMethod
 from app.models.customer import Customer, CustomerAddress, CustomerImportantDate
 from app.models.product import Product, ProductImage
+from app.models.product_component import ProductComponent, ComponentType
 from app.models.warehouse import WarehouseItem, Delivery, DeliveryPosition, WarehouseMovement, MovementType
 from app.models.production import FloristTask
 from app.models.settings import CompanySettings
@@ -26,6 +27,8 @@ __all__ = [
     "CustomerImportantDate",
     "Product",
     "ProductImage",
+    "ProductComponent",
+    "ComponentType",
     "WarehouseItem",
     "WarehouseMovement",
     "MovementType",

@@ -93,6 +93,8 @@ class AuthToken(BaseModel):
     token_type: str = "bearer"
     shop_id: Optional[int] = None
     shop_name: Optional[str] = None
+    user_role: Optional[str] = None  # "admin", "manager", "florist", "courier"
+    user_name: Optional[str] = None
     is_new_user: bool = False
     needs_phone: bool = False
 
