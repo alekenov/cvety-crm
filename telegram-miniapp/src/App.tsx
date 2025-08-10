@@ -20,7 +20,7 @@ const queryClient = new QueryClient({
 })
 
 function AppContent() {
-  const { isAuthenticated, login, userRole } = useAuth()
+  const { isAuthenticated, login } = useAuth()
 
   const handleAuthSuccess = (token: string, authData?: any) => {
     if (authData) {
@@ -61,7 +61,7 @@ function AppContent() {
   }
 
   // Для флористов показываем только заказы и товары
-  const isFlorist = userRole === 'florist'
+  // const isFlorist = userRole === 'florist'
   
   return (
     <div className="min-h-screen bg-gray-50">

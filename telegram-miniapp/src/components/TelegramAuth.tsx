@@ -29,6 +29,10 @@ interface AuthResponse {
   token_type: string
   shop_id?: number
   shop_name?: string
+  user_role?: string // "admin", "manager", "florist", "courier"
+  user_name?: string
+  is_new_user?: boolean
+  needs_phone?: boolean
   detail?: string // for error responses
 }
 
@@ -55,7 +59,7 @@ export const TelegramAuth: React.FC<TelegramAuthProps> = ({ onSuccess, onError }
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<TelegramUser | null>(null)
   const [needsPhoneAuth, setNeedsPhoneAuth] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
+  // const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const { contact } = useTelegram()
 
   useEffect(() => {
@@ -75,7 +79,7 @@ export const TelegramAuth: React.FC<TelegramAuthProps> = ({ onSuccess, onError }
       const contactPhone = contact?.phoneNumber
       
       if (urlPhone || contactPhone) {
-        setPhoneNumber(urlPhone || contactPhone || null)
+        // setPhoneNumber(urlPhone || contactPhone || null)
         handleLogin(urlPhone || contactPhone || null)
       } else {
         // No phone available, need to request it
@@ -89,7 +93,7 @@ export const TelegramAuth: React.FC<TelegramAuthProps> = ({ onSuccess, onError }
   }, [contact])
 
   const handlePhoneReceived = (phone: string) => {
-    setPhoneNumber(phone)
+    // setPhoneNumber(phone)
     setNeedsPhoneAuth(false)
     setIsLoading(true)
     handleLogin(phone)

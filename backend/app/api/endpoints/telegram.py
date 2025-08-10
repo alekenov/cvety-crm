@@ -17,7 +17,9 @@ async def telegram_webhook(request: Request):
         
         # Process update directly through dispatcher
         if telegram_service.dp and telegram_service.bot:
-            update = Update(**data)
+            # Create Update object from the JSON data
+            update = Update.model_validate(data, context={"bot": telegram_service.bot})
+            # Use feed_update for aiogram 3.x
             await telegram_service.dp.feed_update(telegram_service.bot, update)
             return Response(status_code=200)
         else:
