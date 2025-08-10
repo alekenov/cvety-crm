@@ -1,5 +1,4 @@
-import { createContext, useContext, useId, forwardRef, useState, useEffect } from "react"
-import type { ComponentProps, ReactNode } from "react"
+import * as React from "react"
 import { cn } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,15 +12,15 @@ interface ResponsiveTableProps<T> {
     key: keyof T
     label: string
     className?: string
-    render?: (value: T[keyof T], item: T) => ReactNode
+    render?: (value: T[keyof T], item: T) => React.ReactNode
     hideOnMobile?: boolean
     priority?: number // для сортировки в мобильной карточке
   }[]
   onRowClick?: (item: T) => void
   mobileCardTitle?: (item: T) => string
   mobileCardSubtitle?: (item: T) => string
-  mobileCardActions?: (item: T) => ReactNode
-  mobileCardRender?: (item: T, onClick?: () => void) => ReactNode
+  mobileCardActions?: (item: T) => React.ReactNode
+  mobileCardRender?: (item: T, onClick?: () => void) => React.ReactNode
   className?: string
 }
 
@@ -36,7 +35,7 @@ export function ResponsiveTable<T extends { id: string | number }>({
   className
 }: ResponsiveTableProps<T>) {
   const isMobile = useMediaQuery("(max-width: 768px)")
-  const [selectedItem, setSelectedItem] = useState<T | null>(null)
+  const [selectedItem, setSelectedItem] = React.useState<T | null>(null)
 
   const visibleColumns = columns.filter(col => !isMobile || !col.hideOnMobile)
   const mobileColumns = columns

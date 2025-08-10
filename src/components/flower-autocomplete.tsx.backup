@@ -67,33 +67,11 @@ export function FlowerAutocomplete({
   // Проверяем, можно ли добавить новую комбинацию
   const canAddNew = React.useMemo(() => {
     if (!searchValue || searchValue.length < 3) return false
-    
-    // Парсим введенный текст
-    const parts = searchValue.trim().split(/\s+/)
-    if (parts.length < 2) return false
-    
-    const variety = parts.slice(0, -1).join(' ')
-    const heightStr = parts[parts.length - 1]
-    const height = parseInt(heightStr)
-    
-    if (isNaN(height)) return false
-    
-    const newValue = `${variety}-${height}`
-    const searchLabel = `${variety} ${height}см`.toLowerCase()
-    
-    // Проверяем в существующих опциях
-    const existsInOptions = filteredOptions.some(option => 
-      option.label.toLowerCase() === searchLabel
+    // Проверяем, не существует ли уже такая комбинация
+    return !filteredOptions.some(option => 
+      option.label.toLowerCase() === searchValue.toLowerCase()
     )
-    
-    // Проверяем в недавно использованных
-    const existsInRecent = recentFlowers.includes(newValue)
-    
-    // Проверяем текущее значение
-    const isCurrentValue = value === newValue
-    
-    return !existsInOptions && !existsInRecent && !isCurrentValue
-  }, [searchValue, filteredOptions, recentFlowers, value])
+  }, [searchValue, filteredOptions])
 
   const handleSelect = (selectedValue: string) => {
     onValueChange(selectedValue)
@@ -105,7 +83,9 @@ export function FlowerAutocomplete({
       const recent = JSON.parse(stored)
       const updated = [selectedValue, ...recent.filter((v: string) => v !== selectedValue)].slice(0, 5)
       localStorage.setItem('recentFlowers', JSON.stringify(updated))
-    } catch {}
+    } catch {
+      // Ignore localStorage errors (e.g., in private browsing mode)
+    }
   }
 
   const handleAddNew = () => {
@@ -125,19 +105,8 @@ export function FlowerAutocomplete({
 
   const displayValue = React.useMemo(() => {
     if (!value) return ""
-    
-    // Сначала проверяем в предопределенных опциях
     const option = flowerOptions.find(opt => opt.value === value)
-    if (option) return option.label
-    
-    // Если не нашли, проверяем формат пользовательского цветка (variety-height)
-    const match = value.match(/^(.+)-(\d+)$/)
-    if (match) {
-      const [, variety, height] = match
-      return `${variety} ${height}см`
-    }
-    
-    return value
+    return option?.label || value
   }, [value, flowerOptions])
 
   return (
@@ -180,23 +149,12 @@ export function FlowerAutocomplete({
             {recentFlowers.length > 0 && (
               <CommandGroup heading="Недавно использованные">
                 {recentFlowers.slice(0, 3).map((flower: string) => {
-                  // Сначала ищем в предопределенных опциях
-                  let label = flower
                   const option = flowerOptions.find(opt => opt.value === flower)
-                  if (option) {
-                    label = option.label
-                  } else {
-                    // Если не нашли, проверяем формат пользовательского цветка
-                    const match = flower.match(/^(.+)-(\d+)$/)
-                    if (match) {
-                      const [, variety, height] = match
-                      label = `${variety} ${height}см`
-                    }
-                  }
+                  if (!option) return null
                   return (
                     <CommandItem
                       key={flower}
-                      value={label}
+                      value={option.label}
                       onSelect={() => handleSelect(flower)}
                     >
                       <Check
@@ -205,7 +163,7 @@ export function FlowerAutocomplete({
                           value === flower ? "opacity-100" : "opacity-0"
                         )}
                       />
-                      {label}
+                      {option.label}
                     </CommandItem>
                   )
                 })}

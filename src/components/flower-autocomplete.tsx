@@ -1,4 +1,5 @@
-import * as React from "react"
+import { createContext, useContext, useId, forwardRef, useState, useEffect } from "react"
+import type { ComponentProps, ReactNode } from "react"
 import { Check, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -28,8 +29,8 @@ export function FlowerAutocomplete({
   onValueChange, 
   placeholder = "Выберите цветок..." 
 }: FlowerAutocompleteProps) {
-  const [open, setOpen] = React.useState(false)
-  const [searchValue, setSearchValue] = React.useState("")
+  const [open, setOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState("")
 
   // Создаем список всех возможных комбинаций
   const flowerOptions = React.useMemo(() => {
