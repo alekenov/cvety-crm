@@ -131,8 +131,7 @@ app.redoc_url = "/redoc"
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dist")
 docker_static_dir = "/app/dist"
 
-# Debug logging for static files
-logger.info(f"=== STATIC FILE DEBUG ===")
+# Static file configuration
 logger.info(f"Current working directory: {os.getcwd()}")
 logger.info(f"Static dir path: {static_dir}")
 logger.info(f"Docker static dir path: {docker_static_dir}")
@@ -267,7 +266,7 @@ else:
 @app.get("/{path:path}")
 async def catch_all(path: str):
     """Catch-all route to serve index.html for client-side routing"""
-    logger.info(f"=== CATCH-ALL ROUTE DEBUG === path: '{path}'")
+    # Serving catch-all route for SPA
     
     # Skip catch-all for API routes, docs, and health endpoints
     if path.startswith("api/") or path == "api" or path in ["docs", "redoc", "openapi.json", "health"]:
