@@ -289,16 +289,34 @@ async def verify_otp(
             admin_user = db.query(User).filter_by(shop_id=shop.id, is_active=True).first()
         
         if not admin_user:
-            # Create admin user if none exists (shouldn't happen with new fix, but for safety)
-            admin_user_data = UserCreate(
-                phone=shop.phone,  # Use same phone as shop
-                name=shop.name,
-                email=f"admin@shop{shop.id}.com",
-                role=UserRole.admin,
-                is_active=True
-            )
-            admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
-            db.commit()
+            # Check if user already exists with this phone number
+            existing_user = db.query(User).filter_by(phone=shop.phone).first()
+            if existing_user:
+                # Use existing user, make sure they're active and have correct shop_id
+                existing_user.is_active = True
+                existing_user.shop_id = shop.id
+                if existing_user.role != UserRole.admin:
+                    existing_user.role = UserRole.admin
+                db.commit()
+                admin_user = existing_user
+            else:
+                # Create admin user if none exists
+                try:
+                    admin_user_data = UserCreate(
+                        phone=shop.phone,
+                        name=shop.name,
+                        email=f"admin@shop{shop.id}.com",
+                        role=UserRole.admin,
+                        is_active=True
+                    )
+                    admin_user = crud_user.create(db, obj_in=admin_user_data, shop_id=shop.id)
+                    db.commit()
+                except Exception as e:
+                    logger.error(f"Failed to create admin user: {e}")
+                    # Try to find existing user again in case of race condition
+                    admin_user = db.query(User).filter_by(phone=shop.phone).first()
+                    if not admin_user:
+                        raise HTTPException(status_code=500, detail="Failed to create or find user")
         
         user_id = str(admin_user.id)
         
