@@ -317,6 +317,36 @@ async def verify_otp(
         )
 
 
+@router.post("/debug/register-telegram", status_code=200,
+    summary="[DEBUG] Register Telegram data for phone number",
+    description="DEBUG endpoint to manually register telegram data for phone number")
+async def debug_register_telegram(
+    phone: str,
+    telegram_id: str,
+    telegram_username: str = None,
+    first_name: str = None,
+    last_name: str = None
+):
+    """DEBUG: Manually register telegram data for a phone number"""
+    telegram_data = {
+        "telegram_id": telegram_id,
+        "telegram_username": telegram_username or "",
+        "first_name": first_name or "",
+        "last_name": last_name or ""
+    }
+    
+    # Store for 24 hours
+    redis_service.set_with_ttl(f"telegram:{phone}", telegram_data, 86400)
+    
+    # Verify stored
+    stored = redis_service.get(f"telegram:{phone}")
+    
+    return {
+        "message": f"Telegram data registered for {phone}",
+        "stored_data": stored
+    }
+
+
 @router.post("/complete-registration", response_model=AuthToken, status_code=201,
     summary="Complete registration for new shop",
     description="""
