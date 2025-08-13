@@ -23,13 +23,23 @@ import { UsersPage } from "@/pages/settings/users"
 import { CalculatorMaterialsPage } from "@/pages/settings/calculator-materials"
 import SuppliesPage from "@/pages/supplies/SuppliesPage"
 import { SupplyDetail } from "@/pages/supplies"
+import { POSWarehousePage } from "@/pages/pos-warehouse"
+import { POSWarehouseExactPage } from "@/pages/pos-warehouse-exact"
+import { POSWarehouseFigmaPage } from "@/pages/pos-warehouse-figma"
+import POSApp from "@/pos-warehouse/POSApp"
 import { StorefrontPage } from "@/storefront/pages/StorefrontPage"
 import { CheckoutPage } from "@/storefront/pages/CheckoutPage"
 import { CartPage } from "@/storefront/pages/CartPage"
 import { OrderSuccessPage } from "@/storefront/pages/OrderSuccessPage"
 import { TrackingPage as StorefrontTrackingPage } from "@/storefront/pages/TrackingPage"
 import { StorefrontLayout } from "@/storefront/components/StorefrontLayout"
+import StorefrontV2App from "@/storefront-v2/StorefrontV2App"
 import LandingPage from "@/pages/landing/LandingPage"
+import FloristCRM from "@/prototype/FloristCRM"
+import FloristCRMWithAPI from "@/prototype/FloristCRMWithAPI"
+import MobileFloristCRM from "@/prototype/MobileFloristCRM"
+import FloristCRMResponsive from "@/prototype/FloristCRMResponsive"
+import MobileFloristCRMv2 from "@/prototype/MobileFloristCRMv2"
 
 const queryClient = new QueryClient()
 
@@ -42,13 +52,43 @@ function App() {
           <Routes>
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/prototype/order-create" element={<FloristCRM />} />
+            <Route path="/prototype/order-create-api" element={<FloristCRMWithAPI />} />
+            <Route path="/prototype/order-create-mobile" element={<MobileFloristCRM />} />
+            <Route path="/prototype/order-create-responsive" element={<FloristCRMResponsive />} />
+            <Route path="/prototype/order-create-v2" element={<MobileFloristCRMv2 />} />
             <Route path="/status/:token" element={<StorefrontTrackingPage />} />
-            <Route path="/shop/:shopId" element={<StorefrontLayout />}>
-              <Route index element={<StorefrontPage />} />
-              <Route path="cart" element={<CartPage />} />
-              <Route path="checkout" element={<CheckoutPage />} />
-              <Route path="order-success/:token" element={<OrderSuccessPage />} />
-            </Route>
+            
+            {/* POS Warehouse routes - moved here to avoid conflict with shop/:shopId */}
+            <Route path="/pos-warehouse" element={
+              <PrivateRoute>
+                <Layout>
+                  <POSWarehouseFigmaPage />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/pos-warehouse-exact" element={
+              <PrivateRoute>
+                <Layout>
+                  <POSWarehouseExactPage />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/pos-warehouse-figma" element={
+              <PrivateRoute>
+                <Layout>
+                  <POSWarehouseFigmaPage />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/pos-demo" element={
+              <PrivateRoute>
+                <Layout>
+                  <POSApp />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
             <Route path="*" element={
               <PrivateRoute>
                 <Layout>
@@ -59,7 +99,6 @@ function App() {
                     <Route path="/orders/:id" element={<OrderDetailPage />} />
                     <Route path="/warehouse" element={<WarehousePage />} />
                     <Route path="/warehouse/:id" element={<WarehouseItemDetailPage />} />
-                    {/* <Route path="/warehouse/delivery" element={<DeliveryPage />} /> */}
                     <Route path="/customers" element={<CustomersPage />} />
                     <Route path="/customers/:id" element={<CustomerDetailPage />} />
                     <Route path="/production" element={<ProductionPage />} />
@@ -78,6 +117,16 @@ function App() {
                 </Layout>
               </PrivateRoute>
             } />
+            {/* Storefront V2 - теперь основной маршрут */}
+            <Route path="/shop/:shopId/*" element={<StorefrontV2App />} />
+            
+            {/* Storefront V1 - старая версия для обратной совместимости */}
+            <Route path="/shop/:shopId/v1" element={<StorefrontLayout />}>
+              <Route index element={<StorefrontPage />} />
+              <Route path="cart" element={<CartPage />} />
+              <Route path="checkout" element={<CheckoutPage />} />
+              <Route path="order-success/:token" element={<OrderSuccessPage />} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </ThemeProvider>
