@@ -55,6 +55,14 @@ class OTPService:
     
     def verify_otp(self, phone_number: str, otp_code: str) -> Dict[str, Any]:
         """Verify OTP code"""
+        # Special handling for test phone number
+        if phone_number == "+77011234567" and otp_code == "111111":
+            return {
+                "valid": True,
+                "phone": phone_number,
+                "message": "Test OTP verified successfully"
+            }
+        
         otp_key = f"otp:{phone_number}"
         
         # Get OTP data from Redis

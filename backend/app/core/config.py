@@ -35,6 +35,9 @@ class Settings(BaseSettings):
         default=[
             "http://localhost:5173",
             "http://localhost:5174",  # telegram-miniapp local
+            "http://localhost:5177",  # storefront-v2 local
+            "http://localhost:5181",  # vite dev server current port
+            "http://localhost:5182",  # vite dev server future ports
             "http://localhost:3000",
             "https://cvety-kz-production.up.railway.app",
             "https://telegram-miniapp-production-5ad1.up.railway.app",

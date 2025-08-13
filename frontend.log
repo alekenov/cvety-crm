@@ -102,3 +102,32 @@
 4:22:30 PM [vite] server restarted.
 4:22:44 PM [vite] vite.config.ts changed, restarting server...
 4:22:44 PM [vite] server restarted.
+9:57:19 PM [vite] vite.config.ts changed, restarting server...
+9:57:19 PM [vite] (client) Re-optimizing dependencies because lockfile has changed
+9:57:19 PM [vite] server restarted.
+9:57:31 PM [vite] vite.config.ts changed, restarting server...
+Cannot optimize dependency: react/jsx-runtime, present in client 'optimizeDeps.include'
+Cannot optimize dependency: react/jsx-dev-runtime, present in client 'optimizeDeps.include'
+Cannot optimize dependency: react/jsx-runtime, present in client 'optimizeDeps.include'
+9:57:31 PM [vite] server restarted.
+✘ [ERROR] Cannot read file: /Users/alekenov/projects/shadcn-test/node_modules/react/index.js/jsx-runtime
+
+    node_modules/@radix-ui/react-label/dist/index.mjs:6:20:
+      6 │ import { jsx } from "react/jsx-runtime";
+        ╵                     ~~~~~~~~~~~~~~~~~~~
+
+/Users/alekenov/projects/shadcn-test/node_modules/esbuild/lib/main.js:1467
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 1 error:
+node_modules/@radix-ui/react-label/dist/index.mjs:6:20: ERROR: Cannot read file: /Users/alekenov/projects/shadcn-test/node_modules/react/index.js/jsx-runtime
+    at failureErrorWithLog (/Users/alekenov/projects/shadcn-test/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/alekenov/projects/shadcn-test/node_modules/esbuild/lib/main.js:926:25
+    at /Users/alekenov/projects/shadcn-test/node_modules/esbuild/lib/main.js:1345:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v23.11.0

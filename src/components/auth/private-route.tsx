@@ -7,7 +7,7 @@ interface PrivateRouteProps {
 
 export function PrivateRoute({ children }: PrivateRouteProps) {
   const location = useLocation()
-  const token = localStorage.getItem('authToken')
+  const token = localStorage.getItem('access_token')
 
   if (!token) {
     // Сохраняем URL куда пользователь хотел попасть

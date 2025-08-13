@@ -8,8 +8,14 @@ export function StorefrontLayout() {
     return <div>Shop ID is required</div>;
   }
 
+  // Only allow numeric shop IDs
+  const numericShopId = Number(shopId);
+  if (isNaN(numericShopId) || numericShopId <= 0) {
+    return <div>Invalid shop ID: {shopId}</div>;
+  }
+
   return (
-    <CartProvider shopId={Number(shopId)}>
+    <CartProvider shopId={numericShopId}>
       <Outlet />
     </CartProvider>
   );
