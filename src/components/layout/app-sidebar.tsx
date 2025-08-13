@@ -61,6 +61,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
         { title: "Каталог товаров", url: "/catalog", icon: BookOpen },
         { title: "Остатки склада", url: "/warehouse", icon: Store },
         { title: "POS Склад", url: "/pos-warehouse", icon: Package },
+        { title: "POS Демо", url: "/pos-demo", icon: Package },
         { title: "Поставки", url: "/supplies", icon: PackagePlus },
       ]
     },

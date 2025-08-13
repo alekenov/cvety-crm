@@ -4,6 +4,7 @@ import { ProductTable } from "./ProductTable";
 import { StockSummary } from "./StockSummary";
 import { InventoryPage } from "./InventoryPage";
 import { ProductDetailPage } from "./ProductDetailPage";
+import { DeliveryPage } from "./DeliveryPage";
 import { Button } from "@/components/ui/button";
 import {
   RotateCcw,
@@ -483,7 +484,7 @@ export default function App() {
     string | null
   >(null);
   const [currentPage, setCurrentPage] = useState<
-    "main" | "inventory" | "product-detail"
+    "main" | "inventory" | "product-detail" | "delivery"
   >("main");
   const [selectedProductId, setSelectedProductId] = useState<
     string | null
@@ -521,8 +522,7 @@ export default function App() {
   };
 
   const handleDelivery = () => {
-    // TODO: Открыть модальное окно для добавления поставки товаров
-    console.log("Поставка");
+    setCurrentPage("delivery");
   };
 
   const handleInventory = () => {
@@ -555,6 +555,17 @@ export default function App() {
     });
   }, [products, searchTerm, selectedCategory]);
 
+  // Показать страницу поставки
+  if (currentPage === "delivery") {
+    return (
+      <DeliveryPage
+        products={products}
+        onUpdateProducts={updateProducts}
+        onBack={handleBackToMain}
+      />
+    );
+  }
+
   // Показать страницу инвентаризации
   if (currentPage === "inventory") {
     return (
@@ -586,15 +597,20 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl md:text-xl">Склад</h1>
-          <div className="flex items-center gap-3">
+      <div className="mb-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1>Склад</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Управление товарами и остатками
+            </p>
+          </div>
+          
+          <div className="flex gap-3">
             <Button
               onClick={handleDelivery}
               variant="outline"
-              size="sm"
-              className="h-12 md:h-10 px-5 md:px-4 text-base"
+              className="h-14 md:h-12 px-4 rounded-xl flex-1 md:flex-initial"
             >
               <Package className="mr-2 h-5 w-5 md:h-4 md:w-4" />
               Поставка
@@ -602,8 +618,7 @@ export default function App() {
             <Button
               onClick={handleInventory}
               variant="outline"
-              size="sm"
-              className="h-12 md:h-10 px-5 md:px-4 text-base"
+              className="h-14 md:h-12 px-4 rounded-xl flex-1 md:flex-initial"
             >
               <ClipboardList className="mr-2 h-5 w-5 md:h-4 md:w-4" />
               Инвентаризация
@@ -611,8 +626,7 @@ export default function App() {
             <Button
               onClick={resetStock}
               variant="outline"
-              size="sm"
-              className="h-12 md:h-10 px-5 md:px-4 text-base"
+              className="h-14 md:h-12 px-4 rounded-xl flex-1 md:flex-initial"
             >
               <RotateCcw className="mr-2 h-5 w-5 md:h-4 md:w-4" />
               Сброс
@@ -622,7 +636,7 @@ export default function App() {
       </div>
 
       {/* Search */}
-      <div className="mb-8">
+      <div className="mb-6">
         <ProductSearch
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -633,7 +647,7 @@ export default function App() {
       </div>
 
       {/* Product Table */}
-      <div className="mb-8">
+      <div className="mb-6">
         <ProductTable
           products={filteredProducts}
           onUpdateQuantity={updateQuantity}

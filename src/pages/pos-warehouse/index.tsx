@@ -191,6 +191,14 @@ export function POSWarehousePage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => window.open('/pos-demo', '_blank')}
+            >
+              <Package className="h-4 w-4 mr-2" />
+              Поставка
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleSync}
             >
               <RotateCcw className="h-4 w-4 mr-2" />

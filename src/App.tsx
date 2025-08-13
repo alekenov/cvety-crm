@@ -27,6 +27,7 @@ import { TrackingPage as StorefrontTrackingPage } from "@/storefront/pages/Track
 import StorefrontV2App from "@/storefront-v2/StorefrontV2App"
 import LandingPage from "@/pages/landing/LandingPage"
 import { POSWarehousePage } from "@/pages/pos-warehouse"
+import POSApp from "@/pos-warehouse/POSApp"
 
 const queryClient = new QueryClient()
 
@@ -53,6 +54,7 @@ function App() {
                     <Route path="/warehouse/:id" element={<WarehouseItemDetailPage />} />
                     {/* <Route path="/warehouse/delivery" element={<DeliveryPage />} /> */}
                     <Route path="/pos-warehouse" element={<POSWarehousePage />} />
+                    <Route path="/pos-demo" element={<POSApp />} />
                     <Route path="/customers" element={<CustomersPage />} />
                     <Route path="/customers/:id" element={<CustomerDetailPage />} />
                     <Route path="/production" element={<ProductionPage />} />
