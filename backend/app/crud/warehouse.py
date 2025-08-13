@@ -116,7 +116,7 @@ class CRUDWarehouse:
         db.flush()  # Get delivery ID
         
         # Create positions and warehouse items
-        for pos_data in delivery.positions:
+        for idx, pos_data in enumerate(delivery.positions):
             # Create delivery position
             db_position = DeliveryPosition(
                 delivery_id=db_delivery.id,
@@ -128,50 +128,30 @@ class CRUDWarehouse:
             )
             db.add(db_position)
             
-            # Create or update warehouse item
-            # Generate SKU
-            sku = f"{pos_data.variety[:3].upper()}-{delivery.farm[:3].upper()}-{pos_data.height_cm}"
-            batch_code = f"B{delivery.delivery_date.strftime('%Y%m%d')}-{db_delivery.id}"
+            # Create warehouse item for new batch
+            # Generate unique batch code and SKU (include position index for uniqueness)
+            batch_code = f"B{delivery.delivery_date.strftime('%Y%m%d')}-{db_delivery.id}-{idx+1}"
+            sku = f"{pos_data.variety[:3].upper()}-{delivery.farm[:3].upper()}-{pos_data.height_cm}-{batch_code}"
             
-            # Check if similar item exists
-            existing_item = db.query(WarehouseItem).filter(
-                and_(
-                    WarehouseItem.variety == pos_data.variety,
-                    WarehouseItem.height_cm == pos_data.height_cm,
-                    WarehouseItem.farm == delivery.farm,
-                    WarehouseItem.supplier == delivery.supplier
-                )
-            ).first()
-            
-            if existing_item:
-                # Update quantity
-                existing_item.qty += pos_data.qty
-                existing_item.batch_code = batch_code
-                existing_item.delivery_date = delivery.delivery_date
-                existing_item.cost = pos_data.cost_per_stem
-                existing_item.currency = delivery.currency
-                existing_item.rate = delivery.rate
-                existing_item.recommended_price = pos_data.cost_per_stem * delivery.rate * 2  # 100% markup
-            else:
-                # Create new item
-                warehouse_item = WarehouseItem(
-                    sku=sku,
-                    batch_code=batch_code,
-                    variety=pos_data.variety,
-                    height_cm=pos_data.height_cm,
-                    farm=delivery.farm,
-                    supplier=delivery.supplier,
-                    delivery_date=delivery.delivery_date,
-                    currency=delivery.currency,
-                    rate=delivery.rate,
-                    cost=pos_data.cost_per_stem,
-                    recommended_price=pos_data.cost_per_stem * delivery.rate * 2,  # 100% markup
-                    price=pos_data.cost_per_stem * delivery.rate * 2,  # Start with recommended
-                    markup_pct=100.0,
-                    qty=pos_data.qty,
-                    reserved_qty=0
-                )
-                db.add(warehouse_item)
+            # Always create new item for each delivery (each batch is separate)
+            warehouse_item = WarehouseItem(
+                sku=sku,
+                batch_code=batch_code,
+                variety=pos_data.variety,
+                height_cm=pos_data.height_cm,
+                farm=delivery.farm,
+                supplier=delivery.supplier,
+                delivery_date=delivery.delivery_date,
+                currency=delivery.currency,
+                rate=delivery.rate,
+                cost=pos_data.cost_per_stem,
+                recommended_price=pos_data.cost_per_stem * delivery.rate * 2,  # 100% markup
+                price=pos_data.cost_per_stem * delivery.rate * 2,  # Start with recommended
+                markup_pct=100.0,
+                qty=pos_data.qty,
+                reserved_qty=0
+            )
+            db.add(warehouse_item)
         
         db.commit()
         db.refresh(db_delivery)

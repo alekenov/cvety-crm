@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import orders, tracking, warehouse, products, customers, production, settings, init_data, auth, telegram, supplies, upload, users, comments, public, calculator
+from app.api.endpoints import orders, tracking, warehouse, products, customers, production, settings, init_data, auth, telegram, supplies, upload, users, comments, public, calculator, shop_public
 
 api_router = APIRouter()
 
@@ -9,6 +9,7 @@ api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(tracking.router, prefix="/tracking", tags=["tracking"])
 api_router.include_router(telegram.router, prefix="/telegram", tags=["telegram"])
 api_router.include_router(public.router, prefix="/public", tags=["public"])
+api_router.include_router(shop_public.router, prefix="/public", tags=["shop-public"])
 
 # Protected routes (require auth)
 api_router.include_router(orders.router, prefix="/orders", tags=["orders"])

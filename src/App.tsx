@@ -67,6 +67,27 @@ function App() {
                 </Layout>
               </PrivateRoute>
             } />
+            <Route path="/pos-warehouse/inventory" element={
+              <PrivateRoute>
+                <Layout>
+                  <POSWarehouseFigmaPage />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/pos-warehouse/in" element={
+              <PrivateRoute>
+                <Layout>
+                  <POSWarehouseFigmaPage />
+                </Layout>
+              </PrivateRoute>
+            } />
+            <Route path="/pos-warehouse/:productId" element={
+              <PrivateRoute>
+                <Layout>
+                  <POSWarehouseFigmaPage />
+                </Layout>
+              </PrivateRoute>
+            } />
             <Route path="/pos-warehouse-exact" element={
               <PrivateRoute>
                 <Layout>
