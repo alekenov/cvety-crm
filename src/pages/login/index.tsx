@@ -80,7 +80,7 @@ export function LoginPage() {
     try {
       const response = await authApi.completeRegistration(shopName, shopCity)
       
-      localStorage.setItem('authToken', response.access_token)
+      localStorage.setItem('access_token', response.access_token)
       if (response.shop_id) {
         localStorage.setItem('shopId', response.shop_id.toString())
       }
@@ -104,11 +104,11 @@ export function LoginPage() {
       
       if (response.is_new_user) {
         // New user - need to complete registration
-        localStorage.setItem('authToken', response.access_token)
+        localStorage.setItem('access_token', response.access_token)
         setStep('profile')
       } else {
         // Existing user - login complete
-        localStorage.setItem('authToken', response.access_token)
+        localStorage.setItem('access_token', response.access_token)
         if (response.shop_id) {
           localStorage.setItem('shopId', response.shop_id.toString())
         }
