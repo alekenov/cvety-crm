@@ -56,7 +56,14 @@ class OTPService:
     def verify_otp(self, phone_number: str, otp_code: str) -> Dict[str, Any]:
         """Verify OTP code"""
         # Special handling for test phone number
-        if phone_number == "+77011234567" and otp_code == "111111":
+        from app.core.config import get_settings
+        settings = get_settings()
+        
+        # Allow hardcoded test OTP or configurable test OTP
+        if phone_number == settings.TEST_PHONE and (
+            otp_code == "111111" or 
+            (settings.TEST_OTP_CODE and otp_code == settings.TEST_OTP_CODE)
+        ):
             return {
                 "valid": True,
                 "phone": phone_number,

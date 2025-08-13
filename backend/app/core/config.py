@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
+    # Testing
+    TEST_PHONE: str = Field(default="+77011234567", env="TEST_PHONE")
+    TEST_OTP_CODE: str = Field(default="", env="TEST_OTP_CODE")
+    
     # CORS - Allow Railway domains
     BACKEND_CORS_ORIGINS: List[str] = Field(
         default=[
