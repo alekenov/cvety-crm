@@ -9,10 +9,10 @@
     "numReplicas": 1,
     "startCommand": null,
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 10,
+    "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3,
-    "initialDelaySeconds": 10
+    "initialDelaySeconds": 30
   },
   "variables": {
     "NODE_ENV": "production",
