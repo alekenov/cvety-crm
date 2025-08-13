@@ -50,7 +50,10 @@ class Settings(BaseSettings):
     REDIS_URL: Optional[str] = Field(default=None, env="REDIS_URL")
     
     # Telegram Bot
-    TELEGRAM_BOT_TOKEN: Optional[str] = Field(default=None, env="TELEGRAM_BOT_TOKEN")
+    TELEGRAM_BOT_TOKEN: Optional[str] = Field(
+        default="7055194506:AAECXEMb9SW-nPZzZ843xZkjm8KeTW5hJn4", 
+        env="TELEGRAM_BOT_TOKEN"
+    )
     TELEGRAM_WEBHOOK_URL: Optional[str] = Field(default=None, env="TELEGRAM_WEBHOOK_URL")
     TELEGRAM_MINIAPP_URL: str = Field(
         default="https://telegram-miniapp-production-bb16.up.railway.app",

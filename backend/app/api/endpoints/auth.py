@@ -120,6 +120,20 @@ async def request_otp(
     # Get telegram_id from Redis if available (set by simple Telegram bot)
     telegram_data = redis_service.get(f"telegram:{request.phone}")
     
+    # If new user without telegram registration, guide them to the bot
+    if not shop and not telegram_data:
+        return {
+            "message": "Для получения кода подтверждения сначала отправьте свой номер боту @Cvetyoptbot",
+            "delivery_method": "need_registration",
+            "bot_link": "https://t.me/Cvetyoptbot",
+            "instructions": [
+                "1. Перейдите в Telegram бот @Cvetyoptbot",
+                "2. Нажмите /start",
+                "3. Поделитесь своим контактом с ботом",
+                "4. Вернитесь сюда и запросите код снова"
+            ]
+        }
+    
     if telegram_data and telegram_data.get("telegram_id"):
         # Send OTP via Telegram
         telegram_id = int(telegram_data["telegram_id"])

@@ -96,7 +96,7 @@ def get_public_products(
 
 # Create order endpoint
 @router.post("/orders", response_model=schemas.PublicOrderResponse)
-def create_public_order(
+async def create_public_order(
     order_data: schemas.PublicOrderCreate,
     db: Session = Depends(deps.get_db)
 ) -> Order:
@@ -189,15 +189,37 @@ def create_public_order(
     # Load items for response
     _ = order.items
     
-    # Send Telegram notification (simplified for now)
+    # Send Telegram notification to shop owner
     try:
-        print(f"📱 Отправка уведомления о заказе {order.id} (трекинг: {order.tracking_token})")
-        # For now, just log the notification - will integrate properly later
-        print(f"💰 Заказ на сумму {order.total} ₸")
-        print(f"👤 Клиент: {order.recipient_name}")
-        print(f"📍 Адрес: {order.address}")
+        from app.services.redis_service import redis_service
+        
+        # Try to find telegram_id for shop
+        telegram_id = None
+        if shop.telegram_id:
+            telegram_id = int(shop.telegram_id)
+        else:
+            # Try to find from Redis phone mapping
+            telegram_data = redis_service.get(f"telegram:{shop.phone}")
+            if telegram_data and telegram_data.get("telegram_id"):
+                telegram_id = int(telegram_data["telegram_id"])
+                # Update shop with telegram_id for future use
+                shop.telegram_id = telegram_data["telegram_id"]
+                db.commit()
+        
+        if telegram_id:
+            order_info = {
+                "id": order.id,
+                "total": order.total or 0,
+                "customer_name": order.recipient_name or "Не указан",
+                "customer_phone": order.customer_phone or "Не указан", 
+                "delivery_address": order.address or "Не указан",
+                "created_at": order.created_at.strftime("%d.%m.%Y %H:%M") if order.created_at else ""
+            }
+            
+            await telegram_service.send_order_notification(telegram_id, order_info)
+        
     except Exception as e:
-        print(f"❌ Ошибка при подготовке уведомления: {e}")
+        print(f"❌ Ошибка при отправке уведомления: {e}")
     
     return order
 

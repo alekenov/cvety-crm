@@ -10,6 +10,7 @@ import {
   BookOpen,
   PackagePlus,
   ShoppingBag,
+  Package,
 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
@@ -59,6 +60,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
       items: [
         { title: "Каталог товаров", url: "/catalog", icon: BookOpen },
         { title: "Остатки склада", url: "/warehouse", icon: Store },
+        { title: "POS Склад", url: "/pos-warehouse", icon: Package },
         { title: "Поставки", url: "/supplies", icon: PackagePlus },
       ]
     },

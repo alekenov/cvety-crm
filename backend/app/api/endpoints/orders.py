@@ -1,5 +1,6 @@
 from typing import Optional
 from datetime import datetime
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, cast, String
@@ -24,7 +25,11 @@ from app.schemas.order_rollback import OrderStatusRollback
 from app.models.order import OrderStatus, Order, OrderItem
 from app.models.user import User
 from app.models.shop import Shop
+from app.services.telegram_service import telegram_service
+from app.services.redis_service import redis_service
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 class PaymentWebhookData(BaseModel):
     payment_method: str = "kaspi"
@@ -33,6 +38,39 @@ class PaymentWebhookData(BaseModel):
     status: str = "success"
 
 router = APIRouter()
+
+
+async def send_order_notification_to_shop(shop: Shop, order: Order):
+    """Send order notification to shop owner via Telegram"""
+    if not shop.telegram_id:
+        # Try to find telegram_id from Redis (phone mapping)
+        telegram_data = redis_service.get(f"telegram:{shop.phone}")
+        if telegram_data and telegram_data.get("telegram_id"):
+            # Update shop with telegram_id for future use
+            shop.telegram_id = telegram_data["telegram_id"]
+        else:
+            logger.info(f"No Telegram ID found for shop {shop.name}")
+            return
+    
+    try:
+        telegram_id = int(shop.telegram_id)
+        order_info = {
+            "id": order.id,
+            "total": order.total or 0,
+            "customer_name": order.recipient_name or "Не указан",
+            "customer_phone": order.customer_phone or "Не указан", 
+            "delivery_address": order.delivery_address or "Не указан",
+            "created_at": order.created_at.strftime("%d.%m.%Y %H:%M") if order.created_at else ""
+        }
+        
+        success = await telegram_service.send_order_notification(telegram_id, order_info)
+        if success:
+            logger.info(f"Order notification sent to shop {shop.name} (telegram_id: {telegram_id})")
+        else:
+            logger.warning(f"Failed to send order notification to shop {shop.name}")
+            
+    except (ValueError, TypeError) as e:
+        logger.error(f"Invalid telegram_id for shop {shop.name}: {e}")
 
 
 @router.get("/", 
@@ -360,12 +398,16 @@ def get_order(
     - Total should equal flower_sum + delivery_fee
     - Phone numbers must be in Kazakhstan format
     """)
-def create_order(
+async def create_order(
     order: OrderCreate,
     db: Session = Depends(deps.get_db),
     current_shop: Shop = Depends(deps.get_current_shop)
 ):
     db_order = crud.order.create(db, obj_in=order, shop_id=current_shop.id)
+    
+    # Send Telegram notification to shop owner
+    await send_order_notification_to_shop(current_shop, db_order)
+    
     return OrderResponse.model_validate(db_order)
 
 
@@ -440,7 +482,7 @@ def mark_order_issue(
 
 # New endpoint to create order with items
 @router.post("/with-items", response_model=OrderResponseWithItems, status_code=201)
-def create_order_with_items(
+async def create_order_with_items(
     order: OrderCreateWithItems,
     db: Session = Depends(deps.get_db),
     current_shop: Shop = Depends(deps.get_current_shop)
@@ -513,6 +555,9 @@ def create_order_with_items(
                 'phone': db_order.courier.phone
             } if db_order.courier else None
         }
+        
+        # Send Telegram notification to shop owner
+        await send_order_notification_to_shop(current_shop, db_order)
         
         return OrderResponseWithItems.model_validate(order_dict)
     except Exception as e:

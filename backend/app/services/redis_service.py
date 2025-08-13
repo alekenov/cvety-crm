@@ -30,11 +30,16 @@ class RedisService:
                 self._client = redis.Redis(connection_pool=self._pool)
                 logger.info("Redis client initialized successfully")
             else:
-                logger.warning("REDIS_URL not found, Redis features will be disabled")
-                # Return a mock client that does nothing
+                logger.warning("REDIS_URL not found, using MockRedisClient for development")
+                # Return a mock client that mimics Redis behavior
                 self._client = MockRedisClient()
         
         return self._client
+    
+    @property
+    def redis(self):
+        """Alias for client to match telegram bot usage"""
+        return self.client
     
     def set_with_ttl(self, key: str, value: Any, ttl_seconds: int) -> bool:
         """Set a key with TTL (time to live)"""
@@ -139,6 +144,18 @@ class MockRedisClient:
     
     def exists(self, key: str) -> int:
         return 1 if key in self._store else 0
+    
+    def keys(self, pattern: str = "*") -> list:
+        """Get keys matching pattern"""
+        if pattern == "*":
+            return list(self._store.keys())
+        
+        # Simple pattern matching for telegram:+7* pattern
+        if pattern.endswith("*"):
+            prefix = pattern[:-1]
+            return [key for key in self._store.keys() if key.startswith(prefix)]
+        
+        return [key for key in self._store.keys() if key == pattern]
 
 
 # Global instance

@@ -695,7 +695,13 @@ const convertKeysToSnakeCase = (obj: any): any => {
 // Auth API
 export const authApi = {
   requestOtp: async (phone: string) => {
-    const { data } = await api.post<{ message: string; otp?: string; delivery_method: string }>('/auth/request-otp', { phone })
+    const { data } = await api.post<{ 
+      message: string; 
+      otp?: string; 
+      delivery_method: string;
+      bot_link?: string;
+      instructions?: string[];
+    }>('/auth/request-otp', { phone })
     return data
   },
 

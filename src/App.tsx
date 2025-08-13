@@ -30,6 +30,7 @@ import { OrderSuccessPage } from "@/storefront/pages/OrderSuccessPage"
 import { TrackingPage as StorefrontTrackingPage } from "@/storefront/pages/TrackingPage"
 import { StorefrontLayout } from "@/storefront/components/StorefrontLayout"
 import LandingPage from "@/pages/landing/LandingPage"
+import { POSWarehousePage } from "@/pages/pos-warehouse"
 
 const queryClient = new QueryClient()
 
@@ -60,6 +61,7 @@ function App() {
                     <Route path="/warehouse" element={<WarehousePage />} />
                     <Route path="/warehouse/:id" element={<WarehouseItemDetailPage />} />
                     {/* <Route path="/warehouse/delivery" element={<DeliveryPage />} /> */}
+                    <Route path="/pos-warehouse" element={<POSWarehousePage />} />
                     <Route path="/customers" element={<CustomersPage />} />
                     <Route path="/customers/:id" element={<CustomerDetailPage />} />
                     <Route path="/production" element={<ProductionPage />} />

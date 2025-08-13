@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Telegram Bot for Cvety.kz
-Handles user authentication and Mini App access
+DEPRECATED: Old Telegram Bot for Cvety.kz
+Use simple_telegram_bot.py instead - it has simpler logic without Mini App
 """
 
 import asyncio

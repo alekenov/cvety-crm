@@ -15,7 +15,12 @@ export function LoginPage() {
   const [searchParams] = useSearchParams()
   const returnUrl = searchParams.get('returnUrl') || '/'
   
-  const [step, setStep] = useState<'phone' | 'otp' | 'profile'>('phone')
+  const [step, setStep] = useState<'phone' | 'otp' | 'profile' | 'registration_required'>('phone')
+  const [registrationData, setRegistrationData] = useState<{
+    message: string;
+    botLink?: string;
+    instructions?: string[];
+  } | null>(null)
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [shopName, setShopName] = useState('')
@@ -46,11 +51,20 @@ export function LoginPage() {
       const cleanPhone = phone.replace(/\s/g, '')
       const response = await authApi.requestOtp(cleanPhone)
       
-      if (response.delivery_method === 'debug' && response.otp) {
+      if (response.delivery_method === 'need_registration') {
+        // User needs to register with Telegram bot first
+        setRegistrationData({
+          message: response.message,
+          botLink: response.bot_link,
+          instructions: response.instructions
+        })
+        setStep('registration_required')
+      } else if (response.delivery_method === 'debug' && response.otp) {
         setError(`Тестовый режим: Ваш код ${response.otp}`)
+        setStep('otp')
+      } else {
+        setStep('otp')
       }
-      
-      setStep('otp')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Ошибка при отправке кода')
     } finally {
@@ -118,6 +132,7 @@ export function LoginPage() {
             {step === 'phone' && 'Войдите в систему управления'}
             {step === 'otp' && 'Введите код из Telegram'}
             {step === 'profile' && 'Расскажите о вашем магазине'}
+            {step === 'registration_required' && 'Требуется регистрация в Telegram'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -137,16 +152,16 @@ export function LoginPage() {
                   className={FORM_WIDTHS.PHONE}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Для получения кода подтверждения, сначала напишите боту{' '}
+                  Для получения кода подтверждения отправьте ваш номер телефона боту{' '}
                   <a 
-                    href="https://t.me/lekenbot" 
+                    href="https://t.me/Cvetyoptbot" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
                   >
-                    @lekenbot
+                    @Cvetyoptbot
                   </a>{' '}
-                  ваш номер телефона
+                  в Telegram
                 </p>
               </div>
 
@@ -276,6 +291,63 @@ export function LoginPage() {
                 )}
               </Button>
             </form>
+          )}
+          {step === 'registration_required' && registrationData && (
+            <div className="space-y-4">
+              <Alert>
+                <AlertDescription>{registrationData.message}</AlertDescription>
+              </Alert>
+              
+              {registrationData.instructions && (
+                <div className="space-y-2">
+                  <h4 className="font-medium">Инструкция:</h4>
+                  <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                    {registrationData.instructions.map((instruction, index) => (
+                      <li key={index}>{instruction}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {registrationData.botLink && (
+                  <Button 
+                    type="button"
+                    className={BUTTON_CLASSES.ACTION}
+                    onClick={() => window.open(registrationData.botLink, '_blank')}
+                  >
+                    Открыть бота @Cvetyoptbot
+                  </Button>
+                )}
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={BUTTON_CLASSES.ACTION}
+                  onClick={() => {
+                    setStep('phone')
+                    setRegistrationData(null)
+                    setError('')
+                  }}
+                >
+                  Я зарегистрировался, повторить
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className={BUTTON_CLASSES.ACTION}
+                  onClick={() => {
+                    setStep('phone')
+                    setPhone('')
+                    setRegistrationData(null)
+                    setError('')
+                  }}
+                >
+                  Изменить номер
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
         </Card>
