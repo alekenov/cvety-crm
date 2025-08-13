@@ -30,7 +30,12 @@ class OTPService:
             return None
         
         # Generate OTP
-        otp = ''.join(random.choices(string.digits, k=self.OTP_LENGTH))
+        # Special case for test profile
+        if phone_number == "+77011234567":
+            otp = "111111"  # Fixed OTP for testing
+            logger.info(f"Using test OTP for test phone: {phone_number}")
+        else:
+            otp = ''.join(random.choices(string.digits, k=self.OTP_LENGTH))
         
         # Store OTP with metadata
         otp_data = {

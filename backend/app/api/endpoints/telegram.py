@@ -49,3 +49,34 @@ async def webhook_status():
     except Exception as e:
         logger.error(f"Failed to get webhook status: {e}")
         return {"status": "error", "error": str(e)}
+
+
+@router.post("/webhook/setup")
+async def setup_webhook_manually():
+    """Manually setup webhook (for debugging)"""
+    if not telegram_service._initialized:
+        return {"status": "error", "message": "Bot not initialized"}
+    
+    from app.core.config import get_settings
+    settings = get_settings()
+    
+    if not settings.TELEGRAM_WEBHOOK_URL:
+        return {"status": "error", "message": "TELEGRAM_WEBHOOK_URL not configured"}
+    
+    try:
+        result = await telegram_service.setup_webhook(
+            webhook_url=settings.TELEGRAM_WEBHOOK_URL,
+            webhook_path="/api/telegram/webhook"
+        )
+        
+        return {
+            "status": "success" if result else "failed",
+            "webhook_url": f"{settings.TELEGRAM_WEBHOOK_URL}/api/telegram/webhook",
+            "message": "Webhook setup completed" if result else "Webhook setup failed"
+        }
+    except Exception as e:
+        logger.error(f"Manual webhook setup failed: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }

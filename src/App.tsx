@@ -23,12 +23,8 @@ import { UsersPage } from "@/pages/settings/users"
 import { CalculatorMaterialsPage } from "@/pages/settings/calculator-materials"
 import SuppliesPage from "@/pages/supplies/SuppliesPage"
 import { SupplyDetail } from "@/pages/supplies"
-import { StorefrontPage } from "@/storefront/pages/StorefrontPage"
-import { CheckoutPage } from "@/storefront/pages/CheckoutPage"
-import { CartPage } from "@/storefront/pages/CartPage"
-import { OrderSuccessPage } from "@/storefront/pages/OrderSuccessPage"
 import { TrackingPage as StorefrontTrackingPage } from "@/storefront/pages/TrackingPage"
-import { StorefrontLayout } from "@/storefront/components/StorefrontLayout"
+import StorefrontV2App from "@/storefront-v2/StorefrontV2App"
 import LandingPage from "@/pages/landing/LandingPage"
 import { POSWarehousePage } from "@/pages/pos-warehouse"
 
@@ -44,12 +40,7 @@ function App() {
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/status/:token" element={<StorefrontTrackingPage />} />
-            <Route path="/shop/:shopId" element={<StorefrontLayout />}>
-              <Route index element={<StorefrontPage />} />
-              <Route path="cart" element={<CartPage />} />
-              <Route path="checkout" element={<CheckoutPage />} />
-              <Route path="order-success/:token" element={<OrderSuccessPage />} />
-            </Route>
+            <Route path="/shop/:shopId/*" element={<StorefrontV2App />} />
             <Route path="*" element={
               <PrivateRoute>
                 <Layout>

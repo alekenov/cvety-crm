@@ -60,7 +60,7 @@ def get_current_shop(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    shop = crud_shop.get(db, shop_id=int(shop_id))
+    shop = crud_shop.get(db, int(shop_id))
     
     if shop is None:
         raise HTTPException(
@@ -108,7 +108,7 @@ def get_optional_current_shop(
         if shop_id is None:
             return None
             
-        shop = crud_shop.get(db, shop_id=int(shop_id))
+        shop = crud_shop.get(db, int(shop_id))
         return shop if shop and shop.is_active else None
         
     except JWTError:

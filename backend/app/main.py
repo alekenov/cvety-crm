@@ -354,24 +354,33 @@ async def startup_event():
     # Initialize Telegram bot (в том числе в DEBUG режиме для локальной разработки)
     if settings.TELEGRAM_BOT_TOKEN:
         try:
+            logger.info(f"Initializing Telegram bot with token: {settings.TELEGRAM_BOT_TOKEN[:10]}...")
             await telegram_service.initialize(settings.TELEGRAM_BOT_TOKEN)
             
             # Setup webhook in production
             if settings.TELEGRAM_WEBHOOK_URL:
+                logger.info(f"Setting up webhook: {settings.TELEGRAM_WEBHOOK_URL}")
                 await telegram_service.setup_webhook(
                     webhook_url=settings.TELEGRAM_WEBHOOK_URL,
                     webhook_path="/api/telegram/webhook"
                 )
+                
+                # Verify webhook was set successfully
+                if telegram_service.bot:
+                    webhook_info = await telegram_service.bot.get_webhook_info()
+                    logger.info(f"Webhook verification - URL: {webhook_info.url}, Status: {'active' if webhook_info.url else 'inactive'}")
+                
                 logger.info(f"Telegram webhook configured: {settings.TELEGRAM_WEBHOOK_URL}")
             else:
+                logger.info("No TELEGRAM_WEBHOOK_URL provided, starting polling mode")
                 # Start polling in a background task
                 asyncio.create_task(telegram_service.start_polling())
                 logger.info("Telegram bot polling started")
         except Exception as e:
-            logger.error(f"Failed to initialize Telegram bot: {e}")
+            logger.error(f"Failed to initialize Telegram bot: {e}", exc_info=True)
             # Don't raise - app should work without Telegram
-    elif settings.DEBUG:
-        logger.info("Telegram bot disabled in DEBUG mode")
+    else:
+        logger.info("Telegram bot not initialized - no TELEGRAM_BOT_TOKEN provided")
     
     logger.info("Application startup complete")
 

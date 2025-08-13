@@ -132,15 +132,30 @@ class TelegramService:
         """Setup webhook for production"""
         if not self._initialized:
             logger.error("Bot not initialized")
-            return
+            return False
         
         try:
             full_webhook_url = f"{webhook_url.rstrip('/')}{webhook_path}"
-            await self.bot.set_webhook(url=full_webhook_url)
-            logger.info(f"Webhook set to: {full_webhook_url}")
+            logger.info(f"Setting webhook to: {full_webhook_url}")
+            
+            # Set webhook
+            result = await self.bot.set_webhook(url=full_webhook_url)
+            logger.info(f"Webhook set result: {result}")
+            
+            # Verify it was set
+            webhook_info = await self.bot.get_webhook_info()
+            logger.info(f"Webhook verification after setup - URL: {webhook_info.url}")
+            
+            if webhook_info.url == full_webhook_url:
+                logger.info(f"✅ Webhook successfully set to: {full_webhook_url}")
+                return True
+            else:
+                logger.error(f"❌ Webhook verification failed. Expected: {full_webhook_url}, Got: {webhook_info.url}")
+                return False
+                
         except Exception as e:
-            logger.error(f"Failed to set webhook: {e}")
-            raise
+            logger.error(f"Failed to set webhook: {e}", exc_info=True)
+            return False
 
     def _register_handlers(self):
         """Register message handlers"""
