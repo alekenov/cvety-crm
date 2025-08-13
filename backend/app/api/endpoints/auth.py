@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from jose import jwt
+from pydantic import BaseModel
 
 from app.api import deps
 from app.core.config import get_settings
@@ -27,6 +29,7 @@ from app.services.redis_service import redis_service
 
 router = APIRouter()
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -114,8 +117,22 @@ async def request_otp(
             detail="Too many requests. Please try again later."
         )
     
-    # Get telegram_id from Redis if available (set by Telegram bot)
+    # Get telegram_id from Redis if available (set by simple Telegram bot)
     telegram_data = redis_service.get(f"telegram:{request.phone}")
+    
+    # If new user without telegram registration, guide them to the bot
+    if not shop and not telegram_data:
+        return {
+            "message": "Для получения кода подтверждения сначала отправьте свой номер боту @Cvetyoptbot",
+            "delivery_method": "need_registration",
+            "bot_link": "https://t.me/Cvetyoptbot",
+            "instructions": [
+                "1. Перейдите в Telegram бот @Cvetyoptbot",
+                "2. Нажмите /start",
+                "3. Поделитесь своим контактом с ботом",
+                "4. Вернитесь сюда и запросите код снова"
+            ]
+        }
     
     if telegram_data and telegram_data.get("telegram_id"):
         # Send OTP via Telegram
@@ -127,6 +144,24 @@ async def request_otp(
                 "message": "OTP sent to your Telegram",
                 "delivery_method": "telegram"
             }
+        else:
+            logger.warning(f"Failed to send OTP via Telegram to {telegram_id}")
+            
+    # If no Telegram or sending failed, check if user is linked to any shop
+    existing_shop = crud_shop.get_by_phone(db, phone=request.phone)
+    if existing_shop and existing_shop.telegram_id:
+        # Try to send to shop's telegram_id
+        try:
+            telegram_id = int(existing_shop.telegram_id)
+            success = await telegram_service.send_otp(telegram_id, otp)
+            
+            if success:
+                return {
+                    "message": "OTP sent to your registered Telegram account",
+                    "delivery_method": "telegram"
+                }
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid telegram_id in shop: {existing_shop.telegram_id}")
     
     # In production, you would send OTP via SMS here
     # For now, we'll return it in development mode
@@ -295,6 +330,37 @@ async def verify_otp(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during authentication. Please try again."
         )
+
+
+class TelegramRegistrationRequest(BaseModel):
+    phone: str
+    telegram_id: str
+    telegram_username: str = None
+    first_name: str = None
+    last_name: str = None
+
+@router.post("/debug/register-telegram", status_code=200,
+    summary="[DEBUG] Register Telegram data for phone number",
+    description="DEBUG endpoint to manually register telegram data for phone number")
+async def debug_register_telegram(request: TelegramRegistrationRequest):
+    """DEBUG: Manually register telegram data for a phone number"""
+    telegram_data = {
+        "telegram_id": request.telegram_id,
+        "telegram_username": request.telegram_username or "",
+        "first_name": request.first_name or "",
+        "last_name": request.last_name or ""
+    }
+    
+    # Store for 24 hours
+    redis_service.set_with_ttl(f"telegram:{request.phone}", telegram_data, 86400)
+    
+    # Verify stored
+    stored = redis_service.get(f"telegram:{request.phone}")
+    
+    return {
+        "message": f"Telegram data registered for {request.phone}",
+        "stored_data": stored
+    }
 
 
 @router.post("/complete-registration", response_model=AuthToken, status_code=201,
