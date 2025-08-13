@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from jose import jwt
@@ -27,6 +28,7 @@ from app.services.redis_service import redis_service
 
 router = APIRouter()
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -114,7 +116,7 @@ async def request_otp(
             detail="Too many requests. Please try again later."
         )
     
-    # Get telegram_id from Redis if available (set by Telegram bot)
+    # Get telegram_id from Redis if available (set by simple Telegram bot)
     telegram_data = redis_service.get(f"telegram:{request.phone}")
     
     if telegram_data and telegram_data.get("telegram_id"):
@@ -127,6 +129,24 @@ async def request_otp(
                 "message": "OTP sent to your Telegram",
                 "delivery_method": "telegram"
             }
+        else:
+            logger.warning(f"Failed to send OTP via Telegram to {telegram_id}")
+            
+    # If no Telegram or sending failed, check if user is linked to any shop
+    existing_shop = crud_shop.get_by_phone(db, phone=request.phone)
+    if existing_shop and existing_shop.telegram_id:
+        # Try to send to shop's telegram_id
+        try:
+            telegram_id = int(existing_shop.telegram_id)
+            success = await telegram_service.send_otp(telegram_id, otp)
+            
+            if success:
+                return {
+                    "message": "OTP sent to your registered Telegram account",
+                    "delivery_method": "telegram"
+                }
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid telegram_id in shop: {existing_shop.telegram_id}")
     
     # In production, you would send OTP via SMS here
     # For now, we'll return it in development mode

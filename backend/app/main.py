@@ -351,8 +351,8 @@ async def startup_event():
         logger.error(f"Failed to create database tables: {str(e)}")
         raise
     
-    # Initialize Telegram bot
-    if settings.TELEGRAM_BOT_TOKEN and not settings.DEBUG:
+    # Initialize Telegram bot (в том числе в DEBUG режиме для локальной разработки)
+    if settings.TELEGRAM_BOT_TOKEN:
         try:
             await telegram_service.initialize(settings.TELEGRAM_BOT_TOKEN)
             
