@@ -4,6 +4,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from jose import jwt
+from pydantic import BaseModel
 
 from app.api import deps
 from app.core.config import get_settings
@@ -316,8 +317,6 @@ async def verify_otp(
             detail="An error occurred during authentication. Please try again."
         )
 
-
-from pydantic import BaseModel
 
 class TelegramRegistrationRequest(BaseModel):
     phone: str
