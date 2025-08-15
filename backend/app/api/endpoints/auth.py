@@ -503,6 +503,34 @@ async def get_current_shop(
     return current_shop
 
 
+@router.get("/current-user")
+async def get_current_user_info(
+    current_user: User = Depends(deps.get_current_user),
+    current_shop: Shop = Depends(deps.get_current_shop),
+    db: Session = Depends(deps.get_db)
+):
+    """Get current authenticated user information with shop details"""
+    return {
+        "user": {
+            "id": current_user.id,
+            "name": current_user.name,
+            "phone": current_user.phone,
+            "email": current_user.email,
+            "role": current_user.role.value,
+            "permissions": current_user.permissions,
+            "is_active": current_user.is_active,
+            "telegram_id": current_user.telegram_id
+        },
+        "shop": {
+            "id": current_shop.id,
+            "name": current_shop.name,
+            "phone": current_shop.phone,
+            "city": current_shop.city,
+            "address": current_shop.address
+        }
+    }
+
+
 @router.post("/logout", status_code=204)
 async def logout(
     current_shop: Shop = Depends(deps.get_current_shop)

@@ -16,16 +16,30 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const isMobile = useIsMobile()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [user, setUser] = useState<{id: string; name: string; phone: string; role: string} | null>(null)
+  const [user, setUser] = useState<{
+    id: string; 
+    name: string; 
+    phone: string; 
+    role: string; 
+    shop: {
+      id: number;
+      name: string;
+      phone: string;
+      city: string;
+      address?: string;
+    }
+  } | null>(null)
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userData = await authApi.getMe()
+        const { user: userData, shop } = await authApi.getCurrentUser()
         setUser({
           id: userData.id.toString(),
-          name: userData.name || userData.phone,
-          role: "admin"
+          name: userData.name,
+          phone: userData.phone,
+          role: userData.role,
+          shop
         })
       } catch (error) {
         // Failed to load user - error should be handled by auth interceptor

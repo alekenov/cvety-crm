@@ -1,17 +1,12 @@
 import {
   ShoppingCart,
-  Store,
   ChevronRight,
   Users,
-  Flower,
-  Calculator,
   Settings,
   UserCog,
   BookOpen,
-  PackagePlus,
   ShoppingBag,
   Package2,
-  Package,
 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
@@ -35,44 +30,14 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
   // Get shop_id from localStorage for dynamic shop URL
   const shopId = localStorage.getItem('shopId') || '1'
 
-  const menuGroups = [
-    {
-      label: "Продажи",
-      items: [
-        { title: "Заказы", url: "/orders", icon: ShoppingCart },
-        { title: "Задания флористам", url: "/production", icon: Flower },
-        { title: "Калькулятор букета", url: "/production/calculator", icon: Calculator },
-      ]
-    },
-    {
-      label: "Клиенты",
-      items: [
-        { title: "Клиенты", url: "/customers", icon: Users },
-      ]
-    },
-    {
-      label: "Витрина",
-      items: [
-        { title: "Витрина магазина", url: `/shop/${shopId}`, icon: ShoppingBag },
-      ]
-    },
-    {
-      label: "Товары",
-      items: [
-        { title: "Каталог товаров", url: "/catalog", icon: BookOpen },
-        { title: "Остатки склада", url: "/warehouse", icon: Store },
-        { title: "POS Склад", url: "/pos-warehouse", icon: Package2 },
-        { title: "POS Демо", url: "/pos-demo", icon: Package2 },
-        { title: "Поставки", url: "/supplies", icon: PackagePlus },
-      ]
-    },
-    {
-      label: "Система",
-      items: [
-        { title: "Общие настройки", url: "/settings", icon: Settings },
-        { title: "Пользователи", url: "/settings/users", icon: UserCog },
-      ]
-    }
+  const menuItems = [
+    { title: "Заказы", url: "/orders", icon: ShoppingCart },
+    { title: "Клиенты", url: "/customers", icon: Users },
+    { title: "Каталог товаров", url: "/catalog", icon: BookOpen },
+    { title: "Склад", url: "/warehouse", icon: Package2 },
+    { title: "Витрина магазина", url: `/shop/${shopId}`, icon: ShoppingBag },
+    { title: "Настройки", url: "/settings", icon: Settings },
+    { title: "Пользователи", url: "/settings/users", icon: UserCog },
   ]
 
   return (
@@ -82,38 +47,26 @@ export function AppSidebar({ onNavigate }: AppSidebarProps = {}) {
           <SidebarGroupLabel className="text-lg font-semibold">Cvety.kz</SidebarGroupLabel>
         </SidebarGroup>
         
-        {menuGroups.map((group) => (
-          <SidebarGroup key={group.label} className="mb-2">
-            <SidebarGroupLabel className="text-xs uppercase text-muted-foreground">
-              {group.label}
-            </SidebarGroupLabel>
-            <SidebarMenu>
-              {group.items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={!item.external && location.pathname === item.url}
-                    onClick={onNavigate}
-                  >
-                    {item.external ? (
-                      <a href={item.url} target="_blank" rel="noopener noreferrer">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-                      </a>
-                    ) : (
-                      <Link to={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-                      </Link>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        ))}
+        <SidebarGroup>
+          <SidebarMenu>
+            {menuItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === item.url || 
+                    (item.url !== "/" && location.pathname.startsWith(item.url))}
+                  onClick={onNavigate}
+                >
+                  <Link to={item.url}>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                    <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   )

@@ -151,9 +151,6 @@ function DateTimeSection({
               key={date.value}
               onClick={() => {
                 onInputChange('deliveryDate', date.value);
-                // Reset time and clarify option when date changes
-                onInputChange('deliveryTime', '');
-                onInputChange('clarifyWithRecipient', false);
               }}
               className={`px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg transition-colors text-center text-sm lg:text-base ${
                 formData.deliveryDate === date.value
@@ -190,7 +187,6 @@ function DateTimeSection({
                     key={timeSlot}
                     onClick={() => {
                       onInputChange('deliveryTime', timeSlot);
-                      onInputChange('clarifyWithRecipient', false);
                     }}
                     className={`px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg transition-colors text-center text-sm lg:text-base ${
                       formData.deliveryTime === timeSlot && !formData.clarifyWithRecipient

@@ -1,4 +1,4 @@
-import { ShoppingCart, Package, Users, MoreHorizontal } from "lucide-react"
+import { ShoppingCart, Package, Users, MoreHorizontal, BookOpen, ShoppingBag, Settings, UserCog } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -8,7 +8,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Flower, Calculator, BookOpen, Store, Settings, UserCog, Truck } from "lucide-react"
 
 const mainTabs = [
   {
@@ -31,54 +30,41 @@ const mainTabs = [
   }
 ]
 
-const moreItems = [
-  {
-    id: "production",
-    label: "Задания флористам",
-    icon: Flower,
-    href: "/production"
-  },
-  {
-    id: "calculator",
-    label: "Калькулятор букета",
-    icon: Calculator,
-    href: "/production/calculator"
-  },
-  {
-    id: "catalog",
-    label: "Каталог товаров",
-    icon: BookOpen,
-    href: "/catalog"
-  },
-  {
-    id: "supplies",
-    label: "Поставки",
-    icon: Store,
-    href: "/supplies"
-  },
-  {
-    id: "settings",
-    label: "Настройки",
-    icon: Settings,
-    href: "/settings"
-  },
-  {
-    id: "users",
-    label: "Пользователи",
-    icon: UserCog,
-    href: "/settings/users"
-  },
-  {
-    id: "tracking",
-    label: "Трекинг (тест)",
-    icon: Truck,
-    href: "/tracking/test-token"
-  }
-]
+
 
 export function MobileTabBar() {
   const location = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
+  
+  // Get shop_id from localStorage for dynamic shop URL
+  const shopId = localStorage.getItem('shopId') || '1'
+
+  const moreItems = [
+    {
+      id: "catalog",
+      label: "Каталог товаров",
+      icon: BookOpen,
+      href: "/catalog"
+    },
+    {
+      id: "shop",
+      label: "Витрина магазина",
+      icon: ShoppingBag,
+      href: `/shop/${shopId}`
+    },
+    {
+      id: "settings",
+      label: "Настройки",
+      icon: Settings,
+      href: "/settings"
+    },
+    {
+      id: "users",
+      label: "Пользователи",
+      icon: UserCog,
+      href: "/settings/users"
+    }
+  ]
 
   return (
     <>

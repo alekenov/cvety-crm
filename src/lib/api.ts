@@ -749,6 +749,36 @@ export const authApi = {
     }
   },
 
+  getCurrentUser: async () => {
+    const { data } = await api.get<{
+      user: {
+        id: number
+        name: string
+        phone: string
+        email: string
+        role: string
+        permissions: Record<string, boolean>
+        is_active: boolean
+        telegram_id?: string
+      }
+      shop: {
+        id: number
+        name: string
+        phone: string
+        city: string
+        address?: string
+      }
+    }>('/auth/current-user')
+    
+    return {
+      user: {
+        ...data.user,
+        isActive: data.user.is_active
+      },
+      shop: data.shop
+    }
+  },
+
   logout: () => {
     localStorage.removeItem('access_token')
     window.location.href = '/login'
