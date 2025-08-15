@@ -87,6 +87,7 @@ class OrderInDB(OrderBase):
     created_at: datetime
     updated_at: datetime
     status: OrderStatus
+    address_needs_clarification: Optional[bool] = False  # Override to make optional in DB responses
     has_pre_delivery_photos: bool = False
     has_issue: bool = False
     issue_type: Optional[IssueType] = None

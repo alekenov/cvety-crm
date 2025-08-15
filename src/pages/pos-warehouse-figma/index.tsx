@@ -4,7 +4,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { ProductSearch } from "@/pos-warehouse-figma/ProductSearch";
 import { ProductTable } from "@/pos-warehouse-figma/ProductTable";
-import { StockSummary } from "@/pos-warehouse-figma/StockSummary";
 import { InventoryPage } from "@/pos-warehouse-figma/InventoryPage";
 import { ProductDetailPage } from "@/pos-warehouse-figma/ProductDetailPage";
 import { DeliveryPage } from "@/pos-warehouse-figma/DeliveryPage";
@@ -55,10 +54,10 @@ export function POSWarehouseFigmaPage() {
 
   // Sync URL parameters with local state
   useEffect(() => {
-    if (location.pathname === "/pos-warehouse/inventory") {
+    if (location.pathname === "/warehouse/inventory") {
       setCurrentView("inventory");
       setSelectedProductId(null);
-    } else if (location.pathname === "/pos-warehouse/in") {
+    } else if (location.pathname === "/warehouse/in") {
       setCurrentView("delivery");
       setSelectedProductId(null);
     } else if (productId) {
@@ -158,7 +157,7 @@ export function POSWarehouseFigmaPage() {
   }, [products]);
 
   const handleProductClick = (productId: string) => {
-    navigate(`/pos-warehouse/${productId}`);
+    navigate(`/warehouse/${productId}`);
   };
 
   const handleQuantityUpdate = (productId: string, newQuantity: number) => {
@@ -254,13 +253,13 @@ export function POSWarehouseFigmaPage() {
             
             queryClient.invalidateQueries({ queryKey: ["warehouse-products-figma"] });
             toast.success(`Инвентаризация завершена. Обновлено товаров: ${changedProducts.length}`);
-            navigate("/pos-warehouse");
+            navigate("/warehouse");
           } catch (error: any) {
             console.error("Inventory error:", error.response?.data);
             toast.error("Ошибка при проведении инвентаризации");
           }
         }}
-        onBack={() => navigate("/pos-warehouse")}
+        onBack={() => navigate("/warehouse")}
       />
     );
   }
@@ -282,7 +281,7 @@ export function POSWarehouseFigmaPage() {
         <ProductDetailPage
           product={productWithHistory}
           onUpdateProduct={handleProductUpdate}
-          onBack={() => navigate("/pos-warehouse")}
+          onBack={() => navigate("/warehouse")}
         />
       );
     }
@@ -329,7 +328,7 @@ export function POSWarehouseFigmaPage() {
               
               queryClient.invalidateQueries({ queryKey: ["warehouse-products-figma"] });
               toast.success("Поставка создана успешно");
-              navigate("/pos-warehouse");
+              navigate("/warehouse");
             } catch (error: any) {
               console.error("Delivery error:", error.response?.data);
               let errorMessage = "Ошибка создания поставки";
@@ -358,23 +357,24 @@ export function POSWarehouseFigmaPage() {
             }
           }
         }}
-        onBack={() => navigate("/pos-warehouse")}
+        onBack={() => navigate("/warehouse")}
       />
     );
   }
 
   // Main warehouse view
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 max-w-7xl">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">POS Склад (Figma)</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">Склад</h1>
           <div className="flex gap-2">
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              onClick={() => navigate("/pos-warehouse/in")}
+              onClick={() => navigate("/warehouse/in")}
+              className="hidden sm:inline-flex h-9"
             >
               <Package className="h-4 w-4 mr-2" />
               Приёмка товара
@@ -382,19 +382,36 @@ export function POSWarehouseFigmaPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate("/pos-warehouse/inventory")}
+              onClick={() => navigate("/warehouse/inventory")}
+              className="hidden sm:inline-flex h-9"
             >
               <ClipboardList className="h-4 w-4 mr-2" />
               Инвентаризация
             </Button>
+            {/* Mobile buttons - larger and more obvious */}
+            <Button
+              variant="default"
+              size="icon"
+              onClick={() => navigate("/warehouse/in")}
+              className="sm:hidden h-10 w-10"
+              title="Приёмка товара"
+            >
+              <Package className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate("/warehouse/inventory")}
+              className="sm:hidden h-10 w-10"
+              title="Инвентаризация"
+            >
+              <ClipboardList className="h-5 w-5" />
+            </Button>
           </div>
         </div>
 
-        {/* Stock Summary */}
-        <StockSummary products={products || []} />
-
         {/* Search and Filters */}
-        <div className="mt-6">
+        <div className="mb-4">
           <ProductSearch
             searchQuery={searchQuery}
             selectedCategory={selectedCategory}
@@ -405,7 +422,7 @@ export function POSWarehouseFigmaPage() {
         </div>
 
         {/* Products Table */}
-        <div className="mt-6">
+        <div>
           <ProductTable
             products={filteredProducts}
             isLoading={isLoading}
