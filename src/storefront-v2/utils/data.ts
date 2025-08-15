@@ -71,31 +71,31 @@ export const promoProducts: Product[] = [
 
 export const catalogProducts: Product[] = [
   {
-    id: 67,
+    id: 27,
     image: imgImage6,
-    price: "8 100 ₸",
-    title: "Букет из альстромерий",
+    price: "8 200 ₸",
+    title: "Букет альстромерий",
     delivery: "Завтра к 16:00"
   },
   {
-    id: 68,
+    id: 25,
     image: imgImage7,
-    price: "9 200 ₸",
-    title: "Букет тюльпанов к 8 марта",
+    price: "15 000 ₸",
+    title: "Букет тюльпанов (21 шт)",
     delivery: "Завтра к 12:00"
   },
   {
-    id: 69,
+    id: 26,
     image: imgImage6,
-    price: "6 500 ₸",
-    title: "Смешанный букет весенний",
+    price: "12 000 ₸",
+    title: "Букет хризантем",
     delivery: "Послезавтра к 15:00"
   },
   {
-    id: 70,
+    id: 39,
     image: imgImage7,
-    price: "11 200 ₸",
-    title: "Композиция в коробке",
+    price: "32 000 ₸",
+    title: "Композиция в шляпной коробке",
     delivery: "Завтра к 18:00"
   }
 ];
