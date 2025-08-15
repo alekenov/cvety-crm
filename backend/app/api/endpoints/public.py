@@ -113,20 +113,33 @@ def create_public_order(
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
     
-    # Find or create customer
+    # Find or create customer - first try by phone and shop_id, then by phone only
     customer = db.query(Customer).filter(
         Customer.phone == order_data.customer_phone,
         Customer.shop_id == order_data.shop_id
     ).first()
     
     if not customer:
-        customer = Customer(
-            phone=order_data.customer_phone,
-            name=order_data.recipient_name or "Покупатель",
-            shop_id=order_data.shop_id
-        )
-        db.add(customer)
-        db.flush()
+        # Try to find customer by phone only (for cases where shop_id constraint exists)
+        existing_customer = db.query(Customer).filter(
+            Customer.phone == order_data.customer_phone
+        ).first()
+        
+        if existing_customer:
+            # Use existing customer but update name if provided
+            customer = existing_customer
+            if order_data.recipient_name and order_data.recipient_name != "Покупатель":
+                customer.name = order_data.recipient_name
+                db.flush()
+        else:
+            # Create new customer
+            customer = Customer(
+                phone=order_data.customer_phone,
+                name=order_data.recipient_name or "Покупатель",
+                shop_id=order_data.shop_id
+            )
+            db.add(customer)
+            db.flush()
     
     # Calculate totals from items
     flower_sum = sum(item.quantity * item.price for item in order_data.items)
