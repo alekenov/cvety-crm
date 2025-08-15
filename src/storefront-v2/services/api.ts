@@ -201,14 +201,14 @@ export const shopAPI = {
 
   // Send OTP
   sendOTP: async (phone: string): Promise<{ success: boolean; message: string }> => {
-    const { data } = await api.post('/api/telegram/send-otp', { phone });
-    return data;
+    const { data } = await api.post('/api/auth/request-otp', { phone });
+    return { success: true, message: data.message };
   },
 
   // Verify OTP
   verifyOTP: async (phone: string, otp: string): Promise<{ success: boolean; token?: string }> => {
-    const { data } = await api.post('/api/telegram/verify-otp', { phone, otp });
-    return data;
+    const { data } = await api.post('/api/auth/verify-otp', { phone, otp_code: otp });
+    return { success: true, token: data.access_token };
   }
 };
 
