@@ -120,6 +120,14 @@ async def request_otp(
     # Get telegram_id from Redis if available (set by simple Telegram bot)
     telegram_data = redis_service.get(f"telegram:{request.phone}")
     
+    # Special handling for test phone number - skip registration requirement
+    if request.phone == settings.TEST_PHONE:
+        return {
+            "message": "Test OTP: 111111",
+            "otp": "111111",
+            "delivery_method": "test"
+        }
+    
     # If new user without telegram registration, guide them to the bot
     if not shop and not telegram_data:
         return {

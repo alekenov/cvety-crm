@@ -35,11 +35,6 @@ import { TrackingPage as StorefrontTrackingPage } from "@/storefront/pages/Track
 import { StorefrontLayout } from "@/storefront/components/StorefrontLayout"
 import StorefrontV2App from "@/storefront-v2/StorefrontV2App"
 import LandingPage from "@/pages/landing/LandingPage"
-import FloristCRM from "@/prototype/FloristCRM"
-import FloristCRMWithAPI from "@/prototype/FloristCRMWithAPI"
-import MobileFloristCRM from "@/prototype/MobileFloristCRM"
-import FloristCRMResponsive from "@/prototype/FloristCRMResponsive"
-import MobileFloristCRMv2 from "@/prototype/MobileFloristCRMv2"
 
 const queryClient = new QueryClient()
 
@@ -52,11 +47,6 @@ function App() {
           <Routes>
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/prototype/order-create" element={<FloristCRM />} />
-            <Route path="/prototype/order-create-api" element={<FloristCRMWithAPI />} />
-            <Route path="/prototype/order-create-mobile" element={<MobileFloristCRM />} />
-            <Route path="/prototype/order-create-responsive" element={<FloristCRMResponsive />} />
-            <Route path="/prototype/order-create-v2" element={<MobileFloristCRMv2 />} />
             <Route path="/status/:token" element={<StorefrontTrackingPage />} />
             
             {/* POS Warehouse routes - moved here to avoid conflict with shop/:shopId */}

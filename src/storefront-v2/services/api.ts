@@ -20,6 +20,27 @@ api.interceptors.response.use(
   }
 );
 
+// API Response Types (from backend)
+export interface ApiOrderStatus {
+  order_number: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  delivery_method: 'delivery' | 'pickup';
+  delivery_window?: any;
+  delivery_fee: number;
+  total: number;
+  recipient_name?: string;
+  recipient_phone?: string;
+  address?: string;
+  items: Array<{
+    product_name: string;
+    quantity: number;
+    price: number;
+  }>;
+  tracking_token: string;
+}
+
 // API Types
 export interface ShopInfo {
   id: number;
@@ -41,34 +62,39 @@ export interface ProductAPI {
   id: number;
   name: string;
   description?: string;
-  price: number;
+  retail_price: number;
+  sale_price?: number;
   category?: string;
   image_url?: string;
-  in_stock?: boolean;
-  shop_id: number;
+  is_active?: boolean;
+  is_popular?: boolean;
+  is_new?: boolean;
+  shop_id?: number;
+  images?: Array<{
+    id: number;
+    image_url: string;
+    is_primary: boolean;
+    sort_order: number;
+  }>;
 }
 
 export interface OrderItemAPI {
   product_id: number;
   quantity: number;
-  price: number;
-  product_name?: string;
+  price?: number;
 }
 
 export interface CreateOrderRequest {
-  customer_name: string;
   customer_phone: string;
-  delivery_type: 'delivery' | 'pickup';
-  delivery_address?: string;
-  delivery_date?: string;
-  delivery_time?: string;
-  recipient_name?: string;
   recipient_phone?: string;
-  card_text?: string;
-  payment_method: 'cash' | 'card';
-  special_requests?: string;
+  recipient_name?: string;
+  address?: string;
+  delivery_method: 'delivery' | 'pickup';
+  delivery_fee: number;
   items: OrderItemAPI[];
-  total_amount: number;
+  card_text?: string;
+  delivery_time_text?: string;
+  shop_id: number;
 }
 
 export interface OrderResponse {
@@ -81,6 +107,58 @@ export interface OrderResponse {
   created_at: string;
 }
 
+// Transform API response to frontend OrderStatus type
+const transformApiOrderToOrderStatus = (apiOrder: ApiOrderStatus): any => {
+  // Format dates
+  const createdDate = new Date(apiOrder.created_at);
+  const orderDate = createdDate.toLocaleDateString('ru-RU');
+  const deliveryDate = orderDate; // Use same date for now
+  const deliveryTime = '12:00-18:00'; // Default delivery time
+  
+  // Transform items to CartItem format
+  const items = apiOrder.items.map((item, index) => ({
+    id: index + 1, // Generate IDs since API doesn't provide them
+    title: item.product_name,
+    price: `${item.price.toLocaleString()} ₸`,
+    image: 'https://via.placeholder.com/64x64/FFE5E5/FF6B6B?text=Flower',
+    delivery: 'Сегодня к 18:00',
+    quantity: item.quantity
+  }));
+  
+  // Create customer data structure
+  const customerData = {
+    deliveryMethod: apiOrder.delivery_method,
+    deliveryDate,
+    deliveryTime,
+    clarifyWithRecipient: false,
+    customerFirstName: apiOrder.recipient_name || 'Получатель',
+    customerPhone: apiOrder.recipient_phone || '',
+    recipientFirstName: apiOrder.recipient_name || 'Получатель',
+    recipientPhone: apiOrder.recipient_phone || '',
+    address: apiOrder.address || '',
+    apartment: '',
+    paymentMethod: 'cash' as const,
+    cardMessage: '',
+    comments: ''
+  };
+  
+  const orderStatus = {
+    id: apiOrder.tracking_token,
+    orderNumber: apiOrder.order_number,
+    status: apiOrder.status,
+    orderDate,
+    deliveryDate,
+    deliveryTime,
+    items,
+    total: apiOrder.total,
+    deliveryFee: apiOrder.delivery_fee,
+    deliveryMethod: apiOrder.delivery_method,
+    customerData
+  };
+  
+  return orderStatus;
+};
+
 // API Methods
 export const shopAPI = {
   // Get shop information
@@ -91,9 +169,9 @@ export const shopAPI = {
 
   // Get products for a shop
   getProducts: async (shopId: number): Promise<ProductAPI[]> => {
-    const { data } = await api.get(`/api/public/shops/${shopId}/products`);
-    // The response has a products array and total count
-    return data.products || [];
+    const { data } = await api.get(`/api/public/products?shop_id=${shopId}`);
+    // The response has items array and total count
+    return data.items || [];
   },
 
   // Get categories for a shop
@@ -110,14 +188,15 @@ export const shopAPI = {
 
   // Create order
   createOrder: async (shopId: number, orderData: CreateOrderRequest): Promise<OrderResponse> => {
-    const { data } = await api.post(`/api/public/shops/${shopId}/orders`, orderData);
+    const orderDataWithShopId = { ...orderData, shop_id: shopId };
+    const { data } = await api.post(`/api/public/orders`, orderDataWithShopId);
     return data;
   },
 
   // Track order by token
   trackOrder: async (trackingToken: string): Promise<any> => {
-    const { data } = await api.get(`/api/public/orders/${trackingToken}`);
-    return data;
+    const { data } = await api.get(`/api/public/status/${trackingToken}`);
+    return transformApiOrderToOrderStatus(data);
   },
 
   // Send OTP

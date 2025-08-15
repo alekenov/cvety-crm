@@ -112,7 +112,7 @@ export function TrackingPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/public/status/${token}`);
+        const response = await fetch(`/api/public/orders/${token}`);
         
         if (!response.ok) {
           if (response.status === 404) {

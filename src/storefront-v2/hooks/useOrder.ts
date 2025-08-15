@@ -41,26 +41,22 @@ export function useOrder(shopId: number) {
 
       // Prepare order data
       const orderData: CreateOrderRequest = {
-        customer_name: formData.customerName,
         customer_phone: formData.customerPhone,
-        delivery_type: formData.deliveryType,
-        delivery_address: formData.deliveryType === 'delivery' 
+        recipient_phone: formData.recipientPhone || formData.customerPhone,
+        recipient_name: formData.recipientName || formData.customerName,
+        address: formData.deliveryType === 'delivery' 
           ? `${formData.deliveryAddress}, кв. ${formData.apartment}` 
           : undefined,
-        delivery_date: formData.deliveryDate,
-        delivery_time: formData.deliveryTime,
-        recipient_name: formData.recipientName || formData.customerName,
-        recipient_phone: formData.recipientPhone || formData.customerPhone,
+        delivery_method: formData.deliveryType,
+        delivery_fee: deliveryPrice,
         card_text: formData.cardText,
-        payment_method: formData.paymentMethod,
-        special_requests: formData.specialRequests,
+        delivery_time_text: `${formData.deliveryDate} ${formData.deliveryTime}`,
         items: cartItems.map(item => ({
           product_id: item.id,
           quantity: item.quantity,
           price: parseInt(item.price.replace(/[^\d]/g, '')),
-          product_name: item.title,
         })),
-        total_amount: totalAmount,
+        shop_id: shopId,
       };
 
       // Create order via API

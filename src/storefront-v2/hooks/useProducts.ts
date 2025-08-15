@@ -4,14 +4,21 @@ import { Product } from '../types.js';
 
 // Convert API product to UI product format
 const convertProductToUI = (apiProduct: ProductAPI): Product => {
+  const price = apiProduct.sale_price || apiProduct.retail_price;
+  // Get primary image from images array
+  const primaryImage = apiProduct.images?.find(img => img.is_primary)?.image_url 
+    || apiProduct.images?.[0]?.image_url 
+    || apiProduct.image_url 
+    || 'https://via.placeholder.com/400x400/FFE5E5/FF6B6B?text=Flower';
+    
   return {
     id: apiProduct.id,
     title: apiProduct.name,
-    price: `${apiProduct.price.toLocaleString()} ₸`,
-    image: apiProduct.image_url || 'https://via.placeholder.com/400x400/FFE5E5/FF6B6B?text=Flower',
+    price: `${price.toLocaleString()} ₸`,
+    image: primaryImage,
     delivery: 'Сегодня к 18:00', // This should come from shop info
-    tag: apiProduct.in_stock === false ? 'Нет в наличии' : undefined,
-    tagVariant: apiProduct.in_stock === false ? 'default' : undefined,
+    tag: apiProduct.is_active === false ? 'Нет в наличии' : undefined,
+    tagVariant: apiProduct.is_active === false ? 'default' : undefined,
   };
 };
 

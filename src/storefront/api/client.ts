@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance for public API
 const apiClient = axios.create({
-  baseURL: '/api/public',
+  baseURL: '/public',
   headers: {
     'Content-Type': 'application/json',
   },

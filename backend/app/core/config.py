@@ -40,6 +40,7 @@ class Settings(BaseSettings):
             "http://localhost:5173",
             "http://localhost:5174",  # telegram-miniapp local
             "http://localhost:5177",  # storefront-v2 local
+            "http://localhost:5178",  # vite dev server port
             "http://localhost:5181",  # vite dev server current port
             "http://localhost:5182",  # vite dev server future ports
             "http://localhost:3000",
